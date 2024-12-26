@@ -58,9 +58,13 @@ function POSPage() {
 
     const componentRef = useRef();
 
-    const handlePrint = useReactToPrint({
+    const handleReactToPrint = useReactToPrint({
         content: () => componentRef.current,
     });
+
+    const handlePrint = () => {
+        handleReactToPrint();
+    }
 
     useEffect(() => {
         fetchProducts();
