@@ -58,13 +58,10 @@ function POSPage() {
 
     const componentRef = useRef();
 
-    const handleReactToPrint = useReactToPrint({
-        content: () => componentRef.current,
+    const handlePrint = useReactToPrint({
+        documentTitle: 'فاتورة',
+        contentRef: componentRef,
     });
-
-    const handlePrint = () => {
-        handleReactToPrint();
-    }
 
     useEffect(() => {
         fetchProducts();
@@ -139,7 +136,7 @@ function POSPage() {
                             {bill.length > 0 && (
                                 <>
                                     <button className="btn btn-danger w-100 mt-3" onClick={clearBill}>حذف الكل</button>
-                                    <button className="btn btn-success w-100 mt-3" onClick={handlePrint}>إتمام الطلب</button>
+                                    <button className="btn btn-success w-100 mt-3" onClick={() => handlePrint()}>إتمام الطلب</button>
                                 </>
                             )}
                         </div>

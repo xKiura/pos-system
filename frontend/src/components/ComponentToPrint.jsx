@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const ComponentToPrint = React.forwardRef((props, ref) => {
-    const { bill, totalAmount } = props;
+    const {bill, totalAmount} = props;
     return (
         <div ref={ref} className='p-5'>
             <table className='table'>
