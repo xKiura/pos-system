@@ -1,36 +1,54 @@
 import React from 'react';
 
 export const ComponentToPrint = React.forwardRef((props, ref) => {
-    const {bill, totalAmount} = props;
+    const { bill, totalAmount } = props;
+
+    const roundToNearestHalf = (num) => {
+        return Math.round(num * 2) / 2;
+    };
+
+    const billTotalTax = roundToNearestHalf(totalAmount * 0.15);
+    const currentDateTime = new Date().toLocaleString();
+    const restaurantName = "مندي ومشوي";
+
     return (
         <div ref={ref} className='p-5'>
             <table className='table'>
                 <thead>
                     <tr>
-                        <td className="border-end">#</td>
-                        <td className="border-end">المنتج</td>
-                        <td className="border-end">السعر</td>
-                        <td className="border-end">الكمية</td>
-                        <td className="border-end">المجموع</td>
+                        <td colSpan="5" className="text-end">{currentDateTime}</td>
+                    </tr>
+                    <tr>
+                        <td>المجموع</td>
+                        <td>الكمية</td>
+                        <td>السعر</td>
+                        <td>المنتج</td>
+                        <td>#</td>
                     </tr>
                 </thead>
                 <tbody>
                     {bill.length === 0 ? (
-                    []
+                        []
                     ) : (
                         bill.map((billItem, key) => (
-                            <tr key={key} className="border-bottom">
-                                <td className="border-end">{key + 1}</td>
-                                <td className="border-end">{billItem.name}</td>
-                                <td className="border-end">{billItem.price}</td>
-                                <td className="border-end">{billItem.quantity}</td>
-                                <td className="border-end">{billItem.totalAmount}</td>
+                            <tr key={key}>
+                                <td>{Math.ceil(billItem.totalAmount)}</td>
+                                <td>{billItem.quantity}</td>
+                                <td>{billItem.price}</td>
+                                <td>{billItem.name}</td>
+                                <td>{key + 1}</td>
                             </tr>
                         ))
                     )}
                 </tbody>
             </table>
-            <h2 className="px-2">كامل المجموع : {totalAmount} ر.س</h2>
+            <h6 className="px-4">المجموع : {Math.ceil(totalAmount)} ر.س</h6>
+            <h6 className="px-4">ضريبة المبيعات (15%) : {billTotalTax.toFixed(2)} ر.س</h6>
+            <h2 className="px-4">كامل المجموع : {(totalAmount + billTotalTax).toFixed(1)} ر.س</h2>
+            <div className="text-center mt-5">
+                <h4>بالهنا والشفا</h4>
+                <h1>{restaurantName}</h1>
+            </div>
         </div>
     );
 });

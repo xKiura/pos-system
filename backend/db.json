@@ -2,27 +2,31 @@
     "products": [
         {
             "id": 123,
-            "name": "Product 1",
+            "name": "مندي لحم",
             "price": "45",
-            "image": "https://via.placeholder.com/150"
+            "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
+            "category": "رز"
         },
         {
             "id": 124,
-            "name": "Product 2",
-            "price": "78",
-            "image": "https://via.placeholder.com/150"
+            "name": "مشويات مشكل",
+            "price": "100",
+            "image": "https://b.zmtcdn.com/data/pictures/6/21364596/4ffc072adaf0517abb75a02585acc629_o2_featured_v2.jpg",
+            "category": "مشويات"
         },
         {
             "id": 125,
-            "name": "Product 3",
-            "price": "32",
-            "image": "https://via.placeholder.com/150"
+            "name": "كينزا",
+            "price": "10",
+            "image": "https://media.zid.store/thumbs/97000df6-db1b-4087-92c8-f0f844ed0c7b/40c062d2-7fbd-46c2-9706-8416270c1e6e-thumbnail-1000x1000-70.webp",
+            "category": "مشروبات"
         },
         {
             "id": 126,
-            "name": "Product 4",
-            "price": "67",
-            "image": "https://via.placeholder.com/150"
+            "name": "وجبة مندي ومشوي",
+            "price": "15",
+            "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHOe-qXUPduZqi-bMx913X5GF39cK3Hdiyzg&s",
+            "category": "وجبات"
         },
         {
             "id": 127,
