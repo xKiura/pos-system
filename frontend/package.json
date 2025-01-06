@@ -8,6 +8,7 @@
     "http-proxy-middleware": "^2.0.7",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "react-icons": "^5.4.0",
     "react-router-dom": "^7.1.0",
     "react-scripts": "^5.0.1",
     "react-to-print": "^3.0.3",
