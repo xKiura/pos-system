@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import backgroundImage from "../assets/mendi-mashwi.jpeg";
 import LoginPopup from "../components/LoginPopup/LoginPopup";
-import SignUpPopup from "../components/SignUpPopUp/SignUpPopup";
 
 const HomePage = () => {
   const [showLogin, setShowLoginState] = useState(false);
