@@ -23,7 +23,7 @@ const LoginPopup = ({ onClose }) => {
           </div>
         </div>
         <Link to="/pos">
-        <button data-mdb-button-init data-mdb-ripple-init className="mt-5 btn btn-primary btn-lg btn-block" type="submit">الدخول إلى نقطة البيع</button>
+        <button data-mdb-button-init data-mdb-ripple-init className="mt-5 btn btn-warning btn-lg btn-block" type="submit">الدخول إلى نقطة البيع</button>
         </Link>
       </div>
     </div>

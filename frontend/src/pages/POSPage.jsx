@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
+import { FaTimes } from 'react-icons/fa';
+import { assets } from "../assets/assets";
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -94,19 +96,30 @@ function POSPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const categoryImages = {
+    الكل: assets.allImage,
+    رز: assets.riceImage,
+    مشويات: assets.grillImage,
+    مشروبات: assets.drinksImage,
+    وجبات: assets.mealsImage
+  };
+
   return (
     <>
       <div className="container-fluid">
         <div className="row mb-3">
-          <div className="col">
-            {['all', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category, index) => (
+          <div className="col justify-content-center d-flex my-3">
+            {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category, index) => (
               <button
                 key={index}
-                className={`btn me-2 ${filter === category ? 'btn-primary' : 'btn-outline-primary'}`}
-                onClick={() => setFilter(filter === category ? 'all' : category)}
-                style={{ flex: 1, minWidth: '120px', fontSize: '1.1rem', padding: '10px 20px' }}
+                className={`btn me-2 p-2 border border-warning border ${filter === (category === 'الكل' ? 'all' : category) ? 'btn-warning' : 'btn-outline-warning'}`}
+                onClick={() => setFilter(category === 'الكل' ? 'all' : category)}
+                style={{ flex: 1, minWidth: '120px', fontSize: '1.1rem', padding: '10px 20px', position: 'relative' }}
               >
-                {category === 'all' ? 'الكل' : category}
+                <img src={categoryImages[category]} alt={category} style={{ width: '100%', height: '80px', objectFit: 'cover' }} />
+                <span className={`category-text ${filter === (category === 'الكل' ? 'all' : category) ? 'selected' : ''}`}>
+                  {category}
+                </span>
               </button>
             ))}
           </div>
@@ -124,7 +137,7 @@ function POSPage() {
                       <div className="card-body d-flex flex-column">
                         <h5 className="card-title">{product.name}</h5>
                         <p className="card-text">{product.price} ر.س</p>
-                        <button className="btn btn-primary mt-auto" onClick={() => addProductToBill(product)}>إضافة إلى الفاتورة</button>
+                        <button className="btn btn-warning mt-auto" onClick={() => addProductToBill(product)}>إضافة إلى الفاتورة</button>
                       </div>
                     </div>
                   </div>
@@ -164,8 +177,8 @@ function POSPage() {
                         <td className="border-end">{billItem.quantity}</td>
                         <td className="border-end">{billItem.price}</td>
                         <td className="border-end">{billItem.name}</td>
-                        <td>
-                          <button className="btn btn-danger btn-sm w-100" onClick={() => removeItem(billItem)}>حذف</button>
+                        <td className='text-center'>
+                          <button className='btn btn-danger btn-sm py-0' style={{ fontSize: '0.9em' }} onClick={() => removeItem(billItem)}><FaTimes color="white" /></button>
                         </td>
                       </tr>
                     ))
@@ -202,6 +215,40 @@ function POSPage() {
           min-width: 120px;
           font-size: 1.1rem;
           padding: 10px 20px;
+          position: relative;
+        }
+        .btn-sm {
+          min-width: 40px;
+        }
+        .btn-warning {
+          background-color: rgb(255, 147, 7);
+        }
+        .btn img {
+          width: 100%;
+          height: 80px;
+          object-fit: cover;
+        }
+        .btn span {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: black;
+          font-weight: bold;
+          text-shadow: 1px 1px 2px white;
+          font-size: 1.6rem;
+        }
+        .btn:hover .category-text {
+          animation: colorChange 2s infinite;
+        }
+        .btn.selected .category-text {
+          color: yellow;
+          animation: none;
+        }
+        @keyframes colorChange {
+          0% { color: black; }
+          50% { color: yellow; }
+          100% { color: black; }
         }
       `}</style>
     </>

@@ -1,22 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import './SignUpPopup.css';
 import { FaTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
 const SignUpPopup = ({ onClose }) => {
-  useEffect(() => {
-    const handleEsc = (event) => {
-      if (event.keyCode === 27) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-
-    return () => {
-      window.removeEventListener('keydown', handleEsc);
-    };
-  }, [onClose]);
-
   return (
     <div className="login-popup fade-in">
       <button className="close-btn m-2" onClick={onClose}><FaTimes color="red" /></button>
@@ -40,7 +27,7 @@ const SignUpPopup = ({ onClose }) => {
           <input type="email" id="typeEmailX-2" placeholder='aaa@email.com' className="form-control form-control-lg" />
         </div>
         <Link to="/pos">
-          <button data-mdb-button-init data-mdb-ripple-init className="mt-5 btn btn-primary btn-lg btn-block" type="submit"  onClick={onClose}>تسجيل</button>
+          <button data-mdb-button-init data-mdb-ripple-init className="mt-5 btn btn-primary btn-lg btn-block" type="submit">تسجيل</button>
         </Link>
       </div>
     </div>

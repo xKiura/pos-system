@@ -27,7 +27,7 @@ const HomePage = () => {
         <div className="text-center bg-light p-5 rounded-3" style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
           <h1>مطعم مندي ومشوي</h1>
           <p>مرحباً بك في مطعم مندي ومشوي. يرجى تسجيل الدخول للمتابعة.</p>
-          <button type="button" className="btn btn-primary" onClick={() => setShowLoginState(true)}>الدخول إلى نقطة البيع</button>
+          <button type="button" className="btn btn-warning" onClick={() => setShowLoginState(true)}>الدخول إلى نقطة البيع</button>
         </div>
       </div>
     </>
