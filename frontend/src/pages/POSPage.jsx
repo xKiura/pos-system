@@ -12,6 +12,8 @@ function POSPage() {
   const [totalAmount, setTotalAmount] = useState(0);
   const [currentDateTime, setCurrentDateTime] = useState(new Date().toLocaleString());
   const [filter, setFilter] = useState('all');
+  const [employeeName, setEmployeeName] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
 
   const roundToNearestHalf = (num) => {
     return Math.round(num * 2) / 2;
@@ -61,6 +63,35 @@ function POSPage() {
     }
   }
 
+  function updateProductQuantity(product, increment) {
+    let findProductInBill = bill.find(i => i.id === product.id);
+
+    if (findProductInBill) {
+      let newBill = bill.map(billItem => {
+        if (billItem.id === product.id) {
+          const newQuantity = billItem.quantity + increment;
+          if (newQuantity <= 0) {
+            return null;
+          }
+          return {
+            ...billItem,
+            quantity: newQuantity,
+            totalAmount: newQuantity * parseFloat(billItem.price)
+          };
+        }
+        return billItem;
+      }).filter(Boolean);
+      setBill(newBill);
+    } else if (increment > 0) {
+      let addingProduct = {
+        ...product,
+        quantity: 1,
+        totalAmount: parseFloat(product.price)
+      };
+      setBill([...bill, addingProduct]);
+    }
+  }
+
   const removeItem = (product) => {
     let newBill = bill.filter(billItem => billItem.id !== product.id);
     setBill(newBill);
@@ -94,6 +125,12 @@ function POSPage() {
       setCurrentDateTime(new Date().toLocaleString());
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setEmployeeName(params.get('name') || '');
+    setEmployeeNumber(params.get('number') || '');
   }, []);
 
   const categoryImages = {
@@ -137,7 +174,11 @@ function POSPage() {
                       <div className="card-body d-flex flex-column">
                         <h5 className="card-title">{product.name}</h5>
                         <p className="card-text">{product.price} ر.س</p>
-                        <button className="btn btn-warning mt-auto" onClick={() => addProductToBill(product)}>إضافة إلى الفاتورة</button>
+                        <div className="d-flex justify-content-between align-items-center mt-auto" style={{ width: '100%' }}>
+                          <button className="btn btn-sm rounded-2 btn-danger flex-fill" onClick={() => updateProductQuantity(product, -1)}>-</button>
+                          <span className="quantity-box px-0 flex-fill m-1">{bill.find(i => i.id === product.id)?.quantity || 0}</span>
+                          <button className="btn btn-sm rounded-2 btn-success flex-fill" onClick={() => updateProductQuantity(product, 1)}>+</button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -147,13 +188,19 @@ function POSPage() {
           </div>
           <div className="col-lg-4">
             <div style={{ display: 'none' }}>
-              <ComponentToPrint bill={bill} totalAmount={totalAmount} ref={componentRef} />
+              <ComponentToPrint bill={bill} totalAmount={totalAmount} ref={componentRef} employeeName={employeeName} employeeNumber={employeeNumber} />
             </div>
             <div className="table-responsive bg-dark mg-2 p-2 rounded-3">
               <table className='table table-dark table-striped table-hover table-md'>
                 <thead>
                   <tr>
                     <td colSpan="6" className="text-end">{currentDateTime}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan="6" className="text-end">اسم الموظف: {employeeName}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan="6" className="text-end">رقم الموظف: #{employeeNumber}</td>
                   </tr>
                   <tr>
                     <td className="border-end">#</td>
@@ -221,7 +268,7 @@ function POSPage() {
           min-width: 40px;
         }
         .btn-warning {
-          background-color: rgb(255, 147, 7);
+          background-color: rgb(255, 123, 0);
         }
         .btn img {
           width: 100%;
@@ -250,6 +297,17 @@ function POSPage() {
           50% { color: yellow; }
           100% { color: black; }
         }
+        .quantity-box {
+          display: inline-block;
+          width: 20%;
+          height: 40px;
+          line-height: 40px;
+          text-align: center;
+          background-color: white;
+          border: 2px solid #6c757d;
+          border-radius: 5px;
+          font-size: 1.2rem;
+          font-weight: bold;
       `}</style>
     </>
   );

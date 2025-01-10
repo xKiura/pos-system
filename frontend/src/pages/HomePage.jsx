@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import backgroundImage from "../assets/mendi-mashwi.jpeg";
 import LoginPopup from "../components/LoginPopup/LoginPopup";
+import { Link } from "react-router-dom";
 
 const HomePage = () => {
   const [showLogin, setShowLoginState] = useState(false);
@@ -30,6 +31,12 @@ const HomePage = () => {
           <button type="button" className="btn btn-warning" onClick={() => setShowLoginState(true)}>الدخول إلى نقطة البيع</button>
         </div>
       </div>
+
+      <style jsx>{`
+              .btn-warning {
+          background-color: rgb(255, 123, 0);
+        }
+          `}</style>
     </>
   );
 }

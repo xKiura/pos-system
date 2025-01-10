@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const ComponentToPrint = React.forwardRef((props, ref) => {
-    const { bill, totalAmount } = props;
+    const { bill, totalAmount, employeeName, employeeNumber } = props;
 
     const roundToNearestHalf = (num) => {
         return Math.round(num * 2) / 2;
@@ -17,6 +17,12 @@ export const ComponentToPrint = React.forwardRef((props, ref) => {
                 <thead>
                     <tr>
                         <td colSpan="5" className="text-end">{currentDateTime}</td>
+                    </tr>
+                    <tr>
+                        <td colSpan="5" className="text-end">اسم الموظف: {employeeName}</td>
+                    </tr>
+                    <tr>
+                        <td colSpan="5" className="text-end">رقم الموظف: #{employeeNumber}</td>
                     </tr>
                     <tr>
                         <td>المجموع</td>
