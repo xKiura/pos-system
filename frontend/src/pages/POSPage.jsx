@@ -4,6 +4,7 @@ import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
 import { FaTimes } from 'react-icons/fa';
 import { assets } from "../assets/assets";
+import { Link } from 'react-router-dom';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -242,6 +243,7 @@ function POSPage() {
                 </>
               )}
             </div>
+            <Link className='btn btn-warning mt-3 w-100' to="/manage-products">إدارة المنتجات</Link>
           </div>
         </div>
       </div>
