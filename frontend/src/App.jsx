@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import POSPage from './pages/POSPage';
 import MainLayout from './layouts/MainLayout';
 import ManageProductsPage from './pages/ManageProductsPage';
+import ProfitsPage from './pages/ProfitsPage';
 
 const App = () => {
 
@@ -20,6 +21,7 @@ const App = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/pos" element={<POSPage />} />
           <Route path="/manage-products" element={<ManageProductsPage />} />
+          <Route path="/profits" element={<ProfitsPage />} />
         </Routes>
       </div>
     </Router>

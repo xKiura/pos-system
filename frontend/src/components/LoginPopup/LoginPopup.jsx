@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './LoginPopup.css';
 import { FaTimes } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
@@ -7,13 +7,32 @@ const LoginPopup = ({ onClose }) => {
   const [employeeName, setEmployeeName] = useState('');
   const [employeeNumber, setEmployeeNumber] = useState('');
 
+  useEffect(() => {
+    const savedEmployeeName = localStorage.getItem('employeeName');
+    const savedEmployeeNumber = localStorage.getItem('employeeNumber');
+    if (savedEmployeeName && savedEmployeeNumber) {
+      setEmployeeName(savedEmployeeName);
+      setEmployeeNumber(savedEmployeeNumber);
+    }
+  }, []);
+
   const handleLogin = () => {
     if (employeeName.trim() && employeeNumber.trim()) {
+      localStorage.setItem('employeeName', employeeName);
+      localStorage.setItem('employeeNumber', employeeNumber);
       const url = `/pos?name=${encodeURIComponent(employeeName)}&number=${encodeURIComponent(employeeNumber)}`;
       window.location.href = url;
     } else {
       alert('يرجى إدخال اسم الموظف ورقم الموظف');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('employeeName');
+    localStorage.removeItem('employeeNumber');
+    setEmployeeName('');
+    setEmployeeNumber('');
+    window.location.href = '/';
   };
 
   return (
@@ -35,6 +54,7 @@ const LoginPopup = ({ onClose }) => {
           </div>
         </div>
         <button data-mdb-button-init data-mdb-ripple-init className="mt-5 btn btn-warning btn-lg btn-block" type="button" onClick={handleLogin}>الدخول إلى نقطة البيع</button>
+        <button data-mdb-button-init data-mdb-ripple-init className="mt-3 btn btn-danger btn-lg btn-block" type="button" onClick={handleLogout}>تسجيل الخروج</button>
       </div>
     </div>
   );

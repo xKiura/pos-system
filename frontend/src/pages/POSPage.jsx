@@ -104,9 +104,28 @@ function POSPage() {
 
   const componentRef = useRef();
 
+  const saveConfirmedOrder = async (order) => {
+    try {
+      await axios.post('http://localhost:5001/confirmed-orders', order);
+    } catch (error) {
+      console.error('Error saving confirmed order:', error);
+    }
+  };
+
   const handlePrint = useReactToPrint({
     documentTitle: 'فاتورة',
     contentRef: componentRef,
+    onAfterPrint: () => {
+      const confirmedOrder = {
+        date: new Date().toLocaleDateString(),
+        category: filter,
+        items: bill,
+        employeeName,
+        employeeNumber
+      };
+      saveConfirmedOrder(confirmedOrder);
+      clearBill();
+    }
   });
 
   useEffect(() => {
@@ -145,6 +164,14 @@ function POSPage() {
   return (
     <>
       <div className="container-fluid">
+        <div className="row mt-3 justify-content-center">
+          <div className="col-auto">
+            <Link className='btn btn-warning' to="/manage-products">إدارة المنتجات</Link>
+          </div>
+          <div className="col-auto">
+            <Link className='btn btn-warning' to="/profits">عرض الأرباح</Link>
+          </div>
+        </div>
         <div className="row mb-3">
           <div className="col justify-content-center d-flex my-3">
             {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category, index) => (
@@ -243,11 +270,10 @@ function POSPage() {
                 </>
               )}
             </div>
-            <Link className='btn btn-warning mt-3 w-100' to="/manage-products">إدارة المنتجات</Link>
           </div>
         </div>
       </div>
-      <style jsx>{`
+      <style>{`
         .border-end {
           border-right: 1px solid #6c757d !important;
         }

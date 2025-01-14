@@ -22,7 +22,7 @@ const MainLayout = () => {
           </div>
           <div className="justify-content-end my-2 mx-5" id="navbarNavAltMarkup">
             <div className="navbar-nav">
-            <Link className="nav-item nav-link active"><button type="button" className="btn btn-outline-secondary" onClick={toggleSignUpPopup}>تسجيل جديد</button></Link>
+              <Link className="nav-item nav-link active"><button type="button" className="btn btn-outline-secondary" onClick={toggleSignUpPopup}>تسجيل جديد</button></Link>
             </div>
           </div>
         </nav>
