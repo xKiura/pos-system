@@ -75,12 +75,6 @@
       "name": "Product 12",
       "price": "41",
       "image": "https://via.placeholder.com/150"
-    },
-    {
-      "id": "9e04",
-      "name": "1",
-      "price": "999",
-      "image": ""
     }
   ]
 }

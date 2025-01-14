@@ -3,10 +3,15 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import './ManageProductsPage.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { Modal, Button } from 'react-bootstrap';
 
 const ManageProductsPage = () => {
     const [products, setProducts] = useState([]);
     const [product, setProduct] = useState({ name: '', price: '', image: '' });
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showRemoveModal, setShowRemoveModal] = useState(false);
+    const [productToRemove, setProductToRemove] = useState(null);
 
     useEffect(() => {
         fetchProducts();
@@ -31,15 +36,17 @@ const ManageProductsPage = () => {
             const result = await axios.post('http://localhost:5000/products', product);
             setProducts([...products, result.data]);
             setProduct({ name: '', price: '', image: '' });
+            setShowAddModal(false);
         } catch (error) {
             console.error('Error adding product:', error);
         }
     };
 
-    const handleRemoveProduct = async (id) => {
+    const handleRemoveProduct = async () => {
         try {
-            await axios.delete(`http://localhost:5000/products/${id}`);
-            setProducts(products.filter(product => product.id !== id));
+            await axios.delete(`http://localhost:5000/products/${productToRemove}`);
+            setProducts(products.filter(product => product.id !== productToRemove));
+            setShowRemoveModal(false);
         } catch (error) {
             console.error('Error removing product:', error);
         }
@@ -75,7 +82,7 @@ const ManageProductsPage = () => {
                     onChange={handleChange}
                     placeholder="رابط صورة المنتج"
                 />
-                <button className='btn btn-warning text-black mt-3' onClick={handleAddProduct} disabled={!isFormValid}>إضافة المنتج</button>
+                <button className='btn btn-warning text-black mt-3' onClick={() => setShowAddModal(true)} disabled={!isFormValid}>إضافة المنتج</button>
             </div>
             <div className="product-list">
                 {products.map((prod) => (
@@ -83,10 +90,42 @@ const ManageProductsPage = () => {
                         <img src={prod.image} alt={prod.name} />
                         <div>{prod.name}</div>
                         <div>{prod.price} ر.س</div>
-                        <button onClick={() => handleRemoveProduct(prod.id)}>إزالة المنتج</button>
+                        <button onClick={() => { setProductToRemove(prod.id); setShowRemoveModal(true); }}>إزالة المنتج</button>
                     </div>
                 ))}
             </div>
+
+            {/* Add Product Modal */}
+            <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>تأكيد إضافة المنتج</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>هل أنت متأكد أنك تريد إضافة هذا المنتج؟</Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+                        إلغاء
+                    </Button>
+                    <Button variant="primary" onClick={handleAddProduct}>
+                        إضافة
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            {/* Remove Product Modal */}
+            <Modal show={showRemoveModal} onHide={() => setShowRemoveModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>تأكيد إزالة المنتج</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>هل أنت متأكد أنك تريد إزالة هذا المنتج؟</Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowRemoveModal(false)}>
+                        إلغاء
+                    </Button>
+                    <Button variant="danger" onClick={handleRemoveProduct}>
+                        إزالة
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </div>
     );
 };

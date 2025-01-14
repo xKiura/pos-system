@@ -19,6 +19,7 @@ function ProfitsPage() {
     const [showModal, setShowModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState(null);
+    const [orderNumber, setOrderNumber] = useState(1);
 
     useEffect(() => {
         const savedEmployeeName = localStorage.getItem('employeeName');
@@ -31,13 +32,35 @@ function ProfitsPage() {
     }, []);
 
     useEffect(() => {
+        const savedOrderNumber = localStorage.getItem('orderNumber');
+        const lastResetDate = localStorage.getItem('lastResetDate');
+        const today = new Date().toLocaleDateString();
+
+        if (savedOrderNumber && lastResetDate === today) {
+            setOrderNumber(parseInt(savedOrderNumber, 10));
+        } else {
+            localStorage.setItem('orderNumber', '1');
+            localStorage.setItem('lastResetDate', today);
+            setOrderNumber(1);
+        }
+    }, []);
+
+    useEffect(() => {
         filterOrders();
     }, [confirmedOrders, dateFilter, categoryFilter]);
 
     const fetchConfirmedOrders = async () => {
         try {
             const result = await axios.get('http://localhost:5001/confirmed-orders');
-            setConfirmedOrders(result.data);
+            const ordersWithDateTime = result.data.map(order => {
+                const confirmedDate = new Date(order.confirmedAt);
+                return {
+                    ...order,
+                    date: confirmedDate.toLocaleDateString('en-GB'), // Use 'en-GB' to ensure correct date format
+                    time: confirmedDate.toLocaleTimeString('en-GB') // Use 'en-GB' to ensure correct time format
+                };
+            });
+            setConfirmedOrders(ordersWithDateTime);
         } catch (error) {
             console.error('Error fetching confirmed orders:', error);
         }
@@ -83,18 +106,36 @@ function ProfitsPage() {
             setConfirmedOrders([]);
             setFilteredOrders([]);
             setShowModal(false);
+            localStorage.setItem('orderNumber', '1');
+            setOrderNumber(1);
         } catch (error) {
             console.error('Error deleting all confirmed orders:', error);
         }
     };
 
     const handleDeleteOrder = async (orderNumber) => {
+        const orderExists = confirmedOrders.some(order => order.orderNumber === orderNumber);
+        if (!orderExists) {
+            alert('Order not found.');
+            return;
+        }
+
+        console.log(`Attempting to delete order number: ${orderNumber}`);
+
         try {
-            await axios.delete(`http://localhost:5001/confirmed-orders/${orderNumber}`);
-            fetchConfirmedOrders();
+            const response = await axios.delete(`http://localhost:5001/confirmed-orders/${parseInt(orderNumber, 10)}`);
+            console.log('Delete response:', response);
+            setConfirmedOrders(confirmedOrders.filter(order => order.orderNumber !== orderNumber));
+            setFilteredOrders(filteredOrders.filter(order => order.orderNumber !== orderNumber));
+            localStorage.setItem('confirmedOrders', JSON.stringify(confirmedOrders.filter(order => order.orderNumber !== orderNumber)));
             setShowDeleteModal(false);
         } catch (error) {
-            console.error('Error deleting order:', error);
+            if (error.response && error.response.status === 404) {
+                console.error('Order not found:', error);
+                alert('Order not found.');
+            } else {
+                console.error('Error deleting order:', error);
+            }
         }
     };
 
@@ -124,7 +165,8 @@ function ProfitsPage() {
                     <thead>
                         <tr>
                             <th>رقم الفاتورة</th>
-                            <th>المنتج</th>
+                            <th>التاريخ</th>
+                            <th>المنتجات</th>
                             <th>الكمية المباعة</th>
                             <th>مجموع السعر</th>
                             <th>تفاصيل الفاتورة</th>
@@ -135,6 +177,7 @@ function ProfitsPage() {
                             <React.Fragment key={index}>
                                 <tr>
                                     <td>{order.orderNumber}</td>
+                                    <td>{order.date} {order.time}</td>
                                     <td>{order.items.map(item => item.name).join(', ')}</td>
                                     <td>{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
                                     <td>${order.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}</td>

@@ -15,6 +15,7 @@ function POSPage() {
   const [filter, setFilter] = useState('all');
   const [employeeName, setEmployeeName] = useState('');
   const [employeeNumber, setEmployeeNumber] = useState('');
+  const [orderNumber, setOrderNumber] = useState(1);
 
   const roundToNearestHalf = (num) => {
     return Math.round(num * 2) / 2;
@@ -118,12 +119,15 @@ function POSPage() {
     onAfterPrint: () => {
       const confirmedOrder = {
         date: new Date().toLocaleDateString(),
+        confirmedAt: new Date().toISOString(), // Save the exact date and time
         category: filter,
         items: bill,
         employeeName,
-        employeeNumber
+        employeeNumber,
+        orderNumber: orderNumber.toString().padStart(6, '0')
       };
       saveConfirmedOrder(confirmedOrder);
+      incrementOrderNumber();
       clearBill();
     }
   });
@@ -148,10 +152,37 @@ function POSPage() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setEmployeeName(params.get('name') || '');
-    setEmployeeNumber(params.get('number') || '');
+    const savedEmployeeName = localStorage.getItem('employeeName');
+    const savedEmployeeNumber = localStorage.getItem('employeeNumber');
+    if (savedEmployeeName && savedEmployeeNumber) {
+      setEmployeeName(savedEmployeeName);
+      setEmployeeNumber(savedEmployeeNumber);
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      setEmployeeName(params.get('name') || '');
+      setEmployeeNumber(params.get('number') || '');
+    }
   }, []);
+
+  useEffect(() => {
+    const savedOrderNumber = localStorage.getItem('orderNumber');
+    const lastResetDate = localStorage.getItem('lastResetDate');
+    const today = new Date().toLocaleDateString();
+
+    if (savedOrderNumber && lastResetDate === today) {
+      setOrderNumber(parseInt(savedOrderNumber, 10));
+    } else {
+      localStorage.setItem('orderNumber', '1');
+      localStorage.setItem('lastResetDate', today);
+      setOrderNumber(1);
+    }
+  }, []);
+
+  const incrementOrderNumber = () => {
+    const newOrderNumber = orderNumber + 1;
+    setOrderNumber(newOrderNumber);
+    localStorage.setItem('orderNumber', newOrderNumber.toString());
+  };
 
   const categoryImages = {
     الكل: assets.allImage,
