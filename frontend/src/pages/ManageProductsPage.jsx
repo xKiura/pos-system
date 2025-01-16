@@ -95,7 +95,6 @@ const ManageProductsPage = () => {
                 ))}
             </div>
 
-            {/* Add Product Modal */}
             <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>تأكيد إضافة المنتج</Modal.Title>
@@ -111,7 +110,6 @@ const ManageProductsPage = () => {
                 </Modal.Footer>
             </Modal>
 
-            {/* Remove Product Modal */}
             <Modal show={showRemoveModal} onHide={() => setShowRemoveModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>تأكيد إزالة المنتج</Modal.Title>
