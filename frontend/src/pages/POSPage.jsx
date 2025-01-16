@@ -404,6 +404,13 @@ function POSPage() {
 .filter-btn:hover::before {
   opacity: 1;
 }
+.btn-danger, .btn-success {
+  transition: none;
+}
+.btn-danger:hover, .btn-success:hover {
+  transform: none;
+  box-shadow: none;
+}
 
         }
           `}</style>
