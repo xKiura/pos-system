@@ -5,6 +5,9 @@ import { useReactToPrint } from 'react-to-print';
 import { FaTimes, FaTh, FaDrumstickBite, FaUtensils, FaGlassWhiskey } from 'react-icons/fa';
 import { GiRiceCooker } from 'react-icons/gi';
 import { Link } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min';
+import { Modal, Button } from 'react-bootstrap';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -16,6 +19,7 @@ function POSPage() {
   const [employeeName, setEmployeeName] = useState('');
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [orderNumber, setOrderNumber] = useState(1);
+  const [showModal, setShowModal] = useState(false);
 
   const roundToNearestHalf = (num) => {
     return Math.round(num * 2) / 2;
@@ -100,7 +104,12 @@ function POSPage() {
   };
 
   const clearBill = () => {
+    setShowModal(true);
+  };
+
+  const handleConfirmClearBill = () => {
     setBill([]);
+    setShowModal(false);
   };
 
   const componentRef = useRef();
@@ -128,7 +137,7 @@ function POSPage() {
       };
       saveConfirmedOrder(confirmedOrder);
       incrementOrderNumber();
-      clearBill();
+      setBill([]);
     }
   });
 
@@ -317,6 +326,19 @@ function POSPage() {
         </div>
       </div>
 
+      <Modal show={showModal} onHide={() => setShowModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>تأكيد الحذف</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          هل أنت متأكد أنك تريد حذف كل المنتجات من الفاتورة؟
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
+          <Button variant="danger" onClick={handleConfirmClearBill}>حذف الكل</Button>
+        </Modal.Footer>
+      </Modal>
+
       <style jsx>{`
 .border-end {
   border-right: 1px solid #6c757d !important;
@@ -411,11 +433,7 @@ function POSPage() {
   transform: none;
   box-shadow: none;
 }
-
-        }
-          `}</style>
-
-
+      `}</style>
     </>
   );
 }
