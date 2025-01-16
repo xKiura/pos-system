@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
-import { FaTimes } from 'react-icons/fa';
-import { assets } from "../assets/assets";
+import { FaTimes, FaTh, FaDrumstickBite, FaUtensils, FaGlassWhiskey } from 'react-icons/fa';
+import { GiRiceCooker } from 'react-icons/gi';
 import { Link } from 'react-router-dom';
 
 function POSPage() {
@@ -119,7 +119,7 @@ function POSPage() {
     onAfterPrint: () => {
       const confirmedOrder = {
         date: new Date().toLocaleDateString(),
-        confirmedAt: new Date().toISOString(), // Save the exact date and time
+        confirmedAt: new Date().toISOString(),
         category: filter,
         items: bill,
         employeeName,
@@ -184,12 +184,12 @@ function POSPage() {
     localStorage.setItem('orderNumber', newOrderNumber.toString());
   };
 
-  const categoryImages = {
-    الكل: assets.allImage,
-    رز: assets.riceImage,
-    مشويات: assets.grillImage,
-    مشروبات: assets.drinksImage,
-    وجبات: assets.mealsImage
+  const categoryIcons = {
+    الكل: <FaTh className="fa-3x me-2" />,
+    رز: <GiRiceCooker className="fa-3x me-2" />,
+    مشويات: <FaDrumstickBite className="fa-3x me-2" />,
+    مشروبات: <FaGlassWhiskey className="fa-3x me-2" />,
+    وجبات: <FaUtensils className="fa-3x me-2" />
   };
 
   return (
@@ -197,10 +197,16 @@ function POSPage() {
       <div className="container-fluid">
         <div className="row mt-3 justify-content-center">
           <div className="col-auto">
-            <Link className='btn btn-warning' to="/manage-products">إدارة المنتجات</Link>
+            <Link className='btn btn-warning btn-lg' to="/manage-products">إدارة المنتجات</Link>
           </div>
           <div className="col-auto">
-            <Link className='btn btn-warning' to="/profits">عرض الأرباح</Link>
+            <Link className='btn btn-warning btn-lg' to="/bills">عرض الفواتير</Link>
+          </div>
+          <div className="col-auto">
+            <Link className='btn btn-warning btn-lg' to="/sales-reports">تقارير المبيعات</Link>
+          </div>
+          <div className="col-auto">
+            <Link className='btn btn-warning btn-lg' to="/inventory-reports">تقارير المخزون</Link>
           </div>
         </div>
         <div className="row mb-3">
@@ -208,11 +214,11 @@ function POSPage() {
             {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category, index) => (
               <button
                 key={index}
-                className={`btn me-2 p-2 border border-warning border ${filter === (category === 'الكل' ? 'all' : category) ? 'btn-warning' : 'btn-outline-warning'}`}
+                className={`btn filter-btn me-2 p-2 d-flex align-items-center justify-content-between px-4 ${filter === (category === 'الكل' ? 'all' : category) ? 'btn-warning' : 'btn-outline-warning'}`}
                 onClick={() => setFilter(category === 'الكل' ? 'all' : category)}
-                style={{ flex: 1, minWidth: '120px', fontSize: '1.1rem', padding: '10px 20px', position: 'relative' }}
+                style={{ flex: 1, minWidth: '120px', fontSize: '1.1rem', padding: '10px 20px' }}
               >
-                <img src={categoryImages[category]} alt={category} style={{ width: '100%', height: '80px', objectFit: 'cover' }} />
+                {categoryIcons[category]}
                 <span className={`category-text ${filter === (category === 'الكل' ? 'all' : category) ? 'selected' : ''}`}>
                   {category}
                 </span>
@@ -222,11 +228,17 @@ function POSPage() {
         </div>
         <div className="row">
           <div className="col-lg-8">
-            {isLoading ? 'Loading...' : (
+            {isLoading ? (
+              <div className="d-flex justify-content-center align-items-center" style={{ height: '100%' }}>
+                <div className="spinner-border text-warning" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : (
               <div className='row g-3'>
                 {filteredProducts.map((product, key) => (
                   <div key={key} className="col-6 col-sm-4 col-md-3 col-lg-3">
-                    <div className="card h-100">
+                    <div className="card h-100 shadow-sm">
                       <div className="card-img-top" style={{ width: '100%', height: '150px' }}>
                         <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
@@ -249,7 +261,7 @@ function POSPage() {
             <div style={{ display: 'none' }}>
               <ComponentToPrint bill={bill} totalAmount={totalAmount} ref={componentRef} employeeName={employeeName} employeeNumber={employeeNumber} />
             </div>
-            <div className="table-responsive bg-dark mg-2 p-2 rounded-3">
+            <div className="table-responsive bg-dark mg-2 p-2 rounded-3 shadow-sm">
               <table className='table table-dark table-striped table-hover table-md'>
                 <thead>
                   <tr>
@@ -296,78 +308,107 @@ function POSPage() {
               <h3 className="px-2 border-top text-white text-center">كامل المجموع : {(totalAmount + billTotalTax).toFixed(1)} ر.س</h3>
               {bill.length > 0 && (
                 <>
-                  <button className="btn btn-danger w-100 mt-3" onClick={clearBill}>حذف الكل</button>
-                  <button className="btn btn-success w-100 mt-3" onClick={() => handlePrint()}>إتمام الطلب</button>
+                  <button className="btn btn-danger w-100 mt-3 btn-lg" onClick={clearBill}>حذف الكل</button>
+                  <button className="btn btn-success w-100 mt-3 btn-lg" onClick={() => handlePrint()}>إتمام الطلب</button>
                 </>
               )}
             </div>
           </div>
         </div>
       </div>
-      <style>{`
-        .border-end {
-          border-right: 1px solid #6c757d !important;
+
+      <style jsx>{`
+.border-end {
+  border-right: 1px solid #6c757d !important;
+}
+.border-bottom {
+  border-bottom: 1px solid #6c757d !important;
+}
+@media (max-width: 768px) {
+  .table-responsive {
+    overflow-x: auto;
+  }
+}
+.btn {
+  flex: 1;
+  min-width: 120px;
+  font-size: 1.1rem;
+  padding: 10px 20px;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.btn:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.btn-sm {
+  min-width: 40px;
+}
+.btn-warning {
+  background-color: rgb(255, 123, 0);
+}
+.btn-outline-warning {
+  border-color: rgb(255, 123, 0);
+  color: rgb(255, 123, 0);
+}
+.btn-outline-warning:hover {
+  background-color: rgb(255, 123, 0);
+  color: white;
+}
+.btn span {
+  color: black;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px white;
+  font-size: 1.6rem;
+}
+.btn:hover .category-text {
+  animation: colorChange 2s infinite;
+}
+.btn.selected .category-text {
+  color: white;
+  animation: none;
+}
+@keyframes colorChange {
+  0% { color: black; }
+  50% { color: white; }
+  100% { color: black; }
+}
+.quantity-box {
+  display: inline-block;
+  width: 20%;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  background-color: white;
+  border: 2px solid #6c757d;
+  border-radius: 5px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.filter-btn {
+  border-radius: 50px;
+  overflow: hidden;
+  position: relative;
+}
+.filter-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.filter-btn:hover::before {
+  opacity: 1;
+}
+
         }
-        .border-bottom {
-          border-bottom: 1px solid #6c757d !important;
-        }
-        @media (max-width: 768px) {
-          .table-responsive {
-            overflow-x: auto;
-          }
-        }
-        .btn {
-          flex: 1;
-          min-width: 120px;
-          font-size: 1.1rem;
-          padding: 10px 20px;
-          position: relative;
-        }
-        .btn-sm {
-          min-width: 40px;
-        }
-        .btn-warning {
-          background-color: rgb(255, 123, 0);
-        }
-        .btn img {
-          width: 100%;
-          height: 80px;
-          object-fit: cover;
-        }
-        .btn span {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          color: black;
-          font-weight: bold;
-          text-shadow: 1px 1px 2px white;
-          font-size: 1.6rem;
-        }
-        .btn:hover .category-text {
-          animation: colorChange 2s infinite;
-        }
-        .btn.selected .category-text {
-          color: yellow;
-          animation: none;
-        }
-        @keyframes colorChange {
-          0% { color: black; }
-          50% { color: yellow; }
-          100% { color: black; }
-        }
-        .quantity-box {
-          display: inline-block;
-          width: 20%;
-          height: 40px;
-          line-height: 40px;
-          text-align: center;
-          background-color: white;
-          border: 2px solid #6c757d;
-          border-radius: 5px;
-          font-size: 1.2rem;
-          font-weight: bold;
-      `}</style>
+          `}</style>
+
+
     </>
   );
 }

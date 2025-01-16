@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import backgroundImage from "../assets/mendi-mashwi.jpeg";
 import LoginPopup from "../components/LoginPopup/LoginPopup";
-import { Link } from "react-router-dom";
 
 const HomePage = () => {
   const [showLogin, setShowLoginState] = useState(false);

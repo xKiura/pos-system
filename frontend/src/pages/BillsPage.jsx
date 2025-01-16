@@ -56,8 +56,8 @@ function ProfitsPage() {
                 const confirmedDate = new Date(order.confirmedAt);
                 return {
                     ...order,
-                    date: confirmedDate.toLocaleDateString('en-GB'), // Use 'en-GB' to ensure correct date format
-                    time: confirmedDate.toLocaleTimeString('en-GB') // Use 'en-GB' to ensure correct time format
+                    date: confirmedDate.toLocaleDateString('en-GB'),
+                    time: confirmedDate.toLocaleTimeString('en-GB')
                 };
             });
             setConfirmedOrders(ordersWithDateTime);
@@ -144,7 +144,7 @@ function ProfitsPage() {
             <Link to="/pos" className="btn btn-warning mb-3">
                 <FaArrowLeft /> العودة إلى صفحة المبيعات
             </Link>
-            <h1 className="text-center mb-4">الأرباح</h1>
+            <h1 className="text-center mb-4">الفواتير</h1>
             <div className="row mb-3">
                 <div className="col-md-6">
                     <label htmlFor="date-filter" className="form-label">ترتيب على حسب التاريخ :</label>

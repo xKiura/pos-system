@@ -14,7 +14,7 @@ const MainLayout = () => {
   return (
     <div>
       <header>
-        <nav className="navbar navbar-light bg-light justify-content-between">
+        <nav className="navbar navbar-light bg-light justify-content-end">
           <div className="container my-2 mx-5">
             <Link to="/" className="navbar-brand">
               <img src={assets.main_logo} alt="مندي ومشوي" className="main-logo" />
