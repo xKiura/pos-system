@@ -1,10 +1,15 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { Link } from 'react-router-dom';
+import { FaArrowLeft } from 'react-icons/fa';
 
 const InventoryReports = () => {
   return (
     <div className="container mt-5">
-      <h1 className="mb-4">Inventory Reports</h1>
+      <Link to="/pos" className="btn btn-warning mb-3">
+        <FaArrowLeft /> العودة إلى صفحة المبيعات
+      </Link>
+      <h1 className="mb-4">المخزون</h1>
       <table className="table table-striped">
         <thead>
           <tr>
