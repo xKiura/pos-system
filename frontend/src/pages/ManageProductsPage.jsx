@@ -10,7 +10,9 @@ const ManageProductsPage = () => {
     const [products, setProducts] = useState([]);
     const [product, setProduct] = useState({ name: '', price: '', image: '' });
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
+    const [productToEdit, setProductToEdit] = useState(null);
     const [productToRemove, setProductToRemove] = useState(null);
 
     useEffect(() => {
@@ -42,6 +44,17 @@ const ManageProductsPage = () => {
         }
     };
 
+    const handleEditProduct = async () => {
+        try {
+            const result = await axios.put(`http://localhost:5000/products/${productToEdit.id}`, product);
+            setProducts(products.map(prod => (prod.id === productToEdit.id ? result.data : prod)));
+            setProduct({ name: '', price: '', image: '' });
+            setShowEditModal(false);
+        } catch (error) {
+            console.error('Error editing product:', error);
+        }
+    };
+
     const handleRemoveProduct = async () => {
         try {
             await axios.delete(`http://localhost:5000/products/${productToRemove}`);
@@ -60,52 +73,97 @@ const ManageProductsPage = () => {
                 <FaArrowLeft /> العودة إلى صفحة المبيعات
             </Link>
             <h1>إدارة المنتجات</h1>
-            <div className="product-form">
-                <input
-                    type="text"
-                    name="name"
-                    value={product.name}
-                    onChange={handleChange}
-                    placeholder="اسم المنتج"
-                />
-                <input
-                    type="text"
-                    name="price"
-                    value={product.price}
-                    onChange={handleChange}
-                    placeholder="سعر المنتج"
-                />
-                <input
-                    type="text"
-                    name="image"
-                    value={product.image}
-                    onChange={handleChange}
-                    placeholder="رابط صورة المنتج"
-                />
-                <button className='btn btn-warning text-black mt-3' onClick={() => setShowAddModal(true)} disabled={!isFormValid}>إضافة المنتج</button>
-            </div>
+            <button className='btn btn-warning text-black mt-4 mb-4' onClick={() => setShowAddModal(true)}>إضافة منتج</button>
             <div className="product-list">
                 {products.map((prod) => (
                     <div key={prod.id} className="product-item">
-                        <img src={prod.image} alt={prod.name} />
+                        <img src={prod.image} alt={prod.name} className="img-fluid" />
                         <div>{prod.name}</div>
                         <div>{prod.price} ر.س</div>
-                        <button onClick={() => { setProductToRemove(prod.id); setShowRemoveModal(true); }}>إزالة المنتج</button>
+                        <div className="justify-content-between mt-2">
+                            <button className='btn btn-danger flex-fill me-1' onClick={() => { setProductToRemove(prod.id); setShowRemoveModal(true); }}>إزالة</button>
+                            <button className='btn btn-info flex-fill ms-1' onClick={() => { setProductToEdit(prod); setProduct(prod); setShowEditModal(true); }}>تعديل</button>
+                        </div>
                     </div>
                 ))}
             </div>
 
             <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
                 <Modal.Header closeButton>
-                    <Modal.Title>تأكيد إضافة المنتج</Modal.Title>
+                    <Modal.Title>إضافة المنتج</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>هل أنت متأكد أنك تريد إضافة هذا المنتج؟</Modal.Body>
+                <Modal.Body>
+                    <input
+                        type="text"
+                        name="name"
+                        value={product.name}
+                        onChange={handleChange}
+                        placeholder="اسم المنتج"
+                        className="form-control mb-2"
+                    />
+                    <input
+                        type="text"
+                        name="price"
+                        value={product.price}
+                        onChange={handleChange}
+                        placeholder="سعر المنتج"
+                        className="form-control mb-2"
+                    />
+                    <input
+                        type="text"
+                        name="image"
+                        value={product.image}
+                        onChange={handleChange}
+                        placeholder="رابط صورة المنتج"
+                        className="form-control mb-2"
+                    />
+                </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowAddModal(false)}>
                         إلغاء
                     </Button>
-                    <Button variant="primary" onClick={handleAddProduct}>
+                    <Button variant="primary" onClick={handleAddProduct} disabled={!isFormValid}>
                         إضافة
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>تعديل المنتج</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <input
+                        type="text"
+                        name="name"
+                        value={product.name}
+                        onChange={handleChange}
+                        placeholder="اسم المنتج"
+                        className="form-control mb-2"
+                    />
+                    <input
+                        type="text"
+                        name="price"
+                        value={product.price}
+                        onChange={handleChange}
+                        placeholder="سعر المنتج"
+                        className="form-control mb-2"
+                    />
+                    <input
+                        type="text"
+                        name="image"
+                        value={product.image}
+                        onChange={handleChange}
+                        placeholder="رابط صورة المنتج"
+                        className="form-control mb-2"
+                    />
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                        إلغاء
+                    </Button>
+                    <Button variant="primary" onClick={handleEditProduct} disabled={!isFormValid}>
+                        تعديل
                     </Button>
                 </Modal.Footer>
             </Modal>

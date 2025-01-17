@@ -59,7 +59,6 @@
 
 .product-item button {
     padding: 5px 10px;
-    background-color: #dc3545;
     color: white;
     border: none;
     border-radius: 5px;
@@ -67,7 +66,7 @@
 }
 
 .product-item button:hover {
-    background-color: #c82333;
+
 }
 
 .btn-warning {

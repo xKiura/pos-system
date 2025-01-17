@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { assets } from "../assets/assets";
 import SignUpPopup from "../components/SignUpPopUp/SignUpPopup";
-import './MainLayout.css';
+import "./MainLayout.css";
 
 const MainLayout = () => {
   const [isSignUpPopupVisible, setSignUpPopupVisible] = useState(false);
@@ -14,22 +12,31 @@ const MainLayout = () => {
   return (
     <div>
       <header>
-        <nav className="navbar navbar-light bg-light justify-content-end">
-          <div className="container my-2 mx-5">
-            <Link to="/" className="navbar-brand">
-              <img src={assets.main_logo} alt="مندي ومشوي" className="main-logo" />
-            </Link>
-          </div>
-          <div className="justify-content-end my-2 mx-5" id="navbarNavAltMarkup">
-            <div className="navbar-nav">
-              <Link className="nav-item nav-link active"><button type="button" className="btn btn-outline-secondary" onClick={toggleSignUpPopup}>تسجيل جديد</button></Link>
-            </div>
+        <nav class="navbar navbar-light bg-light">
+          <a class="navbar-brand" href="/" data-discover="true">
+            <img
+              src="/static/media/main_logo.2d6a559415d54d818d81.png"
+              alt="مندي ومشوي"
+              class="main-logo"
+            />
+          </a>
+          <div class="navbar-nav mx-2">
+            <a
+              class="nav-item nav-link active"
+              href="#"
+              data-discover="true"
+              onClick={toggleSignUpPopup}
+            >
+              <button type="button" class="btn btn-danger">
+                تسجيل خروج
+              </button>
+            </a>
           </div>
         </nav>
       </header>
       {isSignUpPopupVisible && <SignUpPopup onClose={toggleSignUpPopup} />}
     </div>
   );
-}
+};
 
 export default MainLayout;

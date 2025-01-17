@@ -32,7 +32,7 @@ const HomePage = () => {
       </div>
 
       <style jsx>{`
-              .btn-warning {
+          .btn-warning {
           background-color: rgb(255, 123, 0);
         }
           `}</style>
