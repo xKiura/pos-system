@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const Order = require('./models/Order'); // Add this if not already present
 
 app.use(cors());
 app.use(express.json());

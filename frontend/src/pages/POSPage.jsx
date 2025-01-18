@@ -39,7 +39,9 @@ function POSPage() {
   const [newItemIds, setNewItemIds] = useState([]);
 
   const roundToNearestHalf = (num) => {
-    return Math.round(num * 2) / 2;
+    const decimal = num - Math.floor(num);
+    if (decimal === 0.5) return num;
+    return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
   };
 
   const billTotalTax = roundToNearestHalf(totalAmount * 0.15);
@@ -336,10 +338,10 @@ function POSPage() {
                 </div>
               )}
             </div>
-            <div className="product-content">
+            <div className="product-content p-2">
               <h5 className="product-title">{product.name}</h5>
               <div className="product-price">{product.price} ر.س</div>
-              <div className="product-actions">
+              <div className="product-actions mt-3">
                 <button 
                   className="action-btn decrease"
                   onClick={() => updateProductQuantity(product, -1)}
@@ -481,47 +483,98 @@ function POSPage() {
         align-items: center;
         justify-content: space-between;
         background: #f8f9fa;
-        border-radius: 10px; // Increased from 8px
-        padding: 8px; // Increased from 5px
-        margin-top: auto; // Added to push to bottom
+        border-radius: 20px;
+        padding: 5px;
+        margin-top: auto;
       }
 
       .action-btn {
+        background: #e9ecef;
         border: none;
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
+        color: #2c3e50;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .action-btn.decrease {
-        background: #fff5f5;
-        color: #dc3545;
-      }
-
-      .action-btn.increase {
-        background: #e8f5e9;
-        color: #28a745;
+        transition: all 0.3s ease;
+        font-size: 0.8rem;
       }
 
       .action-btn:hover {
-        filter: brightness(0.95);
+        background: #dee2e6;
+        transform: translateY(-1px);
       }
 
       .action-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none;
+      }
+
+      .action-btn.decrease {
+        background: #e9ecef;
+        color: #2c3e50;
+      }
+
+      .action-btn.increase {
+        background: #e9ecef;
+        color: #2c3e50;
       }
 
       .quantity-display {
-        font-weight: bold;
         color: #2c3e50;
-        min-width: 30px;
+        margin: 0 10px;
+        min-width: 20px;
         text-align: center;
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .product-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        border-radius: 20px; // Changed from 10px to match bill style
+        padding: 8px 12px; // Adjusted padding
+        margin-top: auto; // Added to push to bottom
+      }
+
+      .action-btn {
+        background: #e9ecef; // Updated background
+        border: none;
+        color: #2c3e50;
+        width: 25px; // Changed from 32px
+        height: 25px; // Changed from 32px
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .action-btn:hover {
+        background: #dee2e6;
+        transform: translateY(-1px);
+      }
+
+      .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .quantity-display {
+        color: #2c3e50;
+        margin: 0 10px;
+        min-width: 20px;
+        text-align: center;
+        font-weight: 500;
+        font-size: 0.95rem;
       }
 
       @media (max-width: 768px) {

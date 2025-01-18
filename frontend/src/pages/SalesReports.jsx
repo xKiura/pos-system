@@ -50,6 +50,26 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { styled } from '@mui/material/styles';
 
+const GlobalStylesWrapper = styled('div')(({ theme }) => ({
+  '.back-button': {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.5rem 1rem',
+    background: '#edf2f7',
+    color: '#4a5568',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    transition: 'all 0.2s',
+    marginBottom: '1rem',
+    
+    '&:hover': {
+      background: '#e2e8f0',
+      transform: 'translateX(-2px)'
+    }
+  }
+}));
+
 // Register the required components
 ChartJS.register(
   CategoryScale,
@@ -139,6 +159,11 @@ const ProductImage = styled('img')({
   marginRight: 8,
 });
 
+// Add translations object before the SalesReports component
+const translations = {
+  backToSales: 'العودة إلى المبيعات'
+};
+
 const SalesReports = () => {
   // Add new state for products with images
   const [products, setProducts] = useState([]);
@@ -196,8 +221,19 @@ const SalesReports = () => {
     }
   };
 
+  const roundToNearestHalf = (num) => {
+    const decimal = num - Math.floor(num);
+    if (decimal === 0.5) return num;
+    return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
+  };
+
   const formatNumber = (value) => {
-    return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+    if (!Number.isFinite(value)) return 0;
+    // For tax calculations
+    if (value.toString().includes('.15')) {
+      return roundToNearestHalf(value);
+    }
+    return Number(value.toFixed(2));
   };
 
   const calculateProfits = (orders) => {
@@ -695,208 +731,212 @@ const SalesReports = () => {
 
   return (
     <ErrorBoundary>
-      <Box sx={{ p: 3 }}>
-        <Link to="/pos" className="btn btn-warning mb: 3">
-          <FaArrowLeft /> العودة إلى صفحة المبيعات
-        </Link>
+      <GlobalStylesWrapper>
+        <Box sx={{ p: 3 }}>
+          <Box mb={2}> {/* Add a wrapper Box for proper spacing */}
+            <Link to="/pos" className="back-button">
+              <FaArrowLeft /> <span>{translations.backToSales}</span>
+            </Link>
+          </Box>
 
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={3}>
-                <DatePicker
-                  label="تاريخ البداية"
-                  value={dateRange.start}
-                  onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
-                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <DatePicker
-                  label="تاريخ النهاية"
-                  value={dateRange.end}
-                  onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
-                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <FormControl fullWidth>
-                  <InputLabel>نوع التصفية</InputLabel>
-                  <Select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    label="نوع التصفية"
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Grid container spacing={3} alignItems="center">
+                <Grid item xs={12} md={3}>
+                  <DatePicker
+                    label="تاريخ البداية"
+                    value={dateRange.start}
+                    onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
+                    slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <DatePicker
+                    label="تاريخ النهاية"
+                    value={dateRange.end}
+                    onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
+                    slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth>
+                    <InputLabel>نوع التصفية</InputLabel>
+                    <Select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      label="نوع التصفية"
+                    >
+                      <MenuItem value="daily">يومي</MenuItem>
+                      <MenuItem value="weekly">أسبوعي</MenuItem>
+                      <MenuItem value="monthly">شهري</MenuItem>
+                      <MenuItem value="yearly">سنوي</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <Button
+                    className="btn btn-primary text-white"
+                    startIcon={<FaDownload />}
+                    onClick={handleExport}
+                    fullWidth
+                    sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
                   >
-                    <MenuItem value="daily">يومي</MenuItem>
-                    <MenuItem value="weekly">أسبوعي</MenuItem>
-                    <MenuItem value="monthly">شهري</MenuItem>
-                    <MenuItem value="yearly">سنوي</MenuItem>
-                  </Select>
-                </FormControl>
+                    تصدير التقرير
+                  </Button>
+                </Grid>
               </Grid>
-              <Grid item xs={12} md={3}>
-                <Button
-                  className="btn btn-primary text-white"
-                  startIcon={<FaDownload />}
-                  onClick={handleExport}
-                  fullWidth
-                  sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
-                >
-                  تصدير التقرير
-                </Button>
+            </LocalizationProvider>
+          </Paper>
+
+          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
+            <Tab label="نظرة عامة" />
+            <Tab label="تحليل المنتجات" />
+            <Tab label="الاتجاهات" />
+          </Tabs>
+
+          <TabPanel value={tabValue} index={0}>
+            {renderOverviewTab()}
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={1}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>تحليل المنتجات</Typography>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <ComposedChart data={calculateProductMetrics(orders)}>
+                        <XAxis dataKey="name" />
+                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="right" orientation="right" />
+                        <Tooltip />
+                        <Legend />
+                        <CartesianGrid stroke="#f5f5f5" />
+                        <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
+                        <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
+                        <Line yAxisId="right" type="monotone" dataKey="profitMargin" stroke="#ff7300" name="هامش الربح %" />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>توزيع الكميات المباعة</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={calculateProductMetrics(orders)}
+                          dataKey="quantitySold"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          label
+                        >
+                          {calculateProductMetrics(orders).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>تحليل الربحية</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={calculateProductMetrics(orders)}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="profit" fill="#82ca9d" name="الربح" />
+                        <Bar dataKey="totalCost" fill="#8884d8" name="التكلفة" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {renderSalesTimingAnalysis()}
+
+              {/* Add the new category analysis section */}
+              {renderCategoryAnalysis()}
+            </Grid>
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>اتجاهات المبيعات اليومية</Typography>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <LineChart data={calculateDailyTrends(orders)}>
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <CartesianGrid stroke="#f5f5f5" />
+                        <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="الإيرادات" />
+                        <Line type="monotone" dataKey="itemsSold" stroke="#82ca9d" name="العناصر المباعة" />
+                        <Line type="monotone" dataKey="averageOrderValue" stroke="#ffc658" name="متوسط قيمة الطلب" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>تحليل المبيعات التراكمية</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={calculateDailyTrends(orders)}>
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <CartesianGrid stroke="#f5f5f5" />
+                        <Area type="monotone" dataKey="revenue" fill="#8884d8" stroke="#8884d8" name="الإيرادات التراكمية" />
+                        <Line type="monotone" dataKey="orders" stroke="#ff7300" name="عدد الطلبات" />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>معدل النمو</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={calculateDailyTrends(orders)}>
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="averageOrderValue" fill="#82ca9d" name="متوسط قيمة الطلب" />
+                        <Line type="monotone" dataKey="orders" stroke="#ff7300" name="عدد الطلبات" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
               </Grid>
             </Grid>
-          </LocalizationProvider>
-        </Paper>
-
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
-          <Tab label="نظرة عامة" />
-          <Tab label="تحليل المنتجات" />
-          <Tab label="الاتجاهات" />
-        </Tabs>
-
-        <TabPanel value={tabValue} index={0}>
-          {renderOverviewTab()}
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>تحليل المنتجات</Typography>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <ComposedChart data={calculateProductMetrics(orders)}>
-                      <XAxis dataKey="name" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <CartesianGrid stroke="#f5f5f5" />
-                      <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
-                      <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
-                      <Line yAxisId="right" type="monotone" dataKey="profitMargin" stroke="#ff7300" name="هامش الربح %" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>توزيع الكميات المباعة</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={calculateProductMetrics(orders)}
-                        dataKey="quantitySold"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        label
-                      >
-                        {calculateProductMetrics(orders).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>تحليل الربحية</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={calculateProductMetrics(orders)}>
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="profit" fill="#82ca9d" name="الربح" />
-                      <Bar dataKey="totalCost" fill="#8884d8" name="التكلفة" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {renderSalesTimingAnalysis()}
-
-            {/* Add the new category analysis section */}
-            {renderCategoryAnalysis()}
-          </Grid>
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>اتجاهات المبيعات اليومية</Typography>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={calculateDailyTrends(orders)}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <CartesianGrid stroke="#f5f5f5" />
-                      <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="الإيرادات" />
-                      <Line type="monotone" dataKey="itemsSold" stroke="#82ca9d" name="العناصر المباعة" />
-                      <Line type="monotone" dataKey="averageOrderValue" stroke="#ffc658" name="متوسط قيمة الطلب" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>تحليل المبيعات التراكمية</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={calculateDailyTrends(orders)}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <CartesianGrid stroke="#f5f5f5" />
-                      <Area type="monotone" dataKey="revenue" fill="#8884d8" stroke="#8884d8" name="الإيرادات التراكمية" />
-                      <Line type="monotone" dataKey="orders" stroke="#ff7300" name="عدد الطلبات" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>معدل النمو</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={calculateDailyTrends(orders)}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="averageOrderValue" fill="#82ca9d" name="متوسط قيمة الطلب" />
-                      <Line type="monotone" dataKey="orders" stroke="#ff7300" name="عدد الطلبات" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
-      </Box>
+          </TabPanel>
+        </Box>
+      </GlobalStylesWrapper>
     </ErrorBoundary>
   );
 };

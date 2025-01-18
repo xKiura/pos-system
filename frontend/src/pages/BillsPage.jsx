@@ -6,6 +6,7 @@ import { Modal, Button } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { FaFilter, FaCalendar } from 'react-icons/fa';
+import { Box } from '@mui/material'; // Add this import
 
 // Update styled components
 const StyledContainer = styled.div`
@@ -13,6 +14,32 @@ const StyledContainer = styled.div`
   margin: 2rem auto;
   padding: 0 1.5rem;
   direction: rtl;
+
+  .mb-2 {
+    direction: ltr;
+    text-align: left;
+    width: 100%;
+  }
+
+  .back-button {
+    direction: ltr;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #000;
+    background-color: #f8b73f;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    &:hover {
+      background-color: #f6a912;
+      transform: translateX(-2px);
+    }
+  }
 `;
 
 const BillCard = styled(motion.div)`
@@ -33,7 +60,7 @@ const BillCard = styled(motion.div)`
 
 const ActionButton = styled.button`
   padding: 0.625rem 1.25rem;
-  border-radius: 6px;
+  border-radius: 8px;
   border: none;
   display: flex;
   align-items: center;
@@ -43,18 +70,25 @@ const ActionButton = styled.button`
   font-weight: 500;
   
   &.print {
-    background: #3b82f6;
+    background: #28a745;  // Changed to match POSPage green
     color: white;
-    &:hover { background: #2563eb; }
+    &:hover { 
+      background: #218838;
+      transform: translateY(-2px);
+    }
   }
   
   &.refund {
-    background: ${props => props.$isRefunded ? '#9ca3af' : '#ef4444'};
+    background: ${props => props.$isRefunded ? '#6c757d' : '#dc3545'};  // Changed to match POSPage red
     color: white;
-    &:hover { background: ${props => props.$isRefunded ? '#6b7280' : '#dc2626'}; }
+    &:hover { 
+      background: ${props => props.$isRefunded ? '#5a6268' : '#c82333'};
+      transform: translateY(-2px);
+    }
     &:disabled {
       cursor: not-allowed;
       opacity: 0.7;
+      transform: none;
     }
   }
 `;
@@ -77,6 +111,22 @@ const ItemRow = styled.div`
 `;
 
 const GlobalStyles = styled.div`
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #edf2f7;
+    color: #4a5568;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #e2e8f0;
+      transform: translateX(-2px);
+    }
+  }
 
 .bills-page-container {
     max-width: 1200px;
@@ -421,6 +471,12 @@ const translations = {
 
 const categories = ['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'];
 
+const roundToNearestHalf = (num) => {
+  const decimal = num - Math.floor(num);
+  if (decimal === 0.5) return num;
+  return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
+};
+
 function BillsPage() {
     const [dateFilter, setDateFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('الكل');
@@ -511,7 +567,9 @@ function BillsPage() {
 
         setTotalProfit(totalProfit);
         setProductSales(productSales);
-        setTotalWithTax(Math.round(totalProfit * 1.15));
+        // Replace Math.round with roundToNearestHalf for consistency
+        const tax = roundToNearestHalf(totalProfit * 0.15);
+        setTotalWithTax(totalProfit + tax);
     };
 
     const toggleOrderDetails = (orderNumber) => {
@@ -662,6 +720,14 @@ function BillsPage() {
             return isNaN(number) ? '0.00' : number.toFixed(2);
         };
 
+        const calculateTotalWithTax = (items) => {
+            const subtotal = items.reduce((sum, item) => 
+              sum + (parseFloat(item.price) * item.quantity), 0
+            );
+            const tax = roundToNearestHalf(subtotal * 0.15);
+            return subtotal + tax;
+          };
+
         // Get a brief summary of items
         const itemsSummary = order.items.slice(0, 3); // Show first 3 items
         const remainingCount = order.items.length - 3;
@@ -681,6 +747,23 @@ function BillsPage() {
                             <div>
                                 <div style={{ fontWeight: 'bold' }}>{order.date}</div>
                                 <div style={{ color: '#666' }}>{order.time}</div>
+                                <div style={{ 
+                                    fontSize: '0.9rem', 
+                                    color: '#4b5563', 
+                                    marginTop: '0.25rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}>
+                                    <span style={{ 
+                                        backgroundColor: '#e5e7eb', 
+                                        padding: '0.1rem 0.5rem', 
+                                        borderRadius: '4px',
+                                        fontSize: '0.8rem'
+                                    }}>
+                                        {order.employeeName} #{order.employeeNumber}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -712,9 +795,7 @@ function BillsPage() {
                 {/* Add Brief Summary */}
                 <BriefSummary>
                     <div style={{ marginBottom: '0.5rem' }}>
-                        <strong>{totalItems} {translations.items}</strong> · {translations.total}: ${formatPrice(Math.round(order.items.reduce((sum, item) => 
-                            sum + (parseFloat(item.price) * item.quantity), 0
-                        ) * 1.15))}
+                        <strong>{totalItems} {translations.items}</strong> · {translations.total}: ${formatPrice(calculateTotalWithTax(order.items))}
                     </div>
                     <div className="items-preview">
                         {itemsSummary.map((item, index) => (
@@ -763,9 +844,15 @@ function BillsPage() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', color: '#666' }}>
                                         <strong>شامل الضريبة:</strong>
                                         <strong>
-                                            ${formatPrice(order.items.reduce((sum, item) => 
-                                                sum + (parseFloat(item.price) * item.quantity), 0
-                                            ) * 1.15)}
+                                            ${formatPrice(
+                                                (() => {
+                                                    const subtotal = order.items.reduce((sum, item) => 
+                                                        sum + (parseFloat(item.price) * item.quantity), 0
+                                                    );
+                                                    const tax = roundToNearestHalf(subtotal * 0.15);
+                                                    return subtotal + tax;
+                                                })()
+                                            )}
                                         </strong>
                                     </div>
                                 </div>
@@ -780,11 +867,12 @@ function BillsPage() {
     return (
         <GlobalStyles>
             <StyledContainer>
-                <div className="header-section">
-                    <Link to="/pos" className="back-button">
-                        <FaArrowLeft /> <span>{translations.backToSales}</span>
-                    </Link>
-                    <h1 className="page-title">{translations.billManagement}</h1>
+                <div style={{ direction: 'ltr' }}> {/* Add this wrapper div */}
+                    <div className="mb-2">
+                        <Link to="/pos" className="back-button">
+                            <FaArrowLeft /> <span>{translations.backToSales}</span>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="filters-section">
