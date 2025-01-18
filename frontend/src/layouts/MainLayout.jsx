@@ -10,9 +10,9 @@ const MainLayout = () => {
   };
 
   return (
-    <div>
+    <div className="container">
       <header>
-        <nav class="navbar navbar-light bg-light">
+        <nav class="navbar navbar-light bg-light navbar-border">
           <a class="navbar-brand" href="/" data-discover="true">
             <img
               src="/static/media/main_logo.2d6a559415d54d818d81.png"

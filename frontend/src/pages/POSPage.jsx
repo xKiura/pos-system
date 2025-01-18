@@ -2,12 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
-import { FaTimes, FaTh, FaDrumstickBite, FaUtensils, FaGlassWhiskey } from 'react-icons/fa';
+import { FaTimes, FaTh, FaDrumstickBite, FaUtensils, FaGlassWhiskey, FaPlus, FaMinus } from 'react-icons/fa';
 import { GiRiceCooker } from 'react-icons/gi';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min';
-import { Modal, Button } from 'react-bootstrap';
+import { Modal, Button, Card, Spinner } from 'react-bootstrap';
 
 function POSPage() {
   const [products, setProducts] = useState([]);
@@ -244,28 +244,28 @@ function POSPage() {
           <div className="col-lg-8">
             {isLoading ? (
               <div className="d-flex justify-content-center align-items-center" style={{ height: '100%' }}>
-                <div className="spinner-border text-warning" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
+                <Spinner animation="border" variant="warning" />
               </div>
             ) : (
               <div className='row g-3'>
                 {filteredProducts.map((product, key) => (
                   <div key={key} className="col-6 col-sm-4 col-md-3 col-lg-3">
-                    <div className="card h-100 shadow-sm">
-                      <div className="card-img-top" style={{ width: '100%', height: '150px' }}>
-                        <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                      <div className="card-body d-flex flex-column">
-                        <h5 className="card-title">{product.name}</h5>
-                        <p className="card-text">{product.price} ر.س</p>
-                        <div className="d-flex justify-content-between align-items-center mt-auto" style={{ width: '100%' }}>
-                          <button className="btn btn-sm rounded-2 btn-danger flex-fill" onClick={() => updateProductQuantity(product, -1)}>-</button>
-                          <span className="quantity-box px-0 flex-fill m-1">{bill.find(i => i.id === product.id)?.quantity || 0}</span>
-                          <button className="btn btn-sm rounded-2 btn-success flex-fill" onClick={() => updateProductQuantity(product, 1)}>+</button>
+                    <Card className="h-100 shadow-sm">
+                      <Card.Img variant="top" src={product.image} alt={product.name} style={{ height: '150px', objectFit: 'cover' }} />
+                      <Card.Body className="d-flex flex-column">
+                        <Card.Title>{product.name}</Card.Title>
+                        <Card.Text>{product.price} ر.س</Card.Text>
+                        <div className="d-flex justify-content-between align-items-center mt-auto">
+                          <Button variant="outline-danger" size="sm" className="flex-fill" onClick={() => updateProductQuantity(product, -1)}>
+                            <FaMinus />
+                          </Button>
+                          <span className="quantity-box flex-fill m-1">{bill.find(i => i.id === product.id)?.quantity || 0}</span>
+                          <Button variant="primary" size="sm" className="flex-fill" onClick={() => updateProductQuantity(product, 1)}>
+                            <FaPlus />
+                          </Button>
                         </div>
-                      </div>
-                    </div>
+                      </Card.Body>
+                    </Card>
                   </div>
                 ))}
               </div>
@@ -351,9 +351,69 @@ function POSPage() {
 .border-bottom {
   border-bottom: 1px solid #6c757d !important;
 }
+@media (max-width: 1024px) {
+  .btn {
+    font-size: 1rem;
+    padding: 8px 16px;
+  }
+  .btn span {
+    font-size: 1.4rem;
+  }
+  .quantity-box {
+    width: 45px;
+    height: 35px;
+    line-height: 35px;
+    font-size: 0.9rem;
+  }
+  .filter-btn {
+    min-width: 100px;
+  }
+}
 @media (max-width: 768px) {
   .table-responsive {
     overflow-x: auto;
+  }
+  .btn {
+    font-size: 0.9rem;
+    padding: 8px 16px;
+  }
+  .btn span {
+    font-size: 1.2rem;
+  }
+  .quantity-box {
+    width: 40px;
+    height: 30px;
+    line-height: 30px;
+    font-size: 0.9rem;
+  }
+  .filter-btn {
+    min-width: 100px;
+  }
+  .col-lg-8, .col-lg-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+@media (max-width: 576px) {
+  .btn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+  .btn span {
+    font-size: 1rem;
+  }
+  .quantity-box {
+    width: 35px;
+    height: 25px;
+    line-height: 25px;
+    font-size: 0.8rem;
+  }
+  .filter-btn {
+    min-width: 80px;
+  }
+  .col-lg-8, .col-lg-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
   }
 }
 .btn {
@@ -362,14 +422,17 @@ function POSPage() {
   font-size: 1.1rem;
   padding: 10px 20px;
   position: relative;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: box-shadow 0.3s ease;
 }
 .btn:hover {
-  transform: translateY(-5px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 .btn-sm {
   min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .btn-warning {
   background-color: rgb(255, 123, 0);
@@ -402,14 +465,14 @@ function POSPage() {
 }
 .quantity-box {
   display: inline-block;
-  width: 20%;
+  width: 50px;
   height: 40px;
   line-height: 40px;
   text-align: center;
-  background-color: white;
-  border: 2px solid #6c757d;
+  background-color: #f8f9fa;
+  border: 1px solid #6c757d;
   border-radius: 5px;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
 }
 .filter-btn {
