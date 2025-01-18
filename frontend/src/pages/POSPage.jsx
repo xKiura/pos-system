@@ -4,12 +4,13 @@ import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
 import { FaTimes, FaTh, FaDrumstickBite, FaUtensils, FaGlassWhiskey, FaPlus, FaMinus } from 'react-icons/fa';
 import { GiRiceCooker } from 'react-icons/gi';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min';
 import { Modal, Button, Card, Spinner } from 'react-bootstrap';
 
 function POSPage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [bill, setBill] = useState([]);
@@ -125,7 +126,7 @@ function POSPage() {
   const handlePrint = useReactToPrint({
     documentTitle: 'فاتورة',
     contentRef: componentRef,
-    onAfterPrint: () => {
+    onAfterPrint: async () => {
       const confirmedOrder = {
         date: new Date().toLocaleDateString(),
         confirmedAt: new Date().toISOString(),
@@ -140,11 +141,24 @@ function POSPage() {
         tax: billTotalTax,
         totalIncomeWithTax: totalAmount + billTotalTax
       };
-      saveConfirmedOrder(confirmedOrder);
+      await saveConfirmedOrder(confirmedOrder);
       incrementOrderNumber();
       setBill([]);
     }
   });
+
+  const handleOrderConfirmation = () => {
+    // Fetch order details and profits
+    const orderDetails = {
+      // ...populate with actual order details...
+    };
+    const filteredOrders = [
+      // ...populate with actual filtered orders...
+    ];
+
+    // Navigate to SalesReports page with order details and profits
+    navigate.push('/sales-reports', { orderDetails, filteredOrders });
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -323,7 +337,7 @@ function POSPage() {
               {bill.length > 0 && (
                 <>
                   <button className="btn btn-danger w-100 mt-3 btn-lg" onClick={clearBill}>حذف الكل</button>
-                  <button className="btn btn-success w-100 mt-3 btn-lg" onClick={() => handlePrint()}>إتمام الطلب</button>
+                  <button className="btn btn-success w-100 mt-3 btn-lg" onClick={handlePrint, handleOrderConfirmation}>إتمام الطلب</button>
                 </>
               )}
             </div>
