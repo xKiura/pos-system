@@ -10,6 +10,7 @@ function ProfitsPage() {
     const [dateFilter, setDateFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('الكل');
     const [totalProfit, setTotalProfit] = useState(0);
+    const [totalWithTax, setTotalWithTax] = useState(0);
     const [productSales, setProductSales] = useState({});
     const [confirmedOrders, setConfirmedOrders] = useState([]);
     const [filteredOrders, setFilteredOrders] = useState([]);
@@ -94,6 +95,7 @@ function ProfitsPage() {
 
         setTotalProfit(totalProfit);
         setProductSales(productSales);
+        setTotalWithTax(Math.round(totalProfit * 1.15));
     };
 
     const toggleOrderDetails = (orderNumber) => {
@@ -161,6 +163,7 @@ function ProfitsPage() {
             </div>
             <div id="profits-result" className="bg-light p-3 rounded">
                 <h2>مجموع الربح : ${totalProfit.toFixed(2)}</h2>
+                <h6>الاجمالي شامل الضريبة : ${totalWithTax.toFixed(2)}</h6>
                 <table className="table table-striped">
                     <thead>
                         <tr>
@@ -214,6 +217,10 @@ function ProfitsPage() {
                                                                 <td>${item.price * item.quantity}</td>
                                                             </tr>
                                                         ))}
+                                                        <tr>
+                                                            <td colSpan="3"><strong>الاجمالي شامل الضريبة</strong></td>
+                                                            <td><strong>${Math.round(order.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 1.15)}</strong></td>
+                                                        </tr>
                                                     </tbody>
                                                 </table>
                                             </div>

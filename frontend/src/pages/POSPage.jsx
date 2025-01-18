@@ -133,7 +133,12 @@ function POSPage() {
         items: bill,
         employeeName,
         employeeNumber,
-        orderNumber: orderNumber.toString().padStart(6, '0')
+        orderNumber: orderNumber.toString().padStart(6, '0'),
+        totalIncome: totalAmount,
+        categoryIncome: bill.reduce((acc, item) => acc + (item.category === filter ? item.totalAmount : 0), 0),
+        productIncome: bill.reduce((acc, item) => acc + item.totalAmount, 0),
+        tax: billTotalTax,
+        totalIncomeWithTax: totalAmount + billTotalTax
       };
       saveConfirmedOrder(confirmedOrder);
       incrementOrderNumber();
@@ -206,16 +211,16 @@ function POSPage() {
       <div className="container-fluid">
         <div className="row mt-3 justify-content-center">
           <div className="col-auto">
-            <Link className='btn btn-warning btn-lg' to="/manage-products">إدارة المنتجات</Link>
+            <Link className='btn btn-primary btn-lg' to="/manage-products">إدارة المنتجات</Link>
           </div>
           <div className="col-auto">
-            <Link className='btn btn-warning btn-lg' to="/bills">عرض الفواتير</Link>
+            <Link className='btn btn-primary btn-lg' to="/bills">عرض الفواتير</Link>
           </div>
           <div className="col-auto">
-            <Link className='btn btn-warning btn-lg' to="/sales-reports">تقارير المبيعات</Link>
+            <Link className='btn btn-primary btn-lg' to="/sales-reports">تقارير المبيعات</Link>
           </div>
           <div className="col-auto">
-            <Link className='btn btn-warning btn-lg' to="/inventory-reports">تقارير المخزون</Link>
+            <Link className='btn btn-primary btn-lg' to="/inventory-reports">تقارير المخزون</Link>
           </div>
         </div>
         <div className="row mb-3">
@@ -223,7 +228,7 @@ function POSPage() {
             {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category, index) => (
               <button
                 key={index}
-                className={`btn filter-btn me-2 p-2 d-flex align-items-center justify-content-between px-4 ${filter === (category === 'الكل' ? 'all' : category) ? 'btn-warning' : 'btn-outline-warning'}`}
+                className={`btn filter-btn me-2 p-2 d-flex align-items-center justify-content-between px-4 ${filter === (category === 'الكل' ? 'all' : category) ? 'btn-primary' : 'btn-outline-primary'}`}
                 onClick={() => setFilter(category === 'الكل' ? 'all' : category)}
                 style={{ flex: 1, minWidth: '120px', fontSize: '1.1rem', padding: '10px 20px' }}
               >
@@ -294,7 +299,7 @@ function POSPage() {
                 <tbody>
                   {bill.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center text-danger border border-danger border-2 fs-5">لا يوجد منتجات في الفاتورة</td>
+                      <td colSpan="6" className="text-center text-danger border border-primary border-2 fs-5">لا يوجد منتجات في الفاتورة</td>
                     </tr>
                   ) : (
                     bill.map((billItem, key) => (
