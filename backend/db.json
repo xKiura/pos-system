@@ -32,43 +32,43 @@
       "id": "127",
       "name": "Product 5",
       "price": "54",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     },
     {
       "id": "128",
       "name": "Product 6",
       "price": "29",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     },
     {
       "id": "129",
       "name": "Product 7",
       "price": "76",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     },
     {
       "id": "130",
       "name": "Product 8",
       "price": "38",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     },
     {
       "id": "132",
       "name": "Product 10",
       "price": "22",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     },
     {
       "id": "133",
       "name": "Product 11",
       "price": "65",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     },
     {
       "id": "134",
       "name": "Product 12",
       "price": "41",
-      "image": "https://via.placeholder.com/150"
+      "image": "'https://placehold.co/150x150'"
     }
   ]
 }

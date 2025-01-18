@@ -2,12 +2,26 @@ import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
-import { FaTimes, FaTh, FaDrumstickBite, FaUtensils, FaGlassWhiskey, FaPlus, FaMinus } from 'react-icons/fa';
-import { GiRiceCooker } from 'react-icons/gi';
+import { 
+  FaTimes, 
+  FaTh, 
+  FaUtensils, 
+  FaGlassWhiskey, 
+  FaPlus, 
+  FaMinus, 
+  FaCheck,
+  FaClipboardList,
+  FaBoxes,
+  FaChartBar,
+  FaFileInvoiceDollar,
+  FaFire
+} from 'react-icons/fa';
+import { GiRiceCooker } from 'react-icons/gi';  // Changed from GiRiceBowl
 import { Link, useNavigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min';
 import { Modal, Button, Card, Spinner } from 'react-bootstrap';
+import { toast, ToastContainer } from 'react-toastify';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 function POSPage() {
   const navigate = useNavigate();
@@ -21,6 +35,8 @@ function POSPage() {
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [orderNumber, setOrderNumber] = useState(1);
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState(null);
+  const [newItemIds, setNewItemIds] = useState([]);
 
   const roundToNearestHalf = (num) => {
     return Math.round(num * 2) / 2;
@@ -31,11 +47,13 @@ function POSPage() {
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const result = await axios.get('http://localhost:5000/products');
       setProducts(result.data);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setError('Failed to load products. Please check if the server is running.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -67,6 +85,10 @@ function POSPage() {
         totalAmount: parseFloat(product.price)
       };
       setBill([...bill, addingProduct]);
+      setNewItemIds(prev => [...prev, product.id]);
+      setTimeout(() => {
+        setNewItemIds(prev => prev.filter(id => id !== product.id));
+      }, 500); // Changed from 300 to 500 to match new animation duration
     }
   }
 
@@ -96,6 +118,10 @@ function POSPage() {
         totalAmount: parseFloat(product.price)
       };
       setBill([...bill, addingProduct]);
+      setNewItemIds(prev => [...prev, product.id]);
+      setTimeout(() => {
+        setNewItemIds(prev => prev.filter(id => id !== product.id));
+      }, 500); // Changed from 300 to 500 to match new animation duration
     }
   }
 
@@ -147,17 +173,34 @@ function POSPage() {
     }
   });
 
-  const handleOrderConfirmation = () => {
-    // Fetch order details and profits
-    const orderDetails = {
-      // ...populate with actual order details...
-    };
-    const filteredOrders = [
-      // ...populate with actual filtered orders...
-    ];
+  const handleConfirmOrder = async (orderData) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...orderData,
+          status: 'confirmed',
+          date: new Date().toISOString()
+        }),
+      });
 
-    // Navigate to SalesReports page with order details and profits
-    navigate.push('/sales-reports', { orderDetails, filteredOrders });
+      if (!response.ok) {
+        throw new Error('Failed to confirm order');
+      }
+
+      // Clear the current bill
+      setBill([]);
+      
+      // Show success message
+      toast.success('Order confirmed successfully');
+
+    } catch (error) {
+      console.error('Error confirming order:', error);
+      toast.error('Failed to confirm order');
+    }
   };
 
   useEffect(() => {
@@ -213,135 +256,664 @@ function POSPage() {
   };
 
   const categoryIcons = {
-    الكل: <FaTh className="fa-3x me-2" />,
-    رز: <GiRiceCooker className="fa-3x me-2" />,
-    مشويات: <FaDrumstickBite className="fa-3x me-2" />,
-    مشروبات: <FaGlassWhiskey className="fa-3x me-2" />,
-    وجبات: <FaUtensils className="fa-3x me-2" />
+    الكل: <FaTh />,
+    رز: <GiRiceCooker />,  // Changed from GiRiceBowl
+    مشويات: <FaFire />,
+    مشروبات: <FaGlassWhiskey />,
+    وجبات: <FaUtensils />
   };
 
   return (
     <>
       <div className="container-fluid">
-        <div className="row mt-3 justify-content-center">
-          <div className="col-auto">
-            <Link className='btn btn-primary btn-lg' to="/manage-products">إدارة المنتجات</Link>
+        <div className="navigation-wrapper">
+          <div className="nav-buttons">
+            <Link to="/manage-products" className="nav-button">
+              <FaBoxes className="nav-icon" />
+              <span>إدارة المنتجات</span>
+            </Link>
+            <Link to="/bills" className="nav-button">
+              <FaFileInvoiceDollar className="nav-icon" />
+              <span>عرض الفواتير</span>
+            </Link>
+            <Link to="/sales-reports" className="nav-button">
+              <FaChartBar className="nav-icon" />
+              <span>تقارير المبيعات</span>
+            </Link>
+            <Link to="/inventory-reports" className="nav-button">
+              <FaClipboardList className="nav-icon" />
+              <span>تقارير المخزون</span>
+            </Link>
           </div>
-          <div className="col-auto">
-            <Link className='btn btn-primary btn-lg' to="/bills">عرض الفواتير</Link>
-          </div>
-          <div className="col-auto">
-            <Link className='btn btn-primary btn-lg' to="/sales-reports">تقارير المبيعات</Link>
-          </div>
-          <div className="col-auto">
-            <Link className='btn btn-primary btn-lg' to="/inventory-reports">تقارير المخزون</Link>
-          </div>
-        </div>
-        <div className="row mb-3">
-          <div className="col justify-content-center d-flex my-3">
-            {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category, index) => (
+
+          <div className="category-filter">
+            {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category) => (
               <button
-                key={index}
-                className={`btn filter-btn me-2 p-2 d-flex align-items-center justify-content-between px-4 ${filter === (category === 'الكل' ? 'all' : category) ? 'btn-primary' : 'btn-outline-primary'}`}
+                key={category}
+                className={`category-btn ${filter === (category === 'الكل' ? 'all' : category) ? 'active' : ''}`}
                 onClick={() => setFilter(category === 'الكل' ? 'all' : category)}
-                style={{ flex: 1, minWidth: '120px', fontSize: '1.1rem', padding: '10px 20px' }}
               >
-                {categoryIcons[category]}
-                <span className={`category-text ${filter === (category === 'الكل' ? 'all' : category) ? 'selected' : ''}`}>
-                  {category}
+                <span className="icon-wrapper">
+                  {categoryIcons[category]}
                 </span>
+                <span className="category-name">{category}</span>
               </button>
             ))}
           </div>
         </div>
+
         <div className="row">
           <div className="col-lg-8">
-            {isLoading ? (
-              <div className="d-flex justify-content-center align-items-center" style={{ height: '100%' }}>
-                <Spinner animation="border" variant="warning" />
-              </div>
-            ) : (
-              <div className='row g-3'>
-                {filteredProducts.map((product, key) => (
-                  <div key={key} className="col-6 col-sm-4 col-md-3 col-lg-3">
-                    <Card className="h-100 shadow-sm">
-                      <Card.Img variant="top" src={product.image} alt={product.name} style={{ height: '150px', objectFit: 'cover' }} />
-                      <Card.Body className="d-flex flex-column">
-                        <Card.Title>{product.name}</Card.Title>
-                        <Card.Text>{product.price} ر.س</Card.Text>
-                        <div className="d-flex justify-content-between align-items-center mt-auto">
-                          <Button variant="outline-danger" size="sm" className="flex-fill" onClick={() => updateProductQuantity(product, -1)}>
-                            <FaMinus />
-                          </Button>
-                          <span className="quantity-box flex-fill m-1">{bill.find(i => i.id === product.id)?.quantity || 0}</span>
-                          <Button variant="primary" size="sm" className="flex-fill" onClick={() => updateProductQuantity(product, 1)}>
-                            <FaPlus />
-                          </Button>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="col-lg-4">
-            <div style={{ display: 'none' }}>
-              <ComponentToPrint bill={bill} totalAmount={totalAmount} ref={componentRef} employeeName={employeeName} employeeNumber={employeeNumber} />
-            </div>
-            <div className="table-responsive bg-dark mg-2 p-2 rounded-3 shadow-sm">
-              <table className='table table-dark table-striped table-hover table-md'>
-                <thead>
-                  <tr>
-                    <td colSpan="6" className="text-end">{currentDateTime}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan="6" className="text-end">اسم الموظف: {employeeName}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan="6" className="text-end">رقم الموظف: #{employeeNumber}</td>
-                  </tr>
-                  <tr>
-                    <td className="border-end">#</td>
-                    <td className="border-end">المجموع</td>
-                    <td className="border-end">الكمية</td>
-                    <td className="border-end">السعر</td>
-                    <td className="border-end">المنتج</td>
-                    <td>الاجراء</td>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bill.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="text-center text-danger border border-primary border-2 fs-5">لا يوجد منتجات في الفاتورة</td>
-                    </tr>
-                  ) : (
-                    bill.map((billItem, key) => (
-                      <tr key={key} className="border-bottom">
-                        <td className="border-end">{key + 1}</td>
-                        <td className="border-end">{billItem.totalAmount}</td>
-                        <td className="border-end">{billItem.quantity}</td>
-                        <td className="border-end">{billItem.price}</td>
-                        <td className="border-end">{billItem.name}</td>
-                        <td className='text-center'>
-                          <button className='btn btn-danger btn-sm py-0' style={{ fontSize: '0.9em' }} onClick={() => removeItem(billItem)}><FaTimes color="white" /></button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-              <h6 className="px-4 text-white text-end">المجموع : {Math.ceil(totalAmount)} ر.س</h6>
-              <h6 className="px-4 text-white text-end">ضريبة المبيعات (15%) : {billTotalTax.toFixed(2)} ر.س</h6>
-              <h3 className="px-2 border-top text-white text-center">كامل المجموع : {(totalAmount + billTotalTax).toFixed(1)} ر.س</h3>
-              {bill.length > 0 && (
-                <>
-                  <button className="btn btn-danger w-100 mt-3 btn-lg" onClick={clearBill}>حذف الكل</button>
-                  <button className="btn btn-success w-100 mt-3 btn-lg" onClick={handlePrint, handleOrderConfirmation}>إتمام الطلب</button>
-                </>
+  <div className="products-container">
+    {isLoading ? (
+      <div className="loading-state">
+        <Spinner animation="border" variant="primary" />
+        <p>جاري تحميل المنتجات...</p>
+      </div>
+    ) : error ? (
+      <div className="error-state">
+        <div className="alert alert-danger" role="alert">
+          <i className="fas fa-exclamation-circle me-2"></i>
+          {error}
+        </div>
+      </div>
+    ) : (
+      <div className="products-grid">
+        {filteredProducts.map((product, key) => (
+          <div key={key} className="product-card">
+            <div className="product-image-wrapper">
+              <img 
+                src={product.image || 'https://placehold.co/150x150'}
+                alt={product.name}
+                className="product-image"
+                onError={(e) => {
+                  e.target.src = 'https://placehold.co/150x150';
+                }}
+              />
+              {bill.find(i => i.id === product.id)?.quantity > 0 && (
+                <div className="quantity-badge">
+                  {bill.find(i => i.id === product.id)?.quantity}
+                </div>
               )}
             </div>
+            <div className="product-content">
+              <h5 className="product-title">{product.name}</h5>
+              <div className="product-price">{product.price} ر.س</div>
+              <div className="product-actions">
+                <button 
+                  className="action-btn decrease"
+                  onClick={() => updateProductQuantity(product, -1)}
+                  disabled={!bill.find(i => i.id === product.id)}
+                >
+                  <FaMinus />
+                </button>
+                <span className="quantity-display">
+                  {bill.find(i => i.id === product.id)?.quantity || 0}
+                </span>
+                <button 
+                  className="action-btn increase"
+                  onClick={() => updateProductQuantity(product, 1)}
+                >
+                  <FaPlus />
+                </button>
+              </div>
+            </div>
           </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  <style>
+    {`
+      .products-container {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        padding: 25px; // Increased from 20px
+        height: calc(100vh - 180px);
+        overflow: hidden; // Changed from overflow-y: auto
+      }
+
+      .loading-state, .error-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 40px;
+      }
+
+      .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); // Increased from 150px
+        gap: 30px; // Increased from 25px
+        padding: 20px; // Increased from 15px
+        height: 100%; // Added height
+      }
+
+      .product-card {
+        height: 100%; // Added to ensure consistent height
+        display: flex; // Added
+        flex-direction: column; // Added
+        background: #ffffff;
+        border-radius: 15px; // Increased from 12px
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 1px solid #e5e9f2;
+        position: relative;
+        margin: 5px; // Added margin all around
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); // Added subtle shadow for depth
+      }
+
+      .product-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      .product-image-wrapper {
+        position: relative;
+        padding-top: 65%; // Adjusted from 60%
+        background: #f8f9fa;
+        overflow: hidden;
+      }
+
+      .product-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .product-card:hover .product-image {
+        transform: scale(1.05);
+      }
+
+      .quantity-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: #3699ff;
+        color: white;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+        box-shadow: 0 2px 4px rgba(54, 153, 255, 0.3);
+      }
+
+      .product-content {
+        flex: 1; // Added to ensure proper spacing
+        display: flex; // Added
+        flex-direction: column; // Added
+        padding: 20px; // Increased from 15px
+      }
+
+      .product-title {
+        margin: 0;
+        font-size: 1rem; // Increased from 0.9rem
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 12px; // Increased from 8px
+        height: 36px; // Increased from 32px
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .product-price {
+        color: #3699ff;
+        font-weight: bold;
+        font-size: 1.2rem; // Increased from 1.1rem
+        margin-bottom: 15px; // Increased from 12px
+      }
+
+      .product-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f8f9fa;
+        border-radius: 10px; // Increased from 8px
+        padding: 8px; // Increased from 5px
+        margin-top: auto; // Added to push to bottom
+      }
+
+      .action-btn {
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .action-btn.decrease {
+        background: #fff5f5;
+        color: #dc3545;
+      }
+
+      .action-btn.increase {
+        background: #e8f5e9;
+        color: #28a745;
+      }
+
+      .action-btn:hover {
+        filter: brightness(0.95);
+      }
+
+      .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .quantity-display {
+        font-weight: bold;
+        color: #2c3e50;
+        min-width: 30px;
+        text-align: center;
+      }
+
+      @media (max-width: 768px) {
+        .products-grid {
+          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); // Reduced for mobile
+          gap: 20px; // Adjusted for mobile
+          padding: 12px;
+        }
+
+        .product-title {
+          font-size: 0.9rem; // Further reduced for mobile
+          height: 32px; // Reduced height for mobile
+        }
+
+        .product-price {
+          font-size: 0.9rem; // Reduced for mobile
+        }
+
+        .product-content {
+          padding: 15px;
+        }
+      }
+
+      @media (max-width: 1200px) {
+        .products-grid {
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 25px; // Adjusted for medium screens
+          padding: 15px;
+        }
+      }
+    `}
+  </style>
+</div>
+          <div className="col-lg-4">
+  <div style={{ display: 'none' }}>
+    <ComponentToPrint 
+      bill={bill} 
+      ref={componentRef} 
+      employeeName={employeeName} 
+      employeeNumber={employeeNumber}
+      orderNumber={orderNumber}
+      isRefunded={false}  // Since this is for new bills
+    />
+  </div>
+  <div className="bill-container">
+    <div className="bill-header">
+      <h4 className="text-center mb-3">الفاتورة</h4>
+      <div className="bill-info">
+        <div className="info-row">
+          <span className="info-label">التاريخ:</span>
+          <span className="info-value">{currentDateTime}</span>
+        </div>
+        <div className="info-row">
+          <span className="info-label">رقم الفاتورة:</span>
+          <span className="info-value">#{orderNumber.toString().padStart(6, '0')}</span>
+        </div>
+        <div className="info-row">
+          <span className="info-label">الموظف:</span>
+          <span className="info-value">{employeeName} (#{employeeNumber})</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="bill-content">
+      {bill.length === 0 ? (
+        <div className="empty-bill">
+          <i className="fas fa-receipt fa-3x mb-2"></i>
+          <p>لا يوجد منتجات في الفاتورة</p>
+        </div>
+      ) : (
+        <div className="bill-items">
+          {bill.map((billItem, key) => (
+            <div 
+              key={key} 
+              className={`bill-item ${newItemIds.includes(billItem.id) ? 'new-item-animation' : ''}`}
+            >
+              <div className="item-header">
+                <div className="item-info">
+                  <img 
+                    src={billItem.image || 'https://placehold.co/150x150'} 
+                    alt={billItem.name}
+                    className="item-image"
+                    onError={(e) => {
+                      e.target.src = 'https://placehold.co/150x150';
+                    }}
+                  />
+                  <div>
+                    <span className="item-name">{billItem.name}</span>
+                    <span className="unit-price">{billItem.price} ر.س</span>
+                  </div>
+                </div>
+                <button className='remove-item' onClick={() => removeItem(billItem)}>
+                  <FaTimes size={12} />
+                </button>
+              </div>
+              <div className="item-details">
+                <div className="quantity-controls">
+                  <button onClick={() => updateProductQuantity(billItem, -1)}>-</button>
+                  <span>{billItem.quantity}</span>
+                  <button onClick={() => updateProductQuantity(billItem, 1)}>+</button>
+                </div>
+                <span className="total-price">{billItem.totalAmount.toFixed(2)} ر.س</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <div className="bill-footer">
+      <div className="totals">
+        <div className="total-row">
+          <span>المجموع الفرعي:</span>
+          <span>{Math.ceil(totalAmount)} ر.س</span>
+        </div>
+        <div className="total-row">
+          <span>الضريبة (15%):</span>
+          <span>{billTotalTax.toFixed(2)} ر.س</span>
+        </div>
+        <div className="total-row grand-total">
+          <span>الإجمالي:</span>
+          <span>{(totalAmount + billTotalTax).toFixed(1)} ر.س</span>
+        </div>
+      </div>
+      
+      {bill.length > 0 && (
+        <div className="action-buttons">
+          <button className="btn-clear" onClick={clearBill}>
+            <FaTimes className="me-2" />
+            حذف الكل
+          </button>
+          <button className="btn-confirm" onClick={handlePrint}>
+            <FaCheck className="me-2" />
+            إتمام الطلب
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <style>
+    {`
+      .bill-container {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 100px);
+        margin: 10px 0;
+      }
+
+      .bill-header {
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 10px 10px 0 0;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .bill-header h4 {
+        color: #2c3e50;
+        margin: 0;
+        font-weight: bold;
+      }
+
+      .bill-info {
+        margin-top: 10px;
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        color: #6c757d;
+        margin: 5px 0;
+        font-size: 0.9rem;
+      }
+
+      .bill-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+      }
+
+      .empty-bill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c7293;
+      }
+
+      .bill-item {
+        background: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+      }
+
+      .bill-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .item-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .item-image {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 2px solid #323248;
+      }
+
+      .item-name {
+        color: #2c3e50;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .unit-price {
+        color: #6c757d;
+        font-size: 0.85rem;
+        display: block;
+      }
+
+      .item-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .quantity-controls {
+        display: flex;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 20px;
+        padding: 5px;
+      }
+
+      .quantity-controls button {
+        background: #e9ecef;
+        border: none;
+        color: #2c3e50;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .quantity-controls button:hover {
+        background: #dee2e6;
+      }
+
+      .quantity-controls span {
+        color: #2c3e50;
+        margin: 0 10px;
+        min-width: 20px;
+        text-align: center;
+      }
+
+      .total-price {
+        color: #007bff;
+        font-weight: bold;
+      }
+
+      .bill-footer {
+        background: #ffffff;
+        padding: 15px;
+        border-radius: 0 0 10px 10px;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .totals {
+        margin-bottom: 15px;
+      }
+
+      .total-row {
+        display: flex;
+        justify-content: space-between;
+        color: #6c757d;
+        margin: 5px 0;
+      }
+
+      .grand-total {
+        color: #2c3e50;
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .btn-clear, .btn-confirm {
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+
+      .btn-clear {
+        background: #dc3545;
+      }
+
+      .btn-confirm {
+        background: #28a745;
+      }
+
+      .btn-clear:hover, .btn-confirm:hover {
+        transform: translateY(-2px);
+        filter: brightness(110%);
+      }
+
+      .remove-item {
+        background: rgba(220, 53, 69, 0.1);
+        border: none;
+        color: #dc3545;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .remove-item:hover {
+        background: #dc3545;
+        color: white;
+      }
+
+      /* Updated scrollbar styling */
+      .bill-content::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .bill-content::-webkit-scrollbar-track {
+        background: #f8f9fa;
+      }
+
+      .bill-content::-webkit-scrollbar-thumb {
+        background: #dee2e6;
+        border-radius: 3px;
+      }
+
+      .bill-content::-webkit-scrollbar-thumb:hover {
+        background: #adb5bd;
+      }
+
+      .new-item-animation {
+        animation: slideInRightWithFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        background-color: rgba(11, 183, 131, 0.1);
+      }
+
+      .new-item-animation:hover {
+        background-color: rgba(11, 183, 131, 0.15);
+      }
+    `}
+  </style>
+</div>
         </div>
       </div>
 
@@ -358,164 +930,348 @@ function POSPage() {
         </Modal.Footer>
       </Modal>
 
-      <style jsx>{`
-.border-end {
-  border-right: 1px solid #6c757d !important;
-}
-.border-bottom {
-  border-bottom: 1px solid #6c757d !important;
-}
-@media (max-width: 1024px) {
-  .btn {
-    font-size: 1rem;
-    padding: 8px 16px;
-  }
-  .btn span {
-    font-size: 1.4rem;
-  }
-  .quantity-box {
-    width: 45px;
-    height: 35px;
-    line-height: 35px;
-    font-size: 0.9rem;
-  }
-  .filter-btn {
-    min-width: 100px;
-  }
-}
-@media (max-width: 768px) {
-  .table-responsive {
-    overflow-x: auto;
-  }
-  .btn {
-    font-size: 0.9rem;
-    padding: 8px 16px;
-  }
-  .btn span {
-    font-size: 1.2rem;
-  }
-  .quantity-box {
-    width: 40px;
-    height: 30px;
-    line-height: 30px;
-    font-size: 0.9rem;
-  }
-  .filter-btn {
-    min-width: 100px;
-  }
-  .col-lg-8, .col-lg-4 {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-}
-@media (max-width: 576px) {
-  .btn {
-    font-size: 0.8rem;
-    padding: 6px 12px;
-  }
-  .btn span {
-    font-size: 1rem;
-  }
-  .quantity-box {
-    width: 35px;
-    height: 25px;
-    line-height: 25px;
-    font-size: 0.8rem;
-  }
-  .filter-btn {
-    min-width: 80px;
-  }
-  .col-lg-8, .col-lg-4 {
-    flex: 0 0 100%;
-    max-width: 100%;
-  }
-}
-.btn {
-  flex: 1;
-  min-width: 120px;
-  font-size: 1.1rem;
-  padding: 10px 20px;
-  position: relative;
-  transition: box-shadow 0.3s ease;
-}
-.btn:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-.btn-sm {
-  min-width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-warning {
-  background-color: rgb(255, 123, 0);
-}
-.btn-outline-warning {
-  border-color: rgb(255, 123, 0);
-  color: rgb(255, 123, 0);
-}
-.btn-outline-warning:hover {
-  background-color: rgb(255, 123, 0);
-  color: white;
-}
-.btn span {
-  color: black;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px white;
-  font-size: 1.6rem;
-}
-.btn:hover .category-text {
-  animation: colorChange 2s infinite;
-}
-.btn.selected .category-text {
-  color: white;
-  animation: none;
-}
-@keyframes colorChange {
-  0% { color: black; }
-  50% { color: white; }
-  100% { color: black; }
-}
-.quantity-box {
-  display: inline-block;
-  width: 50px;
-  height: 40px;
-  line-height: 40px;
-  text-align: center;
-  background-color: #f8f9fa;
-  border: 1px solid #6c757d;
-  border-radius: 5px;
-  font-size: 1rem;
-  font-weight: bold;
-}
-.filter-btn {
-  border-radius: 50px;
-  overflow: hidden;
-  position: relative;
-}
-.filter-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.filter-btn:hover::before {
-  opacity: 1;
-}
-.btn-danger, .btn-success {
-  transition: none;
-}
-.btn-danger:hover, .btn-success:hover {
-  transform: none;
-  box-shadow: none;
-}
-      `}</style>
+      <style>
+        {`
+          .border-end {
+            border-right: 1px solid #6c757d !important;
+          }
+          .border-bottom {
+            border-bottom: 1px solid #6c757d !important;
+          }
+          @media (max-width: 1024px) {
+            .btn {
+              font-size: 1rem;
+              padding: 8px 16px;
+            }
+            .btn span {
+              font-size: 1.4rem;
+            }
+            .quantity-box {
+              width: 45px;
+              height: 35px;
+              line-height: 35px;
+              font-size: 0.9rem;
+            }
+            .filter-btn {
+              min-width: 100px;
+            }
+          }
+          @media (max-width: 768px) {
+            .table-responsive {
+              overflow-x: auto;
+            }
+            .btn {
+              font-size: 0.9rem;
+              padding: 8px 16px;
+            }
+            .btn span {
+              font-size: 1.2rem;
+            }
+            .quantity-box {
+              width: 40px;
+              height: 30px;
+              line-height: 30px;
+              font-size: 0.9rem;
+            }
+            .filter-btn {
+              min-width: 100px;
+            }
+            .col-lg-8, .col-lg-4 {
+              flex: 0 0 100%;
+              max-width: 100%;
+            }
+          }
+          @media (max-width: 576px) {
+            .btn {
+              font-size: 0.8rem;
+              padding: 6px 12px;
+            }
+            .btn span {
+              font-size: 1rem;
+            }
+            .quantity-box {
+              width: 35px;
+              height: 25px;
+              line-height: 25px;
+              font-size: 0.8rem;
+            }
+            .filter-btn {
+              min-width: 80px;
+            }
+            .col-lg-8, .col-lg-4 {
+              flex: 0 0 100%;
+              max-width: 100%;
+            }
+          }
+          .btn {
+            flex: 1;
+            min-width: 120px;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            position: relative;
+            transition: box-shadow 0.3s ease;
+          }
+          .btn:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          }
+          .btn-sm {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .btn-warning {
+            background-color: rgb(255, 123, 0);
+          }
+          .btn-outline-warning {
+            border-color: rgb(255, 123, 0);
+            color: rgb(255, 123, 0);
+          }
+          .btn-outline-warning:hover {
+            background-color: rgb(255, 123, 0);
+            color: white;
+          }
+          .btn span {
+            color: black;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px white;
+            font-size: 1.6rem;
+          }
+          .btn:hover .category-text {
+            animation: colorChange 2s infinite;
+          }
+          .btn.selected .category-text {
+            color: white;
+            animation: none;
+          }
+          @keyframes colorChange {
+            0% { color: black; }
+            50% { color: white; }
+            100% { color: black; }
+          }
+          .quantity-box {
+            display: inline-block;
+            width: 50px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            background-color: #f8f9fa;
+            border: 1px solid #6c757d;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+          }
+          .filter-btn {
+            border-radius: 50px;
+            overflow: hidden;
+            position: relative;
+          }
+          .filter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          .filter-btn:hover::before {
+            opacity: 1;
+          }
+          .btn-danger, .btn-success {
+            transition: none;
+          }
+          .btn-danger:hover, .btn-success:hover {
+            transform: none;
+            box-shadow: none;
+          }
+          @keyframes slideInRightWithFade {
+            0% {
+              transform: translateX(50px);
+              opacity: 0;
+            }
+            30% {
+              opacity: 0.3;
+            }
+            100% {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+
+          .new-item-animation {
+            animation: slideInRightWithFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            background-color: rgba(40, 167, 69, 0.1);
+            transition: background-color 0.5s ease;
+          }
+
+          .new-item-animation:hover {
+            background-color: rgba(40, 167, 69, 0.2);
+          }
+
+          .new-item-animation td {
+            position: relative;
+            transition: all 0.3s ease;
+          }
+
+          .new-item-animation td::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+              90deg, 
+              transparent 0%,
+              rgba(255, 255, 255, 0.2) 50%,
+              transparent 100%
+            );
+            animation: shimmer 0.75s ease-in-out forwards;
+            opacity: 0.7;
+          }
+
+          @keyframes shimmer {
+            0% {
+              transform: translateX(-100%);
+              opacity: 0;
+            }
+            50% {
+              opacity: 0.7;
+            }
+            100% {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+          }
+          .navigation-wrapper {
+            background: #ffffff;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+          }
+
+          .nav-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .nav-button {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            border-radius: 10px;
+            color: #2c3e50;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+          }
+
+          .nav-button:hover {
+            background: #3699ff;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(54, 153, 255, 0.2);
+          }
+
+          .nav-icon {
+            font-size: 1.25rem;
+            margin-right: 0.75rem;
+          }
+
+          .category-filter {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+
+          .category-filter::-webkit-scrollbar {
+            display: none;
+          }
+
+          .category-btn {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            color: #6c757d;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            cursor: pointer;
+            min-width: 120px;
+            justify-content: center;
+          }
+
+          .category-btn:hover {
+            background: #f8f9fa;
+            border-color: #3699ff;
+            color: #3699ff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(54, 153, 255, 0.1);
+          }
+
+          .category-btn.active {
+            background: #3699ff;
+            border-color: #3699ff;
+            color: white;
+            box-shadow: 0 4px 12px rgba(54, 153, 255, 0.2);
+          }
+
+          .icon-wrapper {
+            display: flex;
+            align-items: center;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+          }
+
+          .category-name {
+            font-size: 0.95rem;
+          }
+
+          @media (max-width: 768px) {
+            .nav-buttons {
+              grid-template-columns: repeat(2, 1fr);
+            }
+
+            .category-btn {
+              padding: 0.6rem 1rem;
+              min-width: 100px;
+            }
+
+            .category-name {
+              font-size: 0.85rem;
+            }
+          }
+
+          @media (max-width: 576px) {
+            .nav-buttons {
+              grid-template-columns: 1fr;
+            }
+
+            .category-filter {
+              gap: 0.75rem;
+            }
+
+            .category-btn {
+              padding: 0.5rem 0.875rem;
+              min-width: 90px;
+            }
+          }
+        `}
+      </style>
     </>
   );
 }

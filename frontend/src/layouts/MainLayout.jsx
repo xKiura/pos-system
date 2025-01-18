@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import SignUpPopup from "../components/SignUpPopUp/SignUpPopup";
+// Import the image if it's in the src folder
+import mainLogo from '../assets/main_logo.png';  // Adjust the path as needed
 import "./MainLayout.css";
 
 const MainLayout = () => {
@@ -12,22 +14,25 @@ const MainLayout = () => {
   return (
     <div className="container">
       <header>
-        <nav class="navbar navbar-light bg-light navbar-border">
-          <a class="navbar-brand" href="/" data-discover="true">
+        <nav className="navbar navbar-light bg-light navbar-border">
+          <a className="navbar-brand" href="/" data-discover="true">
             <img
-              src="/static/media/main_logo.2d6a559415d54d818d81.png"
+              // If using import:
+              src={mainLogo}
+              // Or if the image is in public folder:
+              // src="/main_logo.png"
               alt="مندي ومشوي"
-              class="main-logo"
+              className="main-logo"
             />
           </a>
-          <div class="navbar-nav mx-2">
+          <div className="navbar-nav mx-2">
             <a
-              class="nav-item nav-link active"
+              className="nav-item nav-link active"
               href="#"
               data-discover="true"
               onClick={toggleSignUpPopup}
             >
-              <button type="button" class="btn btn-danger">
+              <button type="button" className="btn btn-danger">
                 تسجيل خروج
               </button>
             </a>

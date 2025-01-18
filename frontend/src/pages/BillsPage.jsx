@@ -1,12 +1,427 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaTimes } from 'react-icons/fa';
+import { FaArrowLeft, FaTimes, FaPrint, FaUndo } from 'react-icons/fa';
 import axios from 'axios';
 import { Modal, Button } from 'react-bootstrap';
+import { motion, AnimatePresence } from 'framer-motion';
+import styled from 'styled-components';
+import { FaFilter, FaCalendar } from 'react-icons/fa';
+
+// Update styled components
+const StyledContainer = styled.div`
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  direction: rtl;
+`;
+
+const BillCard = styled(motion.div)`
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  border: ${props => props.$isRefunded ? '2px solid #ef4444' : '1px solid #e5e7eb'};
+  opacity: ${props => props.$isRefunded ? 0.8 : 1};
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  }
+`;
+
+const ActionButton = styled.button`
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  
+  &.print {
+    background: #3b82f6;
+    color: white;
+    &:hover { background: #2563eb; }
+  }
+  
+  &.refund {
+    background: ${props => props.$isRefunded ? '#9ca3af' : '#ef4444'};
+    color: white;
+    &:hover { background: ${props => props.$isRefunded ? '#6b7280' : '#dc2626'}; }
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  }
+`;
+
+const OrderDetails = styled(motion.div)`
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+`;
+
+const ItemRow = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 0.75rem;
+  align-items: center;
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid #e5e7eb;
+  }
+`;
+
+const GlobalStyles = styled.div`
+
+.bills-page-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #f8b73f;
+    color: #000;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.back-button:hover {
+    background-color: #f6a912;
+    transform: translateX(-2px);
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.filters-section {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    grid-template-columns: 2fr 1fr;
+}
+
+.filter-card {
+    display: flex;
+    gap: 1rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.date-filter,
+.category-filter {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.summary-card {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.bill-card {
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.bill-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.bill-number-badge {
+    background: #f8b73f;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.items-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.item-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    padding: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 0;
+    margin-top: 1rem;
+    border-top: 2px solid #e2e8f0;
+    font-size: 1.1rem;
+}
+
+.delete-btn {
+    padding: 0.5rem;
+    border-radius: 50%;
+    border: none;
+    background: #fee2e2;
+    color: #dc2626;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.delete-btn:hover {
+    background: #fecaca;
+    transform: scale(1.1);
+}
+    
+  .header-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+  }
+
+  .back-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: #4a5568;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    background: #edf2f7;
+    transition: all 0.2s;
+  }
+
+  .back-button:hover {
+    background: #e2e8f0;
+  }
+
+  .page-title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: #2d3748;
+    margin: 0;
+  }
+
+  .filters-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .filter-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filter-icon {
+    color: #4a5568;
+  }
+
+  .date-filter,
+  .category-filter {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    outline: none;
+  }
+
+  .date-filter:focus,
+  .category-filter:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  }
+
+  .summary-card {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .summary-label {
+    font-size: 0.875rem;
+    color: #4a5568;
+  }
+
+  .summary-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #2d3748;
+  }
+
+  .bills-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .filters-section {
+      flex-direction: column;
+    }
+    
+    .filter-card,
+    .summary-card {
+      width: 100%;
+    }
+  }
+`;
+
+// Update BriefSummary component
+const BriefSummary = styled.div`
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 0.875rem;
+  color: #64748b;
+  
+  .items-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .item-chip {
+    background: #f1f5f9;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    color: #475569;
+  }
+`;
+
+const FilterCard = styled.div`
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  gap: 2rem;
+  flex: 2;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+`;
+
+const SummaryCard = styled.div`
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  justify-content: space-around;
+  flex: 1;
+
+  .summary-item {
+    text-align: center;
+  }
+
+  .summary-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+  }
+
+  .summary-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+`;
+
+// Arabic translations object
+const translations = {
+  backToSales: 'العودة إلى المبيعات',
+  billManagement: 'إدارة الفواتير',
+  items: 'العناصر',
+  total: 'المجموع',
+  print: 'طباعة',
+  refund: 'استرجاع',
+  refunded: 'تم الاسترجاع',
+  orderDetails: 'تفاصيل الطلب',
+  item: 'الصنف',
+  quantity: 'الكمية',
+  price: 'السعر',
+  totalSales: 'إجمالي المبيعات',
+  withTax: 'شامل الضريبة',
+  more: 'المزيد'
+};
 
 const categories = ['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'];
 
-function ProfitsPage() {
+function BillsPage() {
     const [dateFilter, setDateFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('الكل');
     const [totalProfit, setTotalProfit] = useState(0);
@@ -21,6 +436,7 @@ function ProfitsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState(null);
     const [orderNumber, setOrderNumber] = useState(1);
+    const [refundedOrders, setRefundedOrders] = useState(new Set());
 
     useEffect(() => {
         const savedEmployeeName = localStorage.getItem('employeeName');
@@ -141,122 +557,308 @@ function ProfitsPage() {
         }
     };
 
-    return (
-        <div className="container mt-5">
-            <Link to="/pos" className="btn btn-warning mb-3">
-                <FaArrowLeft /> العودة إلى صفحة المبيعات
-            </Link>
-            <h1 className="text-center mb-4">الفواتير</h1>
-            <div className="row mb-3">
-                <div className="col-md-6">
-                    <label htmlFor="date-filter" className="form-label">ترتيب على حسب التاريخ :</label>
-                    <input type="date" id="date-filter" className="form-control" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
-                </div>
-                <div className="col-md-6">
-                    <label htmlFor="category-filter" className="form-label">ترتيب على حسب الصنف :</label>
-                    <select id="category-filter" className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                        {categories.map(category => (
-                            <option key={category} value={category}>{category}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-            <div id="profits-result" className="bg-light p-3 rounded">
-                <h2>مجموع الربح : ${totalProfit.toFixed(2)}</h2>
-                <h6>الاجمالي شامل الضريبة : ${totalWithTax.toFixed(2)}</h6>
-                <table className="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>رقم الفاتورة</th>
-                            <th>التاريخ</th>
-                            <th>المنتجات</th>
-                            <th>الكمية المباعة</th>
-                            <th>مجموع السعر</th>
-                            <th>تفاصيل الفاتورة</th>
+    // Add print functionality
+    const handlePrint = (order) => {
+        const totalAmount = order.items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+        const tax = Math.round(totalAmount * 0.15);
+        const totalWithTax = totalAmount + tax;
+
+        const printContent = `
+            <div style="font-family: Arial, sans-serif; text-align: center; direction: rtl;">
+                <h2 style="margin: 0;">مندي ومشوي</h2>
+                <p style="margin: 5px 0;">رقم الفاتورة: ${order.orderNumber}</p>
+                <p style="margin: 5px 0;">${order.date} ${order.time}</p>
+                <p style="margin: 5px 0;">الموظف: ${order.employeeName} (#${order.employeeNumber})</p>
+                ${order.isRefunded ? '<p style="color: red; font-weight: bold;">تم الاسترجاع</p>' : ''}
+                
+                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 10px 0; padding: 10px 0;">
+                    <table style="width: 100%; text-align: right;">
+                        <tr style="font-weight: bold;">
+                            <td>الصنف</td>
+                            <td>الكمية</td>
+                            <td>السعر</td>
+                            <td>المجموع</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {filteredOrders.map((order, index) => (
-                            <React.Fragment key={index}>
-                                <tr>
-                                    <td>{order.orderNumber}</td>
-                                    <td>{order.date} {order.time}</td>
-                                    <td>{order.items.map(item => item.name).join(', ')}</td>
-                                    <td>{order.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-                                    <td>${order.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}</td>
-                                    <td>
-                                        <button className="btn btn-warning" onClick={() => toggleOrderDetails(order.orderNumber)}>
-                                            {expandedOrder === order.orderNumber ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
-                                        </button>
-                                        <button className="btn btn-danger btn-sm ms-2" onClick={() => { setOrderToDelete(order.orderNumber); setShowDeleteModal(true); }}>
-                                            <FaTimes />
-                                        </button>
-                                    </td>
-                                </tr>
-                                {expandedOrder === order.orderNumber && (
-                                    <tr>
-                                        <td colSpan="6">
-                                            <div className="p-3">
-                                                <p>اسم الموظف: {order.employeeName}</p>
-                                                <p>رقم الموظف: #{order.employeeNumber}</p>
-                                                <table className="table table-bordered">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>المنتج</th>
-                                                            <th>الكمية</th>
-                                                            <th>السعر</th>
-                                                            <th>المجموع</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {order.items.filter(item => categoryFilter === 'الكل' || item.category === categoryFilter).map((item, itemIndex) => (
-                                                            <tr key={`${index}-${itemIndex}`}>
-                                                                <td>{item.name}</td>
-                                                                <td>{item.quantity}</td>
-                                                                <td>${item.price}</td>
-                                                                <td>${item.price * item.quantity}</td>
-                                                            </tr>
-                                                        ))}
-                                                        <tr>
-                                                            <td colSpan="3"><strong>الاجمالي شامل الضريبة</strong></td>
-                                                            <td><strong>${Math.round(order.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 1.15)}</strong></td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </React.Fragment>
-                        ))}
-                    </tbody>
-                </table>
-                <button className="btn btn-danger mt-3" onClick={() => setShowModal(true)}>مسح جميع الفواتير</button>
+                        ${order.items.map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${parseFloat(item.price).toFixed(2)}</td>
+                                <td>${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+
+                <div style="text-align: left; margin-top: 10px;">
+                    <p style="margin: 5px 0;">المجموع: ${totalAmount.toFixed(2)}</p>
+                    <p style="margin: 5px 0;">الضريبة (15%): ${tax.toFixed(2)}</p>
+                    <p style="font-weight: bold; margin: 5px 0;">الإجمالي مع الضريبة: ${totalWithTax.toFixed(2)}</p>
+                </div>
+
+                <p style="margin-top: 20px;">شكراً لزيارتكم</p>
             </div>
+        `;
 
-            <Modal show={showModal} onHide={() => setShowModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>تأكيد المسح</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>هل أنت متأكد أنك تريد مسح جميع الفواتير؟</Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
-                    <Button variant="danger" onClick={handleDeleteAll}>مسح</Button>
-                </Modal.Footer>
-            </Modal>
+        const printWindow = window.open('', '', 'width=600,height=600');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>فاتورة #${order.orderNumber}</title>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="margin: 20px;">
+                    ${printContent}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            window.onafterprint = function() {
+                                window.close();
+                            }
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
 
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>تأكيد المسح</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>هل أنت متأكد أنك تريد مسح هذه الفاتورة؟</Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>إلغاء</Button>
-                    <Button variant="danger" onClick={() => handleDeleteOrder(orderToDelete)}>مسح</Button>
-                </Modal.Footer>
-            </Modal>
-        </div>
+    // Add refund functionality
+    const handleRefund = async (order) => {
+        try {
+            // Ensure orderNumber is a plain number without leading zeros
+            const plainOrderNumber = parseInt(order.orderNumber, 10);
+            
+            const response = await axios.post(`http://localhost:5001/refund-order/${plainOrderNumber}`, {
+                ...order,
+                orderNumber: plainOrderNumber, // Send plain number in body too
+                refundedAt: new Date().toISOString()
+            });
+
+            if (response.status === 200) {
+                const updatedOrders = confirmedOrders.map(o => 
+                    o.orderNumber === order.orderNumber 
+                        ? { ...o, isRefunded: true, refundedAt: new Date().toISOString() }
+                        : o
+                );
+                setConfirmedOrders(updatedOrders);
+                setFilteredOrders(updatedOrders.filter(o => 
+                    (!dateFilter || o.date === dateFilter) && 
+                    (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
+                ));
+                setRefundedOrders(prev => new Set([...prev, order.orderNumber]));
+            }
+        } catch (error) {
+            console.error('Error processing refund:', error);
+            alert('Failed to process refund. Please try again.');
+        }
+    };
+
+    // Update the BillCardComponent
+    const BillCardComponent = ({ order, onToggle, isExpanded }) => {
+        // Helper function to safely format numbers
+        const formatPrice = (price) => {
+            const number = parseFloat(price);
+            return isNaN(number) ? '0.00' : number.toFixed(2);
+        };
+
+        // Get a brief summary of items
+        const itemsSummary = order.items.slice(0, 3); // Show first 3 items
+        const remainingCount = order.items.length - 3;
+        const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+        return (
+            <BillCard
+                $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+            >
+                <div className="p-4" onClick={() => onToggle(order.orderNumber)} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <span className="bill-number-badge">#{order.orderNumber}</span>
+                            <div>
+                                <div style={{ fontWeight: 'bold' }}>{order.date}</div>
+                                <div style={{ color: '#666' }}>{order.time}</div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <ActionButton
+                                className="print"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePrint(order);
+                                }}
+                            >
+                                <FaPrint /> {translations.print}
+                            </ActionButton>
+                            <ActionButton
+                                className="refund"
+                                $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRefund(order);
+                                }}
+                                disabled={order.isRefunded || refundedOrders.has(order.orderNumber)}
+                            >
+                                <FaUndo />
+                                {order.isRefunded || refundedOrders.has(order.orderNumber) ? translations.refunded : translations.refund}
+                            </ActionButton>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Add Brief Summary */}
+                <BriefSummary>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                        <strong>{totalItems} {translations.items}</strong> · {translations.total}: ${formatPrice(Math.round(order.items.reduce((sum, item) => 
+                            sum + (parseFloat(item.price) * item.quantity), 0
+                        ) * 1.15))}
+                    </div>
+                    <div className="items-preview">
+                        {itemsSummary.map((item, index) => (
+                            <span key={index} className="item-chip">
+                                {item.name} × {item.quantity}
+                            </span>
+                        ))}
+                        {remainingCount > 0 && (
+                            <span className="item-chip">+{remainingCount} {translations.more}</span>
+                        )}
+                    </div>
+                </BriefSummary>
+
+                <AnimatePresence>
+                    {isExpanded && (
+                        <OrderDetails
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                        >
+                            <h4 style={{ marginBottom: '1rem' }}>{translations.orderDetails}</h4>
+                            <div className="items-table">
+                                <ItemRow style={{ fontWeight: 'bold' }}>
+                                    <div>{translations.item}</div>
+                                    <div>{translations.quantity}</div>
+                                    <div>{translations.price}</div>
+                                    <div>{translations.total}</div>
+                                </ItemRow>
+                                {order.items.map((item, index) => (
+                                    <ItemRow key={index}>
+                                        <div>{item.name}</div>
+                                        <div>{item.quantity}</div>
+                                        <div>${formatPrice(item.price)}</div>
+                                        <div>${formatPrice(item.price * item.quantity)}</div>
+                                    </ItemRow>
+                                ))}
+                                <div className="total-row" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                        <strong>الإجمالي:</strong>
+                                        <strong>
+                                            ${formatPrice(order.items.reduce((sum, item) => 
+                                                sum + (parseFloat(item.price) * item.quantity), 0
+                                            ))}
+                                        </strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', color: '#666' }}>
+                                        <strong>شامل الضريبة:</strong>
+                                        <strong>
+                                            ${formatPrice(order.items.reduce((sum, item) => 
+                                                sum + (parseFloat(item.price) * item.quantity), 0
+                                            ) * 1.15)}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </OrderDetails>
+                    )}
+                </AnimatePresence>
+            </BillCard>
+        );
+    };
+
+    return (
+        <GlobalStyles>
+            <StyledContainer>
+                <div className="header-section">
+                    <Link to="/pos" className="back-button">
+                        <FaArrowLeft /> <span>{translations.backToSales}</span>
+                    </Link>
+                    <h1 className="page-title">{translations.billManagement}</h1>
+                </div>
+
+                <div className="filters-section">
+                    <FilterCard>
+                        <div className="filter-group">
+                            <FaCalendar className="filter-icon" />
+                            <input
+                                type="date"
+                                className="date-filter"
+                                value={dateFilter}
+                                onChange={(e) => setDateFilter(e.target.value)}
+                            />
+                        </div>
+                        <div className="filter-group">
+                            <FaFilter className="filter-icon" />
+                            <select
+                                className="category-filter"
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                            >
+                                {categories.map(category => (
+                                    <option key={category} value={category}>{category}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </FilterCard>
+
+                    <SummaryCard>
+                        <div className="summary-item">
+                            <div className="summary-label">{translations.totalSales}</div>
+                            <div className="summary-value">${totalProfit.toFixed(2)}</div>
+                        </div>
+                        <div className="summary-item">
+                            <div className="summary-label">{translations.withTax}</div>
+                            <div className="summary-value">${totalWithTax.toFixed(2)}</div>
+                        </div>
+                    </SummaryCard>
+                </div>
+
+                <div className="bills-container">
+                    {filteredOrders.map((order) => (
+                        <BillCardComponent
+                            key={order.orderNumber}
+                            order={order}
+                            onToggle={toggleOrderDetails}
+                            isExpanded={expandedOrder === order.orderNumber}
+                        />
+                    ))}
+                </div>
+
+                <Modal show={showModal} onHide={() => setShowModal(false)}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>تأكيد المسح</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>هل أنت متأكد أنك تريد مسح جميع الفواتير؟</Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
+                        <Button variant="danger" onClick={handleDeleteAll}>مسح</Button>
+                    </Modal.Footer>
+                </Modal>
+
+                <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>تأكيد المسح</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>هل أنت متأكد أنك تريد مسح هذه الفاتورة؟</Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>إلغاء</Button>
+                        <Button variant="danger" onClick={() => handleDeleteOrder(orderToDelete)}>مسح</Button>
+                    </Modal.Footer>
+                </Modal>
+            </StyledContainer>
+        </GlobalStyles>
     );
 }
 
-export default ProfitsPage;
+export default BillsPage;
