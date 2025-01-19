@@ -76,6 +76,13 @@
       "price": "41",
       "image": "'https://placehold.co/150x150'",
       "category": "غير مصنف"
+    },
+    {
+      "id": "d85b",
+      "name": "1",
+      "price": "1",
+      "image": "1",
+      "category": "رز"
     }
   ]
 }

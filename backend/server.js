@@ -28,6 +28,11 @@ storage.init()
 // Store orders in memory
 let confirmedOrders = [];
 
+// Add these arrays to store history
+let settingsHistory = [];
+let productsHistory = [];
+let billsHistory = [];
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -75,6 +80,57 @@ app.post('/settings', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Settings history endpoints
+app.get('/settings-history', (req, res) => {
+  res.json(settingsHistory);
+});
+
+app.post('/settings-history', (req, res) => {
+  const historyEntry = {
+    id: Date.now(),
+    ...req.body,
+    timestamp: new Date().toISOString()
+  };
+  settingsHistory.unshift(historyEntry);
+  // Keep only last 100 entries
+  settingsHistory = settingsHistory.slice(0, 100);
+  res.json(historyEntry);
+});
+
+// Products history endpoints
+app.get('/products-history', (req, res) => {
+  res.json(productsHistory);
+});
+
+app.post('/products-history', (req, res) => {
+  const historyEntry = {
+    id: Date.now(),
+    ...req.body,
+    timestamp: new Date().toISOString()
+  };
+  productsHistory.unshift(historyEntry);
+  // Keep only last 100 entries
+  productsHistory = productsHistory.slice(0, 100);
+  res.json(historyEntry);
+});
+
+// Bills history endpoints
+app.get('/bills-history', (req, res) => {
+  res.json(billsHistory);
+});
+
+app.post('/bills-history', (req, res) => {
+  const historyEntry = {
+    id: Date.now(),
+    ...req.body,
+    timestamp: new Date().toISOString()
+  };
+  billsHistory.unshift(historyEntry);
+  // Keep only last 100 entries
+  billsHistory = billsHistory.slice(0, 100);
+  res.json(historyEntry);
 });
 
 // Existing order endpoints

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../components/AuthContext";
-import SignUpPopup from "../components/SignUpPopUp/SignUpPopup";
+import { useNavigate } from 'react-router-dom';
+import SignUpPopup from "../components/SignUpPopup";
 import mainLogo from '../assets/main_logo.png';
 import { FaUser, FaSignOutAlt, FaUserPlus } from 'react-icons/fa';
 import "./MainLayout.css";
@@ -9,13 +10,13 @@ import "../styles/buttons.css";
 const MainLayout = () => {
   const { isAuthenticated, currentUser, logout } = useAuth();
   const [isSignUpPopupVisible, setSignUpPopupVisible] = useState(false);
+  const navigate = useNavigate();
 
   const toggleSignUpPopup = () => setSignUpPopupVisible(!isSignUpPopupVisible);
 
   const handleLogout = () => {
     logout();
-    // You might want to redirect to login page or home page after logout
-    window.location.href = '/';
+    navigate('/');
   };
 
   return (
@@ -27,17 +28,18 @@ const MainLayout = () => {
           </a>
           
           <div className="d-flex align-items-center">
-            {isAuthenticated ? (
+            {isAuthenticated && currentUser ? (
               <>
                 <div className="text-light me-4">
                   <FaUser className="me-2" />
-                  <span>{currentUser?.name}</span>
+                  <span>{currentUser.name}</span>
+                  <span className="ms-2">#{currentUser.employeeNumber}</span>
                 </div>
                 <button 
                   className="btn btn-custom btn-custom-danger"
                   onClick={handleLogout}
                 >
-                  <FaSignOutAlt />
+                  <FaSignOutAlt className="me-2" />
                   تسجيل خروج
                 </button>
               </>
@@ -46,7 +48,7 @@ const MainLayout = () => {
                 className="btn btn-custom btn-custom-primary"
                 onClick={toggleSignUpPopup}
               >
-                <FaUserPlus />
+                <FaUserPlus className="me-2" />
                 تسجيل موظف جديد
               </button>
             )}

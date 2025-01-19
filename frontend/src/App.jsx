@@ -2,7 +2,8 @@ import React from 'react';
 import {
   BrowserRouter as Router,
   Routes,
-  Route
+  Route,
+  Navigate
 } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import POSPage from './pages/POSPage';
@@ -14,32 +15,70 @@ import InventoryReports from './pages/InventoryReports';
 import ManagementPage from './pages/ManagementPage';
 import LoginPage from './pages/LoginPage';
 import { SettingsProvider } from './context/SettingsContext';
-import { AuthProvider } from './components/AuthContext';
+import { AuthProvider, useAuth } from './components/AuthContext';
+import { EmployeeProvider } from './context/EmployeeContext';
 import './App.css';
+
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
 const App = () => {
 
   return (
     <SettingsProvider>
       <AuthProvider>
-        <Router>
-          <div className='app'>
-            <MainLayout />
-            <div className='container'>
-              <div className='content'>
-                <Routes>
-                  <Route path="/" element={<LoginPage />} />
-                  <Route path="/pos" element={<POSPage />} />
-                  <Route path="/manage-products" element={<ManageProductsPage />} />
-                  <Route path="/bills" element={<BillsPage />} />
-                  <Route path="/sales-reports" element={<SalesReports />} />
-                  <Route path="/inventory-reports" element={<InventoryReports />} />
-                  <Route path="/management" element={<ManagementPage />} />
-                </Routes>
+        <EmployeeProvider>
+          <Router>
+            <div className='app'>
+              <MainLayout />
+              <div className='container'>
+                <div className='content'>
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/pos" element={
+                      <ProtectedRoute>
+                        <POSPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/manage-products" element={
+                      <ProtectedRoute>
+                        <ManageProductsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/bills" element={
+                      <ProtectedRoute>
+                        <BillsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/sales-reports" element={
+                      <ProtectedRoute>
+                        <SalesReports />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/inventory-reports" element={
+                      <ProtectedRoute>
+                        <InventoryReports />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/management" element={
+                      <ProtectedRoute>
+                        <ManagementPage />
+                      </ProtectedRoute>
+                    } />
+                  </Routes>
+                </div>
               </div>
             </div>
-          </div>
-        </Router>
+          </Router>
+        </EmployeeProvider>
       </AuthProvider>
     </SettingsProvider>
   );

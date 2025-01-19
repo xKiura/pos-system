@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { ComponentToPrint } from '../components/ComponentToPrint';
 import { useReactToPrint } from 'react-to-print';
@@ -24,8 +24,10 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../components/AuthContext';
 
 function POSPage() {
+  const { currentUser } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -40,6 +42,8 @@ function POSPage() {
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState(null);
   const [newItemIds, setNewItemIds] = useState([]);
+  const [visibleProducts, setVisibleProducts] = useState([]);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const roundToNearestHalf = (num) => {
     if (!num || isNaN(num)) return 0;
@@ -113,10 +117,23 @@ function POSPage() {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    if (filter === 'all') return true;
-    return product.category === filter;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      if (filter === 'all') return true;
+      return product.category === filter;
+    });
+  }, [products, filter]);
+
+  // Add this new effect to handle animated filtering
+  useEffect(() => {
+    setIsFiltering(true);
+    const timer = setTimeout(() => {
+      setVisibleProducts(filteredProducts);
+      setIsFiltering(false);
+    }, 500); // Increased from 300 to 500ms
+
+    return () => clearTimeout(timer);
+  }, [filteredProducts]);
 
   function addProductToBill(product) {
     let findProductInBill = bill.find(i => i.id === product.id);
@@ -320,44 +337,65 @@ function POSPage() {
     وجبات: <FaUtensils />
   };
 
+  useEffect(() => {
+    if (!currentUser) {
+      navigate('/');
+      return;
+    }
+    setEmployeeName(currentUser.name);
+    setEmployeeNumber(currentUser.employeeNumber);
+  }, [currentUser, navigate]);
+
   return (
     <>
       <div className="container-fluid">
-        <div className="navigation-wrapper">
-          <div className="nav-buttons">
-            <Link to="/manage-products" className="nav-button">
-              <FaBoxes className="nav-icon" />
-              <span>إدارة المنتجات</span>
+        <div className="system-controls">
+          <div className="system-buttons">
+            <Link to="/manage-products" className="system-button">
+              <div className="button-content">
+                <FaBoxes className="button-icon" />
+                <span>إدارة المنتجات</span>
+              </div>
             </Link>
-            <Link to="/management" className="nav-button">
-              <FaCog className="nav-icon" />
-              <span>إدارة النظام</span>
+            <Link to="/bills" className="system-button">
+              <div className="button-content">
+                <FaFileInvoiceDollar className="button-icon" />
+                <span>عرض الفواتير</span>
+              </div>
             </Link>
-            <Link to="/bills" className="nav-button">
-              <FaFileInvoiceDollar className="nav-icon" />
-              <span>عرض الفواتير</span>
+            <Link to="/sales-reports" className="system-button">
+              <div className="button-content">
+                <FaChartBar className="button-icon" />
+                <span>تقارير المبيعات</span>
+              </div>
             </Link>
-            <Link to="/sales-reports" className="nav-button">
-              <FaChartBar className="nav-icon" />
-              <span>تقارير المبيعات</span>
+            <Link to="/inventory-reports" className="system-button">
+              <div className="button-content">
+                <FaClipboardList className="button-icon" />
+                <span>تقارير المخزون</span>
+              </div>
             </Link>
-            <Link to="/inventory-reports" className="nav-button">
-              <FaClipboardList className="nav-icon" />
-              <span>تقارير المخزون</span>
+            <Link to="/management" className="system-button">
+              <div className="button-content">
+                <FaCog className="button-icon" />
+                <span>إدارة النظام</span>
+              </div>
             </Link>
           </div>
+        </div>
 
-          <div className="category-filter">
+        <div className="filter-section">
+          <div className="filter-container">
             {['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'].map((category) => (
               <button
                 key={category}
-                className={`category-btn ${filter === (category === 'الكل' ? 'all' : category) ? 'active' : ''}`}
+                className={`filter-button ${filter === (category === 'الكل' ? 'all' : category) ? 'active' : ''}`}
                 onClick={() => setFilter(category === 'الكل' ? 'all' : category)}
               >
-                <span className="icon-wrapper">
+                <span className="icon-container">
                   {categoryIcons[category]}
                 </span>
-                <span className="category-name">{category}</span>
+                <span className="category-label">{category}</span>
               </button>
             ))}
           </div>
@@ -380,8 +418,11 @@ function POSPage() {
       </div>
     ) : (
       <div className="products-grid">
-        {filteredProducts.map((product, key) => (
-          <div key={key} className="product-card">
+        {visibleProducts.map((product, key) => (
+          <div
+            key={key}
+            className={`product-card ${isFiltering ? 'filtering' : ''}`}
+          >
             <div className="product-image-wrapper">
               <img 
                 src={product.image || 'https://placehold.co/150x150'}
@@ -432,8 +473,9 @@ function POSPage() {
         border-radius: 12px;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
         padding: 25px; // Increased from 20px
-        height: calc(100vh - 180px);
-        overflow: hidden; // Changed from overflow-y: auto
+        height: calc(100vh - 180px); // This matches the bill container height
+        display: flex;
+        flex-direction: column;
       }
 
       .loading-state, .error-state {
@@ -451,10 +493,12 @@ function POSPage() {
         gap: 30px; // Increased from 25px
         padding: 20px; // Increased from 15px
         height: 100%; // Added height
+        overflow-y: auto; // Add this to enable scrolling
+        flex: 1; // This ensures the grid takes remaining space
       }
 
       .product-card {
-        height: 100%; // Added to ensure consistent height
+        height: auto; // Change from 100% to auto
         display: flex; // Added
         flex-direction: column; // Added
         background: #ffffff;
@@ -463,7 +507,7 @@ function POSPage() {
         transition: all 0.3s ease;
         border: 1px solid #e5e9f2;
         position: relative;
-        margin: 5px; // Added margin all around
+        margin: 10px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); // Added subtle shadow for depth
       }
 
@@ -664,6 +708,40 @@ function POSPage() {
           padding: 15px;
         }
       }
+
+      .product-card {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform, opacity;
+      }
+
+      .product-card.filtering {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+      }
+
+      .product-card {
+        animation: cardAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+
+      @keyframes cardAppear {
+        0% {
+          opacity: 0;
+          transform: scale(0.95) translateY(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+
+      /* Add stagger delay for each card with longer duration */
+      ${Array.from({ length: 50 }, (_, i) => `
+        .product-card:nth-child(${i + 1}) {
+          animation-delay: ${i * 0.08}s;
+        }
+      `).join('\n')}
     `}
   </style>
 </div>
@@ -700,8 +778,10 @@ function POSPage() {
     <div className="bill-content">
       {bill.length === 0 ? (
         <div className="empty-bill">
-          <i className="fas fa-receipt fa-3x mb-2"></i>
-          <p>لا يوجد منتجات في الفاتورة</p>
+          <div className="empty-bill-content">
+            <i className="fas fa-receipt fa-3x mb-3"></i>
+            <p>لا يوجد منتجات في الفاتورة</p>
+          </div>
         </div>
       ) : (
         <div className="bill-items">
@@ -755,7 +835,7 @@ function POSPage() {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         display: flex;
         flex-direction: column;
-        height: calc(100vh - 100px);
+        height: calc(100vh - 180px); // Set to the same height as products-container
         margin: 10px 0;
       }
 
@@ -787,19 +867,20 @@ function POSPage() {
       .bill-content {
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden; // Add this line to prevent horizontal scroll
         padding: 15px;
+        min-height: 0; // This is important for overflow to work properly
+        position: relative; // Add this to contain absolute positioned children
       }
 
-      .empty-bill {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        color: #6c7293;
+      .bill-items {
+        position: relative; // Add this to establish positioning context
+        width: 100%; // Ensure full width
       }
 
       .bill-item {
+        position: relative; // Add this for proper animation containment
+        width: 100%; // Ensure items take full width
         background: #ffffff;
         border: 1px solid #e9ecef;
         border-radius: 8px;
@@ -990,10 +1071,47 @@ function POSPage() {
       .new-item-animation {
         animation: slideInRightWithFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         background-color: rgba(11, 183, 131, 0.1);
+        transform-origin: right center; // Add this to control animation origin
       }
 
       .new-item-animation:hover {
         background-color: rgba(11, 183, 131, 0.15);
+      }
+
+      @keyframes slideInRightWithFade {
+        0% {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        100% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .empty-bill {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6c757d;
+        text-align: center;
+      }
+
+      .empty-bill-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 1.1rem;
+      }
+
+      .empty-bill i {
+        color: #adb5bd;
+        margin-bottom: 1rem;
+      }
+
+      .empty-bill p {
+        margin: 0;
       }
     `}
   </style>
@@ -1352,6 +1470,163 @@ function POSPage() {
             .category-btn {
               padding: 0.5rem 0.875rem;
               min-width: 90px;
+            }
+          }
+          .system-controls {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            margin-bottom: 2rem;
+          }
+
+          .system-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+          }
+
+          .system-button {
+            text-decoration: none;
+            color: #2c3e50;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+
+          .button-content {
+            display: flex;
+            align-items: center;
+            padding: 1.25rem;
+            background: #f8f9fa;
+            gap: 1rem;
+          }
+
+          .button-icon {
+            font-size: 1.5rem;
+            color: #3699ff;
+            transition: all 0.3s ease;
+          }
+
+          .system-button:hover {
+            transform: translateY(-2px);
+            border-color: #3699ff;
+            box-shadow: 0 8px 16px rgba(54, 153, 255, 0.12);
+          }
+
+          .system-button:hover .button-content {
+            background: #3699ff;
+            color: white;
+          }
+
+          .system-button:hover .button-icon {
+            color: white;
+          }
+
+          .filter-section {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+            padding: 0 1rem;
+          }
+
+          .filter-container {
+            background: #ffffff;
+            padding: 1rem;
+            border-radius: 50px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            display: flex;
+            gap: 0.75rem;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
+
+          .filter-container::-webkit-scrollbar {
+            display: none;
+          }
+
+          .filter-button {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.5rem;
+            background: transparent;
+            border: 1px solid #e9ecef;
+            border-radius: 25px;
+            color: #6c757d;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            cursor: pointer;
+            min-width: 140px;
+            justify-content: center;
+          }
+
+          .filter-button:hover {
+            border-color: #3699ff;
+            color: #3699ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(54, 153, 255, 0.1);
+          }
+
+          .filter-button.active {
+            background: #3699ff;
+            border-color: #3699ff;
+            color: white;
+            box-shadow: 0 6px 16px rgba(54, 153, 255, 0.2);
+          }
+
+          .icon-container {
+            display: flex;
+            align-items: center;
+            font-size: 1.25rem;
+          }
+
+          .category-label {
+            font-size: 1rem;
+            font-weight: 500;
+          }
+
+          @media (max-width: 768px) {
+            .system-controls {
+              padding: 1rem;
+            }
+
+            .system-buttons {
+              grid-template-columns: repeat(2, 1fr);
+            }
+
+            .button-content {
+              padding: 1rem;
+            }
+
+            .filter-button {
+              padding: 0.75rem 1.25rem;
+              min-width: 120px;
+            }
+
+            .category-label {
+              font-size: 0.9rem;
+            }
+          }
+
+          @media (max-width: 576px) {
+            .system-buttons {
+              grid-template-columns: 1fr;
+            }
+
+            .filter-container {
+              border-radius: 16px;
+              padding: 0.75rem;
+            }
+
+            .filter-button {
+              padding: 0.625rem 1rem;
+              min-width: 100px;
             }
           }
         `}

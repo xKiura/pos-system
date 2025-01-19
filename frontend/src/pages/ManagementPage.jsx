@@ -4,6 +4,10 @@ import { FaArrowLeft, FaHistory, FaSave, FaPercent, FaPrint, FaUserShield } from
 import { Modal, Button, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import axios from 'axios';
+import { HistoryChanges } from './HistoryChanges';
 
 const ManagementContainer = styled.div`
   max-width: 1200px;
@@ -94,6 +98,32 @@ const HistoryItem = styled.div`
   }
 `;
 
+const HistorySection = styled(HistoryContainer)`
+  .change-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    
+    &.settings { background: #e0f2fe; color: #0369a1; }
+    &.product { background: #dcfce7; color: #166534; }
+    &.bill { background: #fee2e2; color: #991b1b; }
+  }
+`;
+
+const translations = {
+  changeTypes: {
+    SETTINGS: 'إعدادات النظام',
+    PRODUCT_ADD: 'إضافة منتج',
+    PRODUCT_EDIT: 'تعديل منتج',
+    PRODUCT_DELETE: 'حذف منتج',
+    BILL_REFUND: 'استرجاع فاتورة',
+    BILL_REPRINT: 'إعادة طباعة فاتورة',
+    BILL_DELETE: 'حذف فاتورة'
+  }
+};
+
 const formatChangeValue = (key, value) => {
   switch(key) {
     case 'taxRate':
@@ -128,6 +158,7 @@ function ManagementPage() {
   const [tempSettings, setTempSettings] = useState({});
   const [employeeName] = useState(localStorage.getItem('employeeName') || 'Admin');
   const [employeeNumber] = useState(localStorage.getItem('employeeNumber') || '0001');
+  const [historyKey, setHistoryKey] = useState(0); // Add this new state
 
   useEffect(() => {
     // Load settings from localStorage
@@ -136,11 +167,8 @@ function ManagementPage() {
       setSettings(JSON.parse(savedSettings));
     }
 
-    // Load change history from localStorage
-    const savedHistory = localStorage.getItem('settingsHistory');
-    if (savedHistory) {
-      setChangeHistory(JSON.parse(savedHistory));
-    }
+    // Load all system changes
+    fetchSystemHistory();
   }, []);
 
   const hasUnsavedChanges = () => {
@@ -162,7 +190,11 @@ function ManagementPage() {
     setShowConfirmModal(true);
   };
 
-  const confirmChange = () => {
+  const handleHistoryUpdate = (newHistory) => {
+    setChangeHistory(newHistory);
+  };
+
+  const confirmChange = async () => {
     try {
       const newSettings = { ...settings, ...tempSettings };
       
@@ -170,29 +202,96 @@ function ManagementPage() {
       localStorage.setItem('posSettings', JSON.stringify(newSettings));
       setSettings(newSettings);
 
-      // Create history entry
+      // Create history entry with properly formatted changes
       const historyEntry = {
         timestamp: new Date().toISOString(),
         employeeName,
         employeeNumber,
+        type: 'SETTINGS',
         changes: Object.entries(tempSettings).map(([key, value]) => ({
           setting: key,
-          oldValue: settings[key],
-          newValue: value
+          oldValue: formatChangeValue(key, settings[key]),
+          newValue: formatChangeValue(key, value)
         }))
       };
 
-      // Update history
-      const newHistory = [historyEntry, ...changeHistory].slice(0, 50); // Keep last 50 changes
-      localStorage.setItem('settingsHistory', JSON.stringify(newHistory));
-      setChangeHistory(newHistory);
+      // Send history entry to backend
+      await axios.post('http://localhost:5001/settings-history', historyEntry);
+
+      // Force history component to refresh
+      setHistoryKey(prev => prev + 1);
 
       // Reset temp settings
       setTempSettings({});
       setShowConfirmModal(false);
       toast.success('تم حفظ التغييرات بنجاح');
     } catch (error) {
+      console.error('Error saving settings:', error);
       toast.error('فشل في حفظ التغييرات');
+    }
+  };
+
+  const fetchSystemHistory = async () => {
+    try {
+      // Fetch all types of changes
+      const [settingsHistory, productsHistory, billsHistory] = await Promise.all([
+        axios.get('http://localhost:5001/settings-history'),
+        axios.get('http://localhost:5001/products-history'),
+        axios.get('http://localhost:5001/bills-history')
+      ]);
+
+      // Combine and sort all changes
+      const allChanges = [
+        ...settingsHistory.data.map(change => ({
+          ...change,
+          type: 'SETTINGS'
+        })),
+        ...productsHistory.data.map(change => ({
+          ...change,
+          type: change.action.toUpperCase()
+        })),
+        ...billsHistory.data.map(change => ({
+          ...change,
+          type: change.action.toUpperCase()
+        }))
+      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      setChangeHistory(allChanges);
+    } catch (error) {
+      console.error('Error fetching system history:', error);
+      toast.error('فشل في تحميل سجل التغييرات');
+    }
+  };
+
+  const formatChangeDetails = (change) => {
+    switch (change.type) {
+      case 'SETTINGS':
+        return change.changes.map((c, i) => (
+          <div key={i}>
+            تم تغيير {getSettingName(c.setting)} من {formatChangeValue(c.setting, c.oldValue)} إلى {formatChangeValue(c.setting, c.newValue)}
+          </div>
+        ));
+      
+      case 'PRODUCT_ADD':
+        return `تمت إضافة منتج "${change.product.name}"`;
+      
+      case 'PRODUCT_EDIT':
+        return `تم تعديل منتج "${change.product.name}"`;
+      
+      case 'PRODUCT_DELETE':
+        return `تم حذف منتج "${change.product.name}"`;
+      
+      case 'BILL_REFUND':
+        return `تم استرجاع الفاتورة رقم ${change.billNumber}`;
+      
+      case 'BILL_REPRINT':
+        return `تمت إعادة طباعة الفاتورة رقم ${change.billNumber}`;
+      
+      case 'BILL_DELETE':
+        return `تم حذف الفاتورة رقم ${change.billNumber}`;
+      
+      default:
+        return 'تغيير غير معروف';
     }
   };
 
@@ -253,33 +352,10 @@ function ManagementPage() {
         </div>
       )}
 
-      <HistoryContainer>
-        <h3><FaHistory /> سجل التغييرات</h3>
-        {changeHistory.map((entry, index) => (
-          <HistoryItem key={index}>
-            <div>
-              <strong>التاريخ:</strong> {new Date(entry.timestamp).toLocaleString()}
-            </div>
-            <div>
-              <strong>الموظف:</strong> {entry.employeeName} (#{entry.employeeNumber})
-            </div>
-            <div>
-              {entry.changes.map((change, i) => (
-                <div key={i}>
-                  تم تغيير {getSettingName(change.setting)}:
-                  <br />
-                  <span style={{ marginRight: '20px' }}>
-                    من: {formatChangeValue(change.setting, change.oldValue)}
-                  </span>
-                  <span style={{ marginRight: '20px' }}>
-                    إلى: {formatChangeValue(change.setting, change.newValue)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </HistoryItem>
-        ))}
-      </HistoryContainer>
+      <HistoryChanges 
+        key={historyKey} 
+        onRefresh={handleHistoryUpdate}
+      />
 
       <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)}>
         <Modal.Header closeButton>

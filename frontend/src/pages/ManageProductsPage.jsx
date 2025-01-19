@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaPlus, FaEdit, FaTrash, FaImage } from 'react-icons/fa';
 import { Modal, Button } from 'react-bootstrap';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../components/AuthContext';
 
 const StyledContainer = styled.div`
   max-width: 1200px;
@@ -264,6 +265,7 @@ const GlobalStyles = styled.div`
   }
 `;
 
+// Add console.log inside the component to verify context values
 function ManageProductsPage() {
     const [products, setProducts] = useState([]);
     const [product, setProduct] = useState({ name: '', price: '', image: '', category: '' });
@@ -272,6 +274,17 @@ function ManageProductsPage() {
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
     const [productToRemove, setProductToRemove] = useState(null);
+    const { isAuthenticated, employeeInfo } = useAuth();
+    const navigate = useNavigate();
+    
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate('/login');
+        }
+    }, [isAuthenticated, navigate]);
+    
+    // Add this console.log to verify the values
+    console.log('Employee Context Values:', { employeeInfo });
 
     useEffect(() => {
         fetchProducts();
@@ -291,10 +304,29 @@ function ManageProductsPage() {
         setProduct({ ...product, [name]: value });
     };
 
+    const logProductChange = async (action, productData) => {
+        try {
+            // Add console.log here to verify data being sent
+            const logData = {
+                timestamp: new Date().toISOString(),
+                employeeName: employeeInfo?.employeeName,
+                employeeNumber: employeeInfo?.employeeNumber,
+                action,
+                product: productData
+            };
+            console.log('Sending log data:', logData);
+            
+            await axios.post('http://localhost:5001/products-history', logData);
+        } catch (error) {
+            console.error('Error logging product change:', error);
+        }
+    };
+
     const handleAddProduct = async () => {
         try {
             const result = await axios.post('http://localhost:5000/products', product);
             setProducts([...products, result.data]);
+            await logProductChange('PRODUCT_ADD', result.data);
             setProduct({ name: '', price: '', image: '', category: '' });
             setShowAddModal(false);
         } catch (error) {
@@ -306,6 +338,7 @@ function ManageProductsPage() {
         try {
             const result = await axios.put(`http://localhost:5000/products/${productToEdit.id}`, product);
             setProducts(products.map(prod => (prod.id === productToEdit.id ? result.data : prod)));
+            await logProductChange('PRODUCT_EDIT', result.data);
             setProduct({ name: '', price: '', image: '', category: '' });
             setShowEditModal(false);
         } catch (error) {
@@ -315,7 +348,9 @@ function ManageProductsPage() {
 
     const handleRemoveProduct = async () => {
         try {
+            const productToLog = products.find(p => p.id === productToRemove);
             await axios.delete(`http://localhost:5000/products/${productToRemove}`);
+            await logProductChange('PRODUCT_DELETE', productToLog);
             setProducts(products.filter(product => product.id !== productToRemove));
             setShowRemoveModal(false);
         } catch (error) {

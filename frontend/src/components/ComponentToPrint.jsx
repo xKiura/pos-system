@@ -2,17 +2,30 @@ import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 
 const roundToNearestHalf = (num) => {
+  if (!num || isNaN(num)) return 0;
   const decimal = num - Math.floor(num);
-  if (decimal === 0.5) return num;
-  return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
+  if (decimal === 0.5) return Math.floor(num) + 0.5;  // Keep .5 as is
+  return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);  // Round to nearest whole number
+};
+
+const calculateTotals = (bill, taxRate = 15) => {
+  const subtotal = bill.reduce((sum, item) => sum + (parseFloat(item.totalAmount) || 0), 0);
+  const rawTax = (subtotal * (taxRate / 100)) || 0;
+  const tax = roundToNearestHalf(rawTax);
+  const total = subtotal + tax;
+  
+  return {
+    subtotal: subtotal || 0,
+    tax: tax || 0,
+    total: total || 0
+  };
 };
 
 export const ComponentToPrint = React.forwardRef((props, ref) => {
   const { bill, employeeName, employeeNumber, orderNumber, isRefunded } = props;
   const { settings } = useSettings();
-  const totalAmount = bill.reduce((sum, item) => sum + item.totalAmount, 0);
-  const tax = roundToNearestHalf(totalAmount * (settings.taxRate / 100));
-  const totalWithTax = totalAmount + tax;
+  
+  const { subtotal, tax, total } = calculateTotals(bill, settings?.taxRate || 15);
 
   return (
     <div ref={ref} className="print-container" style={{
@@ -84,16 +97,16 @@ export const ComponentToPrint = React.forwardRef((props, ref) => {
         marginTop: '10px'
       }}>
         <p style={{ margin: '5px 0' }}>
-          المجموع: {totalAmount.toFixed(2)}
+          المجموع: {subtotal.toFixed(2)}
         </p>
         <p style={{ margin: '5px 0' }}>
-          الضريبة ({settings.taxRate}%): {tax.toFixed(2)}
+          الضريبة ({settings?.taxRate || 15}%): {tax.toFixed(2)}
         </p>
         <p style={{
           fontWeight: 'bold',
           margin: '5px 0'
         }}>
-          الإجمالي مع الضريبة: {totalWithTax.toFixed(2)}
+          الإجمالي مع الضريبة: {total.toFixed(2)}
         </p>
       </div>
 

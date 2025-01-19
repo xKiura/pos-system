@@ -631,6 +631,7 @@ function BillsPage() {
             setFilteredOrders(filteredOrders.filter(order => order.orderNumber !== orderNumber));
             localStorage.setItem('confirmedOrders', JSON.stringify(confirmedOrders.filter(order => order.orderNumber !== orderNumber)));
             setShowDeleteModal(false);
+            await logBillChange('BILL_DELETE', orderNumber);
         } catch (error) {
             if (error.response && error.response.status === 404) {
                 console.error('Order not found:', error);
@@ -642,7 +643,7 @@ function BillsPage() {
     };
 
     // Add print functionality
-    const handlePrint = (order) => {
+    const handlePrint = async (order) => {
         const totalAmount = order.items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
         const tax = Math.round(totalAmount * 0.15);
         const totalWithTax = totalAmount + tax;
@@ -705,6 +706,7 @@ function BillsPage() {
             </html>
         `);
         printWindow.document.close();
+        await logBillChange('BILL_REPRINT', order.orderNumber);
     };
 
     // Add refund functionality
@@ -731,12 +733,27 @@ function BillsPage() {
                     (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
                 ));
                 setRefundedOrders(prev => new Set([...prev, order.orderNumber]));
+                await logBillChange('BILL_REFUND', order.orderNumber);
             }
         } catch (error) {
             console.error('Error processing refund:', error);
             alert('Failed to process refund. Please try again.');
         }
     };
+
+    const logBillChange = async (action, billNumber) => {
+        try {
+          await axios.post('http://localhost:5001/bills-history', {
+            timestamp: new Date().toISOString(),
+            employeeName,
+            employeeNumber,
+            action,
+            billNumber
+          });
+        } catch (error) {
+          console.error('Error logging bill change:', error);
+        }
+      };
 
     // Update the BillCardComponent
     const BillCardComponent = ({ order, onToggle, isExpanded }) => {

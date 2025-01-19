@@ -1,0 +1,60 @@
+.numpad-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 240px;
+  margin: 0 auto;
+  padding: 8px;
+}
+
+.numpad-button {
+  aspect-ratio: 1;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 50%;
+  background-color: #f0f2f5;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.numpad-button:active {
+  transform: scale(0.95);
+  background-color: #e4e6e9;
+}
+
+.function-btn {
+  background-color: #e4e6e9;
+  font-size: 1.2rem;
+}
+
+.function-btn:active {
+  background-color: #d8dadd;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.empty-btn {
+  visibility: hidden;
+}
+
+.numpad-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pin-error-message {
+  color: #ff4444;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 5px;
+}
