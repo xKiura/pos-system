@@ -14,7 +14,8 @@ import {
   FaBoxes,
   FaChartBar,
   FaFileInvoiceDollar,
-  FaFire
+  FaFire,
+  FaCog
 } from 'react-icons/fa';
 import { GiRiceCooker } from 'react-icons/gi';  // Changed from GiRiceBowl
 import { Link, useNavigate } from 'react-router-dom';
@@ -22,8 +23,10 @@ import { Modal, Button, Card, Spinner } from 'react-bootstrap';
 import { toast, ToastContainer } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-toastify/dist/ReactToastify.css';
+import { useSettings } from '../context/SettingsContext';
 
 function POSPage() {
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +47,7 @@ function POSPage() {
     return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
   };
 
-  const billTotalTax = roundToNearestHalf(totalAmount * 0.15);
+  const billTotalTax = roundToNearestHalf(totalAmount * (settings.taxRate / 100));
 
   const fetchProducts = async () => {
     try {
@@ -152,8 +155,9 @@ function POSPage() {
   };
 
   const handlePrint = useReactToPrint({
-    documentTitle: 'فاتورة',
+    documentTitle: settings.restaurantName,
     contentRef: componentRef,
+    copyCount: settings.printCopies,
     onAfterPrint: async () => {
       const confirmedOrder = {
         date: new Date().toLocaleDateString(),
@@ -273,6 +277,10 @@ function POSPage() {
             <Link to="/manage-products" className="nav-button">
               <FaBoxes className="nav-icon" />
               <span>إدارة المنتجات</span>
+            </Link>
+            <Link to="/management" className="nav-button">
+              <FaCog className="nav-icon" />
+              <span>إدارة النظام</span>
             </Link>
             <Link to="/bills" className="nav-button">
               <FaFileInvoiceDollar className="nav-icon" />

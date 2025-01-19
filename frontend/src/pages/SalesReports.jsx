@@ -51,6 +51,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { styled } from '@mui/material/styles';
 
 const GlobalStylesWrapper = styled('div')(({ theme }) => ({
+  fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`,
+  direction: 'rtl',
   '.back-button': {
     display: 'inline-flex',
     alignItems: 'center',
@@ -68,6 +70,35 @@ const GlobalStylesWrapper = styled('div')(({ theme }) => ({
       transform: 'translateX(-2px)'
     }
   }
+}));
+
+// Update these styled components
+const TopBar = styled('div')(({ theme }) => ({
+  fontFamily: 'inherit',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '1rem',
+  padding: '0.5rem 1rem',
+  background: 'white',
+  borderRadius: '12px',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+  width: '100%',
+  flexDirection: 'row-reverse' // Add this to reverse the order for RTL
+}));
+
+const PageTitle = styled(Typography)(({ theme }) => ({
+  fontFamily: 'inherit',
+  margin: 0,
+  fontSize: '1.5rem',
+  color: '#1e293b',
+  fontWeight: 600
+}));
+
+const ActionBar = styled('div')(({ theme }) => ({
+  display: 'flex',
+  gap: '1rem',
+  alignItems: 'center'
 }));
 
 // Register the required components
@@ -129,7 +160,7 @@ const TabPanel = (props) => {
 };
 
 const StyledTypography = styled(Typography)(({ theme }) => ({
-  fontFamily: 'Tajawal, sans-serif',
+  fontFamily: 'inherit',
   fontWeight: 600,
   '&.title': {
     fontSize: '1.5rem',
@@ -161,7 +192,8 @@ const ProductImage = styled('img')({
 
 // Add translations object before the SalesReports component
 const translations = {
-  backToSales: 'العودة إلى المبيعات'
+  backToSales: 'العودة إلى المبيعات',
+  salesReports: 'تقارير المبيعات'
 };
 
 const SalesReports = () => {
@@ -733,11 +765,14 @@ const SalesReports = () => {
     <ErrorBoundary>
       <GlobalStylesWrapper>
         <Box sx={{ p: 3 }}>
-          <Box mb={2}> {/* Add a wrapper Box for proper spacing */}
-            <Link to="/pos" className="back-button">
-              <FaArrowLeft /> <span>{translations.backToSales}</span>
-            </Link>
-          </Box>
+          <TopBar>
+            <ActionBar>
+              <Link to="/pos" className="back-button">
+                <FaArrowLeft /> {translations.backToSales}
+              </Link>
+            </ActionBar>
+            <PageTitle>{translations.salesReports}</PageTitle>
+          </TopBar>
 
           <Paper sx={{ p: 2, mb: 3 }}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>

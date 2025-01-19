@@ -1,9 +1,17 @@
 import React from 'react';
+import { useSettings } from '../context/SettingsContext';
+
+const roundToNearestHalf = (num) => {
+  const decimal = num - Math.floor(num);
+  if (decimal === 0.5) return num;
+  return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
+};
 
 export const ComponentToPrint = React.forwardRef((props, ref) => {
   const { bill, employeeName, employeeNumber, orderNumber, isRefunded } = props;
+  const { settings } = useSettings();
   const totalAmount = bill.reduce((sum, item) => sum + item.totalAmount, 0);
-  const tax = Math.round(totalAmount * 0.15);
+  const tax = roundToNearestHalf(totalAmount * (settings.taxRate / 100));
   const totalWithTax = totalAmount + tax;
 
   return (
@@ -18,7 +26,7 @@ export const ComponentToPrint = React.forwardRef((props, ref) => {
         textAlign: 'center',
         marginBottom: '20px'
       }}>
-        <h2 style={{ margin: '0' }}>مندي ومشوي</h2>
+        <h2 style={{ margin: '0' }}>{settings.restaurantName}</h2>
         <p style={{ margin: '5px 0' }}>
           رقم الفاتورة: #{orderNumber.toString().padStart(6, '0')}
         </p>
@@ -79,7 +87,7 @@ export const ComponentToPrint = React.forwardRef((props, ref) => {
           المجموع: {totalAmount.toFixed(2)}
         </p>
         <p style={{ margin: '5px 0' }}>
-          الضريبة (15%): {tax.toFixed(2)}
+          الضريبة ({settings.taxRate}%): {tax.toFixed(2)}
         </p>
         <p style={{
           fontWeight: 'bold',

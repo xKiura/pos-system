@@ -8,6 +8,30 @@ import styled from 'styled-components';
 import { FaFilter, FaCalendar } from 'react-icons/fa';
 import { Box } from '@mui/material'; // Add this import
 
+// Add these styled components with the other styled components
+const TopBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+`;
+
+const PageTitle = styled.h1`
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1e293b;
+`;
+
+const ActionBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+`;
+
 // Update styled components
 const StyledContainer = styled.div`
   max-width: 1200px;
@@ -114,6 +138,7 @@ const GlobalStyles = styled.div`
   .back-button {
     display: inline-flex;
     align-items: center;
+    width: fit-content;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     background: #edf2f7;
@@ -466,7 +491,8 @@ const translations = {
   price: 'السعر',
   totalSales: 'إجمالي المبيعات',
   withTax: 'شامل الضريبة',
-  more: 'المزيد'
+  more: 'المزيد',
+  billsManagement: 'إدارة الفواتير',
 };
 
 const categories = ['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'];
@@ -867,13 +893,14 @@ function BillsPage() {
     return (
         <GlobalStyles>
             <StyledContainer>
-                <div style={{ direction: 'ltr' }}> {/* Add this wrapper div */}
-                    <div className="mb-2">
+                <TopBar>
+                    <PageTitle>{translations.billsManagement}</PageTitle>
+                    <ActionBar>
                         <Link to="/pos" className="back-button">
-                            <FaArrowLeft /> <span>{translations.backToSales}</span>
+                         <FaArrowLeft /> {translations.backToSales}
                         </Link>
-                    </div>
-                </div>
+                    </ActionBar>
+                </TopBar>
 
                 <div className="filters-section">
                     <FilterCard>

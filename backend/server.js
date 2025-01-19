@@ -1,9 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const settingsRoutes = require('./routes/settings');
 
 app.use(cors());
 app.use(express.json());
+
+// Add settings routes
+app.use(settingsRoutes);
 
 // Store orders in memory (replace with database in production)
 let confirmedOrders = [];
