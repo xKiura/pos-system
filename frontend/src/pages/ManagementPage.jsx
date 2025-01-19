@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaHistory, FaSave, FaCog, FaPercent, FaPrint, FaUserShield } from 'react-icons/fa';
-import axios from 'axios';
-import styled from 'styled-components';
+import { useNavigate, Link } from 'react-router-dom';
+import { FaArrowLeft, FaHistory, FaSave, FaPercent, FaPrint, FaUserShield } from 'react-icons/fa';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import styled from 'styled-components';
 
 const ManagementContainer = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
   padding: 0 1.5rem;
   direction: rtl;
+
+  .back-button {
+    direction: ltr;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    background: #edf2f7;
+    color: #4a5568;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    &:hover {
+      background: #e2e8f0;
+      transform: translateX(-2px);
+    }
+  }
 `;
 
 const TopBar = styled.div`
@@ -22,6 +41,18 @@ const TopBar = styled.div`
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+`;
+
+const ActionBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+`;
+
+const PageTitle = styled.h2`
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1e293b;
 `;
 
 const SettingsGrid = styled.div`
@@ -63,6 +94,28 @@ const HistoryItem = styled.div`
   }
 `;
 
+const formatChangeValue = (key, value) => {
+  switch(key) {
+    case 'taxRate':
+      return `${value}%`;
+    case 'printCopies':
+      return `${value} نسخ`;
+    case 'requireManagerApproval':
+      return value ? 'مفعل' : 'غير مفعل';
+    default:
+      return value;
+  }
+};
+
+const getSettingName = (key) => {
+  const names = {
+    taxRate: 'نسبة الضريبة',
+    printCopies: 'عدد النسخ',
+    requireManagerApproval: 'موافقة المدير'
+  };
+  return names[key] || key;
+};
+
 function ManagementPage() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState({
@@ -72,81 +125,72 @@ function ManagementPage() {
   });
   const [changeHistory, setChangeHistory] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingChanges, setPendingChanges] = useState(null);
-  const [employeeName] = useState(localStorage.getItem('employeeName'));
-  const [employeeNumber] = useState(localStorage.getItem('employeeNumber'));
-  const [hasChanges, setHasChanges] = useState(false);
   const [tempSettings, setTempSettings] = useState({});
+  const [employeeName] = useState(localStorage.getItem('employeeName') || 'Admin');
+  const [employeeNumber] = useState(localStorage.getItem('employeeNumber') || '0001');
 
   useEffect(() => {
-    fetchSettings();
-    fetchChangeHistory();
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem('posSettings');
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
+
+    // Load change history from localStorage
+    const savedHistory = localStorage.getItem('settingsHistory');
+    if (savedHistory) {
+      setChangeHistory(JSON.parse(savedHistory));
+    }
   }, []);
 
-  const fetchSettings = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/settings');
-      setSettings(response.data);
-    } catch (error) {
-      toast.error('Failed to load settings');
-    }
-  };
-
-  const fetchChangeHistory = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/settings/history');
-      setChangeHistory(response.data);
-    } catch (error) {
-      toast.error('Failed to load change history');
-    }
+  const hasUnsavedChanges = () => {
+    return Object.keys(tempSettings).length > 0 &&
+      Object.entries(tempSettings).some(([key, value]) => value !== settings[key]);
   };
 
   const handleSettingChange = (key, value) => {
-    setTempSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-    setHasChanges(true);
+    setTempSettings(prev => {
+      const newSettings = { ...prev, [key]: value };
+      if (value === settings[key]) {
+        delete newSettings[key];
+      }
+      return newSettings;
+    });
   };
 
   const handleSaveClick = () => {
-    setPendingChanges({ ...settings, ...tempSettings });
     setShowConfirmModal(true);
   };
 
-  const confirmChange = async () => {
+  const confirmChange = () => {
     try {
-      const changeData = {
-        ...settings,
-        ...tempSettings,
-        changedBy: employeeName,
-        employeeNumber,
-        timestamp: new Date().toISOString()
-      };
-
-      await axios.post('http://localhost:5000/settings', changeData);
-      setSettings(prev => ({ ...prev, ...tempSettings }));
+      const newSettings = { ...settings, ...tempSettings };
       
-      // Add to change history
+      // Save new settings
+      localStorage.setItem('posSettings', JSON.stringify(newSettings));
+      setSettings(newSettings);
+
+      // Create history entry
       const historyEntry = {
         timestamp: new Date().toISOString(),
         employeeName,
         employeeNumber,
-        changes: Object.entries(tempSettings)
-          .map(([key, value]) => ({
-            setting: key,
-            oldValue: settings[key],
-            newValue: value
-          }))
+        changes: Object.entries(tempSettings).map(([key, value]) => ({
+          setting: key,
+          oldValue: settings[key],
+          newValue: value
+        }))
       };
-      
-      await axios.post('http://localhost:5000/settings/history', historyEntry);
-      setChangeHistory([historyEntry, ...changeHistory]);
-      
+
+      // Update history
+      const newHistory = [historyEntry, ...changeHistory].slice(0, 50); // Keep last 50 changes
+      localStorage.setItem('settingsHistory', JSON.stringify(newHistory));
+      setChangeHistory(newHistory);
+
+      // Reset temp settings
       setTempSettings({});
-      setHasChanges(false);
-      toast.success('تم حفظ التغييرات بنجاح');
       setShowConfirmModal(false);
+      toast.success('تم حفظ التغييرات بنجاح');
     } catch (error) {
       toast.error('فشل في حفظ التغييرات');
     }
@@ -155,10 +199,12 @@ function ManagementPage() {
   return (
     <ManagementContainer>
       <TopBar>
-        <h2>إدارة النظام</h2>
-        <Button variant="outline-primary" onClick={() => navigate('/pos')}>
-          <FaArrowLeft /> العودة للمبيعات
-        </Button>
+        <PageTitle>إدارة النظام</PageTitle>
+        <ActionBar>
+          <Link to="/pos" className="back-button">
+            <FaArrowLeft /> العودة للمبيعات
+          </Link>
+        </ActionBar>
       </TopBar>
 
       <SettingsGrid>
@@ -199,7 +245,7 @@ function ManagementPage() {
         </SettingCard>
       </SettingsGrid>
 
-      {hasChanges && (
+      {hasUnsavedChanges() && (
         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
           <Button variant="primary" size="lg" onClick={handleSaveClick}>
             <FaSave /> حفظ التغييرات
@@ -212,7 +258,7 @@ function ManagementPage() {
         {changeHistory.map((entry, index) => (
           <HistoryItem key={index}>
             <div>
-              <strong>التاريخ:</strong> {new Date(entry.timestamp).toLocaleString('ar-SA')}
+              <strong>التاريخ:</strong> {new Date(entry.timestamp).toLocaleString()}
             </div>
             <div>
               <strong>الموظف:</strong> {entry.employeeName} (#{entry.employeeNumber})
@@ -220,7 +266,14 @@ function ManagementPage() {
             <div>
               {entry.changes.map((change, i) => (
                 <div key={i}>
-                  تم تغيير {change.setting} من {change.oldValue} إلى {change.newValue}
+                  تم تغيير {getSettingName(change.setting)}:
+                  <br />
+                  <span style={{ marginRight: '20px' }}>
+                    من: {formatChangeValue(change.setting, change.oldValue)}
+                  </span>
+                  <span style={{ marginRight: '20px' }}>
+                    إلى: {formatChangeValue(change.setting, change.newValue)}
+                  </span>
                 </div>
               ))}
             </div>

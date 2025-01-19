@@ -1,25 +1,89 @@
 const express = require('express');
 const cors = require('cors');
-const app = express();
-const settingsRoutes = require('./routes/settings');
+const LocalStorage = require('./services/localStorage');
 
+const app = express();
+const storage = new LocalStorage('db.json');
+
+// Initialize storage
+storage.init()
+  .then(() => {
+    console.log('Local storage initialized');
+    
+    // Initialize settings if they don't exist
+    return storage.get('settings') || storage.set('settings', {
+      taxRate: 15,
+      printCopies: 1,
+      requireManagerApproval: false,
+      history: []
+    });
+  })
+  .then(() => {
+    console.log('Settings initialized');
+  })
+  .catch(err => {
+    console.error('Error initializing storage:', err);
+  });
+
+// Store orders in memory
+let confirmedOrders = [];
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Add settings routes
-app.use(settingsRoutes);
+// Settings routes
+app.get('/settings', async (req, res) => {
+  try {
+    const settings = await storage.get('settings');
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Store orders in memory (replace with database in production)
-let confirmedOrders = [];
+app.get('/settings/history', async (req, res) => {
+  try {
+    const settings = await storage.get('settings');
+    res.json(settings.history || []);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-// Endpoint to save confirmed orders
+app.post('/settings', async (req, res) => {
+  try {
+    const settings = await storage.get('settings');
+    const { taxRate, printCopies, requireManagerApproval, changedBy, employeeNumber, changes } = req.body;
+
+    if (taxRate !== undefined) settings.taxRate = taxRate;
+    if (printCopies !== undefined) settings.printCopies = printCopies;
+    if (requireManagerApproval !== undefined) settings.requireManagerApproval = requireManagerApproval;
+
+    if (changes && changes.length > 0) {
+      if (!settings.history) settings.history = [];
+      settings.history.push({
+        timestamp: new Date(),
+        employeeName: changedBy,
+        employeeNumber,
+        changes
+      });
+    }
+
+    await storage.set('settings', settings);
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Existing order endpoints
 app.post('/confirmed-orders', (req, res) => {
   const order = req.body;
   confirmedOrders.push(order);
   res.status(201).json(order);
 });
 
-// Endpoint to get all confirmed orders
 app.get('/confirmed-orders', (req, res) => {
   res.json(confirmedOrders);
 });

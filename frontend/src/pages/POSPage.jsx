@@ -42,12 +42,62 @@ function POSPage() {
   const [newItemIds, setNewItemIds] = useState([]);
 
   const roundToNearestHalf = (num) => {
+    if (!num || isNaN(num)) return 0;
     const decimal = num - Math.floor(num);
-    if (decimal === 0.5) return num;
-    return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
+    if (decimal === 0.5) return Math.floor(num) + 0.5;  // Keep .5 as is
+    return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);  // Round to nearest whole number
   };
 
-  const billTotalTax = roundToNearestHalf(totalAmount * (settings.taxRate / 100));
+  const calculateTotals = () => {
+    const subtotal = bill.reduce((sum, item) => sum + (parseFloat(item.totalAmount) || 0), 0);
+    const taxRate = settings?.taxRate || 15; // Default to 15% if settings are not loaded
+    const rawTax = (subtotal * (taxRate / 100)) || 0;
+    const tax = roundToNearestHalf(rawTax);
+    const total = subtotal + tax;
+    
+    return {
+      subtotal: subtotal || 0,
+      tax: tax || 0,
+      total: total || 0,
+      taxRate
+    };
+  };
+
+  // Replace existing tax calculation with this
+  const { subtotal, tax, total, taxRate } = calculateTotals();
+
+  // Replace the existing bill footer section with this
+  const renderBillFooter = () => (
+    <div className="bill-footer">
+      <div className="totals">
+        <div className="total-row">
+          <span>المجموع الفرعي:</span>
+          <span>{subtotal.toFixed(2)} ر.س</span>
+        </div>
+        <div className="total-row">
+          <span>الضريبة ({taxRate}%):</span>
+          <span>{tax.toFixed(2)} ر.س</span>
+        </div>
+        <div className="total-row grand-total">
+          <span>الإجمالي:</span>
+          <span>{total.toFixed(2)} ر.س</span>
+        </div>
+      </div>
+      
+      {bill.length > 0 && (
+        <div className="action-buttons">
+          <button className="btn-clear" onClick={clearBill}>
+            <FaTimes className="me-2" />
+            حذف الكل
+          </button>
+          <button className="btn-confirm" onClick={handlePrint}>
+            <FaCheck className="me-2" />
+            إتمام الطلب
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   const fetchProducts = async () => {
     try {
@@ -155,10 +205,11 @@ function POSPage() {
   };
 
   const handlePrint = useReactToPrint({
-    documentTitle: settings.restaurantName,
+    documentTitle: settings?.restaurantName || 'Receipt',
     contentRef: componentRef,
-    copyCount: settings.printCopies,
+    copyCount: settings?.printCopies || 1,
     onAfterPrint: async () => {
+      const { subtotal, tax, total } = calculateTotals();
       const confirmedOrder = {
         date: new Date().toLocaleDateString(),
         confirmedAt: new Date().toISOString(),
@@ -167,11 +218,11 @@ function POSPage() {
         employeeName,
         employeeNumber,
         orderNumber: orderNumber.toString().padStart(6, '0'),
-        totalIncome: totalAmount,
+        totalIncome: subtotal,
         categoryIncome: bill.reduce((acc, item) => acc + (item.category === filter ? item.totalAmount : 0), 0),
-        productIncome: bill.reduce((acc, item) => acc + item.totalAmount, 0),
-        tax: billTotalTax,
-        totalIncomeWithTax: totalAmount + billTotalTax
+        productIncome: subtotal,
+        tax: tax,
+        totalIncomeWithTax: total
       };
       await saveConfirmedOrder(confirmedOrder);
       incrementOrderNumber();
@@ -692,35 +743,7 @@ function POSPage() {
       )}
     </div>
 
-    <div className="bill-footer">
-      <div className="totals">
-        <div className="total-row">
-          <span>المجموع الفرعي:</span>
-          <span>{Math.ceil(totalAmount)} ر.س</span>
-        </div>
-        <div className="total-row">
-          <span>الضريبة (15%):</span>
-          <span>{billTotalTax.toFixed(2)} ر.س</span>
-        </div>
-        <div className="total-row grand-total">
-          <span>الإجمالي:</span>
-          <span>{(totalAmount + billTotalTax).toFixed(1)} ر.س</span>
-        </div>
-      </div>
-      
-      {bill.length > 0 && (
-        <div className="action-buttons">
-          <button className="btn-clear" onClick={clearBill}>
-            <FaTimes className="me-2" />
-            حذف الكل
-          </button>
-          <button className="btn-confirm" onClick={handlePrint}>
-            <FaCheck className="me-2" />
-            إتمام الطلب
-          </button>
-        </div>
-      )}
-    </div>
+    {renderBillFooter()}
   </div>
 
   <style>

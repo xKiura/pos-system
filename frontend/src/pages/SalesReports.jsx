@@ -32,6 +32,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Area,
+  LabelList,
 } from 'recharts';
 import {
   Chart as ChartJS,
@@ -50,9 +51,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { styled } from '@mui/material/styles';
 
+// Update GlobalStylesWrapper to apply the font family globally
 const GlobalStylesWrapper = styled('div')(({ theme }) => ({
-  fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"`,
+  fontFamily: 'inherit',
   direction: 'rtl',
+  '& *': {  // This will apply to all children elements
+    fontFamily: 'inherit'
+  },
   '.back-button': {
     display: 'inline-flex',
     alignItems: 'center',
@@ -64,6 +69,7 @@ const GlobalStylesWrapper = styled('div')(({ theme }) => ({
     textDecoration: 'none',
     transition: 'all 0.2s',
     marginBottom: '1rem',
+    fontFamily: 'inherit',
     
     '&:hover': {
       background: '#e2e8f0',
@@ -150,15 +156,21 @@ class ErrorBoundary extends React.Component {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-const TabPanel = (props) => {
+// Update TabPanel to ensure consistent font
+const TabPanel = styled((props) => {
   const { children, value, index, ...other } = props;
   return (
     <div role="tabpanel" hidden={value !== index} {...other}>
       {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   );
-};
+})(({ theme }) => ({
+  '& *': {
+    fontFamily: 'inherit'
+  }
+}));
 
+// Update StyledTypography to ensure consistent font
 const StyledTypography = styled(Typography)(({ theme }) => ({
   fontFamily: 'inherit',
   fontWeight: 600,
@@ -195,6 +207,66 @@ const translations = {
   backToSales: 'العودة إلى المبيعات',
   salesReports: 'تقارير المبيعات'
 };
+
+// Add these MUI component overrides before the SalesReports component
+const StyledTab = styled(Tab)({
+  fontFamily: 'inherit'
+});
+
+const StyledSelect = styled(Select)({
+  fontFamily: 'inherit',
+  '& .MuiSelect-select': {
+    fontFamily: 'inherit'
+  }
+});
+
+const StyledMenuItem = styled(MenuItem)({
+  fontFamily: 'inherit'
+});
+
+const StyledButton = styled(Button)({
+  fontFamily: 'inherit'
+});
+
+const StyledFormControl = styled(FormControl)({
+  '& .MuiInputLabel-root': {
+    fontFamily: 'inherit'
+  }
+});
+
+// Add these styled components near your other styled components
+const StyledRevCard = styled(Card)(({ theme }) => ({
+  backgroundColor: '#ffffff',
+  borderRadius: '16px',
+  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)',
+  transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 6px 24px 0 rgba(0,0,0,0.1)',
+  }
+}));
+
+const ChartTitle = styled(Typography)(({ theme }) => ({
+  fontFamily: 'inherit',
+  fontWeight: 600,
+  fontSize: '1.25rem',
+  color: '#2d3748',
+  marginBottom: '1.5rem',
+  paddingBottom: '0.75rem',
+  borderBottom: '2px solid #edf2f7',
+  display: 'flex',
+  alignItems: 'center',
+  '&::before': {
+    content: '""',
+    display: 'inline-block',
+    width: '12px',
+    height: '12px',
+    backgroundColor: '#8884d8',
+    borderRadius: '3px',
+    marginLeft: '12px',
+    marginRight: '2px'
+  }
+}));
 
 const SalesReports = () => {
   // Add new state for products with images
@@ -614,20 +686,55 @@ const SalesReports = () => {
     <Grid container spacing={3}>
       {/* Existing revenue overview chart */}
       <Grid item xs={12} md={8}>
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>نظرة عامة على الإيرادات</Typography>
+        <StyledRevCard>
+          <CardContent sx={{ p: 3 }}>
+            <ChartTitle>نظرة عامة على الإيرادات</ChartTitle>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(profits).map(([date, value]) => ({ date, value }))}>
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="value" fill="#8884d8" />
+              <BarChart 
+                data={Object.entries(profits).map(([date, value]) => ({ date, value }))}
+                margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="date"
+                  tick={{ fill: '#718096' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                />
+                <YAxis 
+                  tick={{ fill: '#718096' }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <Legend 
+                  wrapperStyle={{
+                    paddingTop: '20px',
+                  }}
+                />
+                <Bar 
+                  dataKey="value"
+                  name="الإيرادات"
+                  fill="#8884d8"
+                  radius={[4, 4, 0, 0]}
+                  barSize={30}
+                >
+                  {/* Add hover effect to bars */}
+                  <LabelList
+                    dataKey="value"
+                    position="top"
+                    style={{ fill: '#718096', fontSize: '12px' }}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
-        </Card>
+        </StyledRevCard>
       </Grid>
 
       {/* Replace existing pie chart with category analysis */}
@@ -794,39 +901,39 @@ const SalesReports = () => {
                   />
                 </Grid>
                 <Grid item xs={12} md={3}>
-                  <FormControl fullWidth>
+                  <StyledFormControl fullWidth>
                     <InputLabel>نوع التصفية</InputLabel>
-                    <Select
+                    <StyledSelect
                       value={filterType}
                       onChange={(e) => setFilterType(e.target.value)}
                       label="نوع التصفية"
                     >
-                      <MenuItem value="daily">يومي</MenuItem>
-                      <MenuItem value="weekly">أسبوعي</MenuItem>
-                      <MenuItem value="monthly">شهري</MenuItem>
-                      <MenuItem value="yearly">سنوي</MenuItem>
-                    </Select>
-                  </FormControl>
+                      <StyledMenuItem value="daily">يومي</StyledMenuItem>
+                      <StyledMenuItem value="weekly">أسبوعي</StyledMenuItem>
+                      <StyledMenuItem value="monthly">شهري</StyledMenuItem>
+                      <StyledMenuItem value="yearly">سنوي</StyledMenuItem>
+                    </StyledSelect>
+                  </StyledFormControl>
                 </Grid>
                 <Grid item xs={12} md={3}>
-                  <Button
+                  <StyledButton
                     className="btn btn-primary text-white"
-                    startIcon={<FaDownload />}
+                    startIcon={<FaDownload className='mx-2' />}
                     onClick={handleExport}
                     fullWidth
                     sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
                   >
                     تصدير التقرير
-                  </Button>
+                  </StyledButton>
                 </Grid>
               </Grid>
             </LocalizationProvider>
           </Paper>
 
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} sx={{ mb: 3 }}>
-            <Tab label="نظرة عامة" />
-            <Tab label="تحليل المنتجات" />
-            <Tab label="الاتجاهات" />
+            <StyledTab label="نظرة عامة" />
+            <StyledTab label="تحليل المنتجات" />
+            <StyledTab label="الاتجاهات" />
           </Tabs>
 
           <TabPanel value={tabValue} index={0}>
