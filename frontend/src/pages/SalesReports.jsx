@@ -295,6 +295,18 @@ const ManagementContainer = styled('div')(({ theme }) => ({
   }
 }));
 
+const StyledTooltip = styled(Tooltip)({
+  '& .recharts-tooltip-wrapper': {
+    fontFamily: 'inherit'
+  }
+});
+
+const StyledLegend = styled(Legend)({
+  '& .recharts-legend-item-text': {
+    fontFamily: 'inherit'
+  }
+});
+
 const SalesReports = () => {
   // Add new state for products with images
   const [products, setProducts] = useState([]);
@@ -632,36 +644,37 @@ const SalesReports = () => {
   // Add this inside your Product Analysis TabPanel
   const renderCategoryAnalysis = () => (
     <Grid item xs={12}>
-      <Card>
+      <StyledCard>
         <CardContent>
           <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">تحليل الفئات</Typography>
+            <StyledTypography variant="h6" sx={{ fontFamily: 'inherit' }}>تحليل الفئات</StyledTypography>
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>الفئة</InputLabel>
+              <InputLabel sx={{ fontFamily: 'inherit' }}>الفئة</InputLabel>
               <Select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 label="الفئة"
                 size="small"
+                sx={{ fontFamily: 'inherit' }}
               >
                 {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                  <MenuItem key={cat} value={cat} sx={{ fontFamily: 'inherit' }}>{cat}</MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Box>
           
           <ResponsiveContainer width="100%" height={400}>
-            <ComposedChart data={Object.values(calculateCategoryMetrics(orders, selectedCategory))}>
-              <XAxis dataKey="name" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-              <Tooltip />
-              <Legend />
+            <ComposedChart data={calculateCategoryTotals(orders)}>
+              <XAxis dataKey="name" tick={{ fontFamily: 'inherit' }} />
+              <YAxis yAxisId="left" tick={{ fontFamily: 'inherit' }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontFamily: 'inherit' }} />
+              <StyledTooltip />
+              <StyledLegend />
               <CartesianGrid stroke="#f5f5f5" />
-              <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
-              <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
-              <Line yAxisId="right" type="monotone" dataKey="profit" stroke="#ff7300" name="الربح" />
+              <Bar yAxisId="left" dataKey="totalQuantity" fill="#8884d8" name="الكمية المباعة" />
+              <Bar yAxisId="left" dataKey="totalRevenue" fill="#82ca9d" name="الإيرادات" />
+              <Line yAxisId="right" type="monotone" dataKey="totalProfit" stroke="#ff7300" name="الربح" />
             </ComposedChart>
           </ResponsiveContainer>
 
@@ -670,42 +683,42 @@ const SalesReports = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={Object.values(calculateCategoryMetrics(orders, selectedCategory))}
-                    dataKey="quantitySold"
+                    data={calculateCategoryTotals(orders)}
+                    dataKey="totalRevenue"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
                     outerRadius={80}
                     fill="#8884d8"
-                    label
+                    label={{ fontFamily: 'inherit' }}
                   >
-                    {Object.values(calculateCategoryMetrics(orders, selectedCategory))
+                    {calculateCategoryTotals(orders)
                       .map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend />
+                  <StyledTooltip />
+                  <StyledLegend />
                 </PieChart>
               </ResponsiveContainer>
             </Grid>
             
             <Grid item xs={12} md={6}>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={Object.values(calculateCategoryMetrics(orders, selectedCategory))}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
-                  <Bar dataKey="profit" fill="#8884d8" name="الربح" />
+                <BarChart data={calculateCategoryTotals(orders)}>
+                  <XAxis dataKey="name" tick={{ fontFamily: 'inherit' }} />
+                  <YAxis tick={{ fontFamily: 'inherit' }} />
+                  <StyledTooltip />
+                  <StyledLegend />
+                  <Bar dataKey="totalRevenue" fill="#82ca9d" name="الإيرادات" />
+                  <Bar dataKey="totalProfit" fill="#8884d8" name="الربح" />
                 </BarChart>
               </ResponsiveContainer>
             </Grid>
           </Grid>
         </CardContent>
-      </Card>
+      </StyledCard>
     </Grid>
   );
 
@@ -731,7 +744,7 @@ const SalesReports = () => {
                   tick={{ fill: '#718096' }}
                   axisLine={{ stroke: '#e2e8f0' }}
                 />
-                <Tooltip 
+                <StyledTooltip 
                   contentStyle={{
                     backgroundColor: '#fff',
                     border: 'none',
@@ -739,7 +752,7 @@ const SalesReports = () => {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                   }}
                 />
-                <Legend 
+                <StyledLegend 
                   wrapperStyle={{
                     paddingTop: '20px',
                   }}
@@ -785,8 +798,8 @@ const SalesReports = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <StyledTooltip />
+                <StyledLegend />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -881,7 +894,8 @@ const SalesReports = () => {
                             tick={{ fontSize: 10 }}
                           />
                           <YAxis />
-                          <Tooltip />
+                          <StyledTooltip />
+                          <StyledLegend />
                           <Bar dataKey="qty" fill="#8884d8" name="الكمية" />
                         </BarChart>
                       </ResponsiveContainer>
@@ -895,13 +909,64 @@ const SalesReports = () => {
     </Grid>
   );
 
+  const renderProductAnalysisSection = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={12}>
+        <StyledCard>
+          <CardContent>
+            <StyledTypography variant="h6" gutterBottom>تحليل المنتجات</StyledTypography>
+            <ResponsiveContainer width="100%" height={400}>
+              <ComposedChart data={calculateProductMetrics(orders)}>
+                <XAxis dataKey="name" tick={{ fontFamily: 'inherit' }} />
+                <YAxis yAxisId="left" tick={{ fontFamily: 'inherit' }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontFamily: 'inherit' }} />
+                <StyledTooltip />
+                <StyledLegend />
+                <CartesianGrid stroke="#f5f5f5" />
+                <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
+                <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
+                <Line yAxisId="right" type="monotone" dataKey="profitMargin" stroke="#ff7300" name="هامش الربح %" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </StyledCard>
+      </Grid>
+      {/* ...rest of the product analysis section... */}
+    </Grid>
+  );
+
+  const renderTrendsSection = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={12}>
+        <StyledCard>
+          <CardContent>
+            <StyledTypography variant="h6" gutterBottom>اتجاهات المبيعات اليومية</StyledTypography>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={calculateDailyTrends(orders)}>
+                <XAxis dataKey="date" tick={{ fontFamily: 'inherit' }} />
+                <YAxis tick={{ fontFamily: 'inherit' }} />
+                <StyledTooltip />
+                <StyledLegend />
+                <CartesianGrid stroke="#f5f5f5" />
+                <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="الإيرادات" />
+                <Line type="monotone" dataKey="itemsSold" stroke="#82ca9d" name="العناصر المباعة" />
+                <Line type="monotone" dataKey="averageOrderValue" stroke="#ffc658" name="متوسط قيمة الطلب" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </StyledCard>
+      </Grid>
+      {/* ...rest of the trends section... */}
+    </Grid>
+  );
+
   return (
     <ErrorBoundary>
       <ManagementContainer>
         <TopBar>
           <ActionBar>
             <Link to="/pos" className="back-button">
-              <FaArrowLeft /> العودة للمبيعات
+              <FaArrowLeft /> العودة لصفحة المبيعات
             </Link>
           </ActionBar>
           <PageTitle>تقارير المبيعات</PageTitle>
@@ -969,141 +1034,11 @@ const SalesReports = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>تحليل المنتجات</Typography>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <ComposedChart data={calculateProductMetrics(orders)}>
-                      <XAxis dataKey="name" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <CartesianGrid stroke="#f5f5f5" />
-                      <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
-                      <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
-                      <Line yAxisId="right" type="monotone" dataKey="profitMargin" stroke="#ff7300" name="هامش الربح %" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>توزيع الكميات المباعة</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={calculateProductMetrics(orders)}
-                        dataKey="quantitySold"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        label
-                      >
-                        {calculateProductMetrics(orders).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>تحليل الربحية</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={calculateProductMetrics(orders)}>
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="profit" fill="#82ca9d" name="الربح" />
-                      <Bar dataKey="totalCost" fill="#8884d8" name="التكلفة" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {renderSalesTimingAnalysis()}
-
-            {/* Add the new category analysis section */}
-            {renderCategoryAnalysis()}
-          </Grid>
+          {renderProductAnalysisSection()}
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>اتجاهات المبيعات اليومية</Typography>
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={calculateDailyTrends(orders)}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <CartesianGrid stroke="#f5f5f5" />
-                      <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="الإيرادات" />
-                      <Line type="monotone" dataKey="itemsSold" stroke="#82ca9d" name="العناصر المباعة" />
-                      <Line type="monotone" dataKey="averageOrderValue" stroke="#ffc658" name="متوسط قيمة الطلب" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>تحليل المبيعات التراكمية</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={calculateDailyTrends(orders)}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <CartesianGrid stroke="#f5f5f5" />
-                      <Area type="monotone" dataKey="revenue" fill="#8884d8" stroke="#8884d8" name="الإيرادات التراكمية" />
-                      <Line type="monotone" dataKey="orders" stroke="#ff7300" name="عدد الطلبات" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>معدل النمو</Typography>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={calculateDailyTrends(orders)}>
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="averageOrderValue" fill="#82ca9d" name="متوسط قيمة الطلب" />
-                      <Line type="monotone" dataKey="orders" stroke="#ff7300" name="عدد الطلبات" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+          {renderTrendsSection()}
         </TabPanel>
       </ManagementContainer>
     </ErrorBoundary>

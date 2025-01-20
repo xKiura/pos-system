@@ -8,29 +8,36 @@ import styled from 'styled-components';
 import { FaFilter, FaCalendar } from 'react-icons/fa';
 import { Box } from '@mui/material'; // Add this import
 
-// Add these styled components with the other styled components
-const TopBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding: 0.5rem 1rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-`;
+// Update TopBar styled component
+const TopBar = styled('div')(({ theme }) => ({
+  fontFamily: 'inherit',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '1rem',
+  padding: '0.5rem 1rem',
+  background: 'white',
+  borderRadius: '12px',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+  width: '100%',
+  flexDirection: 'row-reverse' // Add this to reverse the order for RTL
+}));
 
-const PageTitle = styled.h1`
-  margin: 0;
-  font-size: 1.5rem;
-  color: #1e293b;
-`;
+// Update PageTitle styled component
+const PageTitle = styled('h1')(({ theme }) => ({
+  fontFamily: 'inherit',
+  margin: 0,
+  fontSize: '1.5rem',
+  color: '#1e293b',
+  fontWeight: 600
+}));
 
-const ActionBar = styled.div`
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-`;
+// Update ActionBar styled component
+const ActionBar = styled('div')(({ theme }) => ({
+  display: 'flex',
+  gap: '1rem',
+  alignItems: 'center'
+}));
 
 // Update styled components
 const StyledContainer = styled.div`
@@ -478,7 +485,7 @@ const SummaryCard = styled.div`
 
 // Arabic translations object
 const translations = {
-  backToSales: 'العودة إلى المبيعات',
+  backToSales: 'العودة لصفحة المبيعات',
   billManagement: 'إدارة الفواتير',
   items: 'العناصر',
   total: 'المجموع',
@@ -922,12 +929,12 @@ function BillsPage() {
         <GlobalStyles>
             <StyledContainer>
                 <TopBar>
-                    <PageTitle>{translations.billsManagement}</PageTitle>
                     <ActionBar>
                         <Link to="/pos" className="back-button">
                          <FaArrowLeft /> {translations.backToSales}
                         </Link>
                     </ActionBar>
+                    <PageTitle>{translations.billsManagement}</PageTitle>
                 </TopBar>
 
                 <div className="filters-section">

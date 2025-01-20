@@ -329,7 +329,7 @@ function ManagementPage() {
         <PageTitle>إدارة النظام</PageTitle>
         <ActionBar>
           <Link to="/pos" className="back-button">
-            <FaArrowLeft /> العودة للمبيعات
+            <FaArrowLeft /> العودة لصفحة المبيعات
           </Link>
         </ActionBar>
       </TopBar>

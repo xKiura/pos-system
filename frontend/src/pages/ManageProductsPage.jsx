@@ -8,10 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../components/AuthContext';
 
 const StyledContainer = styled.div`
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1.5rem;
+  max-width: 1000px;
+  margin: 1rem auto;
+  padding: 0 1rem;
   direction: rtl;
+
+  @media (max-width: 768px) {
+    margin: 0.5rem auto;
+  }
 `;
 
 const TopBar = styled.div`
@@ -19,16 +23,24 @@ const TopBar = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  padding: 0.5rem 1rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  padding: 0.75rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  width: 100%;
+  flex-direction: row-reverse;
+
+  @media (max-width: 576px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 `;
 
 const PageTitle = styled.h1`
   margin: 0;
-  font-size: 1.5rem;
-  color: #1e293b;
+  font-size: 1.25rem;
+  color: #1a1a1a;
+  font-weight: 600;
 `;
 
 const ActionBar = styled.div`
@@ -51,53 +63,63 @@ const ProductActions = styled.div`
 const AddProductButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  gap: 0.4rem;
+  padding: 0.6rem 1.2rem;
   background: #3699ff;
   color: white;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.9rem;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(54, 153, 255, 0.2);
 
   &:hover {
-    background: #2563eb;
+    background: #2d7fd1;
     transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(54, 153, 255, 0.25);
   }
 
   svg {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 `;
 
 const ProductGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 576px) {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
 `;
 
 const ProductCard = styled(motion.div)`
-  background: white;
-  border-radius: 12px;
+  background: #ffffff;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  @media (max-width: 576px) {
+    font-size: 0.9rem;
   }
 `;
 
 const ProductImage = styled.div`
   position: relative;
-  padding-top: 75%;
-  background: #f8fafc;
-  overflow: hidden;
+  padding-top: 100%;
+  background: #f5f5f5;
 
   img {
     position: absolute;
@@ -106,97 +128,83 @@ const ProductImage = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
-  }
-
-  &:hover img {
-    transform: scale(1.05);
   }
 `;
 
 const ProductInfo = styled.div`
-  padding: 1rem;
+  padding: 0.5rem;
 `;
 
 const ProductName = styled.h3`
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #2d3748;
+
+  @media (max-width: 576px) {
+    font-size: 0.8rem;
+  }
 `;
 
 const ProductPrice = styled.div`
-  margin-top: 0.5rem;
-  font-size: 1.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #f8b73f;
+  color: #3699ff;
+
+  @media (max-width: 576px) {
+    font-size: 0.85rem;
+  }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
 `;
 
 const ActionButton = styled.button`
   flex: 1;
-  padding: 0.5rem;
+  padding: 0.35rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  font-size: 0.8rem;
   font-weight: 500;
   transition: all 0.2s;
 
   &.edit {
-    background: #3b82f6;
-    color: white;
-    &:hover { background: #2563eb; }
+    background: #ebf5ff;
+    color: #3699ff;
+    &:hover { background: #d1e9ff; }
   }
 
   &.delete {
-    background: #ef4444;
-    color: white;
-    &:hover { background: #dc2626; }
+    background: #fff5f5;
+    color: #f56565;
+    &:hover { background: #fed7d7; }
   }
 `;
 
 const StyledForm = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 
-  input {
-    padding: 0.75rem;
+  input, select {
+    padding: 0.6rem;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
 
     &:focus {
       outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-  }
-
-  select {
-    padding: 0.75rem;
-    padding-left: 2rem; // Add left padding for the arrow
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.2s;
-    background-color: white;
-    width: 100%;
-    appearance: revert; // This ensures the native arrow appears properly
-
-    &:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      border-color: #3699ff;
+      box-shadow: 0 0 0 2px rgba(54, 153, 255, 0.1);
     }
   }
 `;
@@ -204,19 +212,31 @@ const StyledForm = styled.div`
 const StyledModal = styled(Modal)`
   .modal-content {
     direction: rtl;
-    border-radius: 12px;
+    border-radius: 8px;
     border: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
 
   .modal-header {
+    padding: 1rem;
     border-bottom: 1px solid #e2e8f0;
-    padding: 1.25rem;
+    
+    /* Add these styles to handle close button positioning */
+    flex-direction: row-reverse;
+    
+    .close {
+      margin: -1rem auto -1rem -1rem;
+      padding: 1rem;
+    }
+  }
+
+  .modal-body {
+    padding: 1rem;
   }
 
   .modal-footer {
+    padding: 1rem;
     border-top: 1px solid #e2e8f0;
-    padding: 1.25rem;
   }
 `;
 
@@ -257,10 +277,11 @@ const GlobalStyles = styled.div`
     border-radius: 8px;
     text-decoration: none;
     transition: all 0.2s;
-
+    font-family: inherit;
+    
     &:hover {
       background: #e2e8f0;
-      transform: translateX(-2px);
+      transform: translateX(-2px)
     }
   }
 `;
@@ -390,12 +411,12 @@ function ManageProductsPage() {
         <GlobalStyles>
             <StyledContainer>
                 <TopBar>
-                    <PageTitle>{translations.productManagement}</PageTitle>
                     <ActionBar>
                         <Link to="/pos" className="back-button">
-                            {translations.backToSales} <FaArrowLeft />
+                            العودة لصفحة لمبيعات <FaArrowLeft />
                         </Link>
                     </ActionBar>
+                    <PageTitle>إدارة المنتجات</PageTitle>
                 </TopBar>
 
                 <ProductActions>
@@ -434,7 +455,6 @@ function ManageProductsPage() {
                                                 setProduct(prod);
                                                 setShowEditModal(true);
                                             }}
-                                            style={{ background: '#3699ff' }} // Updated to match POSPage
                                         >
                                             <FaEdit /> {translations.edit}
                                         </ActionButton>
