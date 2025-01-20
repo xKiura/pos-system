@@ -1876,14 +1876,17 @@ function POSPage() {
           .main-content {
             position: relative;
             z-index: 1;
+            height: calc(100vh - 230px);
+            overflow-y: auto;
           }
 
           .row.g-2 {
-            --bs-gutter-x: 1.5rem;
-            --bs-gutter-y: 1.5rem;
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 1rem;
             display: flex;
             margin: 0;
             width: 100%;
+            height: 100%;
           }
 
           .col-lg-8 {
@@ -1928,15 +1931,31 @@ function POSPage() {
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            height: calc(100vh - 230px);
+            height: 100%;
             padding: 1rem;
+            display: flex;
+            flex-direction: column;
+          }
+
+          .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+            padding: 0.5rem;
+            overflow-y: auto;
+            height: 100%;
+            align-content: start;
+            scrollbar-width: thin;
+            scrollbar-color: #dee2e6 #f8f9fa;
           }
 
           .bill-container {
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            height: calc(100vh - 230px);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
           }
 
           @media (max-width: 1200px) {
@@ -1954,8 +1973,13 @@ function POSPage() {
           }
 
           @media (max-width: 992px) {
+            .page-container {
+              padding: 0.75rem;
+            }
+
             .row.g-2 {
               flex-direction: column;
+              height: auto;
             }
             
             .col-lg-8, .col-lg-4 {
@@ -1963,9 +1987,69 @@ function POSPage() {
               padding: 0;
             }
             
+            .main-content {
+              height: auto;
+              overflow-y: visible;
+            }
+
             .products-container, .bill-container {
               height: auto;
               min-height: 500px;
+            }
+
+            .products-container {
+              height: 60vh;
+              margin-bottom: 1rem;
+            }
+
+            .bill-container {
+              height: 60vh;
+            }
+
+            .products-grid {
+              grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+              gap: 0.75rem;
+            }
+
+            .product-card {
+              max-height: 220px;
+            }
+          }
+
+          @media (max-width: 576px) {
+            .page-container {
+              padding: 0.5rem;
+            }
+
+            .system-controls {
+              padding: 0.75rem;
+            }
+
+            .filter-container {
+              padding: 0.5rem;
+            }
+
+            .products-grid {
+              grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+              gap: 0.5rem;
+            }
+
+            .product-card {
+              max-height: 200px;
+            }
+
+            .product-title {
+              font-size: 0.85rem;
+              height: 32px;
+            }
+
+            .product-price {
+              font-size: 0.9rem;
+            }
+
+            .action-btn {
+              width: 22px;
+              height: 22px;
             }
           }
 
@@ -2002,6 +2086,44 @@ function POSPage() {
             flex: 0 1 auto;
             min-width: auto;
             padding: 0.625rem 1.25rem;
+          }
+
+          /* Add smooth scrolling to all elements */
+          * {
+            scroll-behavior: smooth;
+          }
+
+          /* Update the system-buttons layout for mobile */
+          @media (max-width: 768px) {
+            .system-buttons {
+              grid-template-columns: repeat(2, 1fr);
+              gap: 0.75rem;
+            }
+
+            .button-content {
+              padding: 0.75rem;
+              font-size: 0.9rem;
+            }
+
+            .button-icon {
+              font-size: 1.25rem;
+            }
+          }
+
+          /* Add custom scrollbar styling for mobile */
+          @media (hover: none) {
+            .products-grid::-webkit-scrollbar {
+              width: 4px;
+            }
+
+            .products-grid::-webkit-scrollbar-track {
+              background: transparent;
+            }
+
+            .products-grid::-webkit-scrollbar-thumb {
+              background: rgba(0, 0, 0, 0.2);
+              border-radius: 2px;
+            }
           }
         `}
       </style>
