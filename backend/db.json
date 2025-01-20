@@ -5,7 +5,11 @@
       "name": "مندي لحم",
       "price": "45",
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
-      "category": "رز"
+      "category": "رز",
+      "stock": 1,
+      "adjustmentReason": "",
+      "adjustmentDate": "2025-01-20T10:31:24.245Z",
+      "costPrice": 0
     },
     {
       "id": "124",

@@ -33,6 +33,7 @@ import {
   ComposedChart,
   Area,
   LabelList,
+  AreaChart,  // Add this import
 } from 'recharts';
 import {
   Chart as ChartJS,
@@ -168,6 +169,38 @@ const TabPanel = styled((props) => {
   '& *': {
     fontFamily: 'inherit'
   }
+}));
+
+// Add these new styled components
+const ScrollableTabPanel = styled(TabPanel)(({ theme }) => ({
+  maxHeight: 'calc(100vh - 280px)',
+  overflowY: 'auto',
+  '&::-webkit-scrollbar': {
+    width: '8px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: '#f1f1f1',
+    borderRadius: '10px',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: '#888',
+    borderRadius: '10px',
+    '&:hover': {
+      background: '#555',
+    },
+  },
+}));
+
+const MetricCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+  borderRadius: '16px',
+  boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)',
+  transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 6px 24px 0 rgba(0,0,0,0.1)',
+  },
 }));
 
 // Update StyledTypography to ensure consistent font
@@ -321,6 +354,8 @@ const SalesReports = () => {
   });
   const [filterType, setFilterType] = useState('daily');
   const [selectedTimingCategory, setSelectedTimingCategory] = useState('الكل');
+  const [selectedOverviewCategory, setSelectedOverviewCategory] = useState('الكل');
+  const [selectedProduct, setSelectedProduct] = useState('');
 
   // Add categories array
   const categories = ['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'];
@@ -722,111 +757,136 @@ const SalesReports = () => {
     </Grid>
   );
 
-  const renderOverviewTab = () => (
-    <Grid container spacing={3}>
-      {/* Existing revenue overview chart */}
-      <Grid item xs={12} md={8}>
-        <StyledRevCard>
-          <CardContent sx={{ p: 3 }}>
-            <ChartTitle>نظرة عامة على الإيرادات</ChartTitle>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart 
-                data={Object.entries(profits).map(([date, value]) => ({ date, value }))}
-                margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="date"
-                  tick={{ fill: '#718096' }}
-                  axisLine={{ stroke: '#e2e8f0' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#718096' }}
-                  axisLine={{ stroke: '#e2e8f0' }}
-                />
-                <StyledTooltip 
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  }}
-                />
-                <StyledLegend 
-                  wrapperStyle={{
-                    paddingTop: '20px',
-                  }}
-                />
-                <Bar 
-                  dataKey="value"
-                  name="الإيرادات"
-                  fill="#8884d8"
-                  radius={[4, 4, 0, 0]}
-                  barSize={30}
-                >
-                  {/* Add hover effect to bars */}
-                  <LabelList
-                    dataKey="value"
-                    position="top"
-                    style={{ fill: '#718096', fontSize: '12px' }}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </StyledRevCard>
-      </Grid>
+  const renderOverviewTab = () => {
+    // Get category data
+    const categoryData = calculateCategoryTotals(orders);
+    
+    // Get products for selected category
+    const categoryProducts = calculateProductMetrics(orders)
+      .filter(product => {
+        const productFromOrders = orders.find(order => 
+          order.items.some(item => item.name === product.name)
+        );
+        return selectedOverviewCategory === 'الكل' || 
+          (productFromOrders && productFromOrders.items.find(item => 
+            item.name === product.name
+          )?.category === selectedOverviewCategory);
+      });
 
-      {/* Replace existing pie chart with category analysis */}
-      <Grid item xs={12} md={4}>
-        <StyledCard>
-          <CardContent>
-            <StyledTypography className="subtitle">تحليل الفئات</StyledTypography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={calculateCategoryTotals(orders)}
-                  dataKey="totalRevenue"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                >
-                  {calculateCategoryTotals(orders).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <StyledTooltip />
-                <StyledLegend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </StyledCard>
-      </Grid>
+    const displayData = selectedOverviewCategory === 'الكل' ? categoryData : categoryProducts;
 
-      {/* Add category metrics cards */}
-      {calculateCategoryTotals(orders).map((category, index) => (
-        <Grid item xs={12} md={3} key={index}>
-          <StyledCard>
-            <CardContent>
-              <StyledTypography className="subtitle">{category.name}</StyledTypography>
-              <Typography variant="body1" gutterBottom>
-                الإيرادات: {category.totalRevenue.toFixed(2)}
-              </Typography>
-              <Typography variant="body1" gutterBottom>
-                الكمية: {category.totalQuantity}
-              </Typography>
-              <Typography variant="body1">
-                الربح: {category.totalProfit.toFixed(2)}
-              </Typography>
+    return (
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <StyledRevCard>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <ChartTitle>تحليل الفئات</ChartTitle>
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel>تصفية حسب الفئة</InputLabel>
+                  <Select
+                    value={selectedOverviewCategory}
+                    onChange={(e) => setSelectedOverviewCategory(e.target.value)}
+                    size="small"
+                  >
+                    <MenuItem value="الكل">جميع الفئات</MenuItem>
+                    {categories.filter(cat => cat !== 'الكل').map((category) => (
+                      <MenuItem key={category} value={category}>{category}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={8}>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <ComposedChart data={displayData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        height={60}
+                        angle={-45}
+                        textAnchor="end"
+                        interval={0}
+                      />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey={selectedOverviewCategory === 'الكل' ? "totalQuantity" : "quantitySold"} 
+                        fill="#8884d8" 
+                        name="الكمية المباعة"
+                      />
+                      <Bar 
+                        yAxisId="left" 
+                        dataKey={selectedOverviewCategory === 'الكل' ? "totalRevenue" : "revenue"} 
+                        fill="#82ca9d" 
+                        name="الإيرادات"
+                      />
+                      <Line 
+                        yAxisId="right" 
+                        type="monotone" 
+                        dataKey={selectedOverviewCategory === 'الكل' ? "totalProfit" : "profit"} 
+                        stroke="#ff7300" 
+                        name="الربح"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ height: '400px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={displayData}
+                          dataKey={selectedOverviewCategory === 'الكل' ? "totalRevenue" : "revenue"}
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          label
+                        >
+                          {displayData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Grid>
+              </Grid>
             </CardContent>
-          </StyledCard>
+          </StyledRevCard>
         </Grid>
-      ))}
-    </Grid>
-  );
+
+        {/* Category/Product Cards */}
+        {displayData.map((item, index) => (
+          <Grid item xs={12} md={3} key={index}>
+            <StyledCard>
+              <CardContent>
+                <StyledTypography className="subtitle">{item.name}</StyledTypography>
+                <Typography variant="body1" gutterBottom>
+                  الإيرادات: {(selectedOverviewCategory === 'الكل' ? item.totalRevenue : item.revenue).toFixed(2)}
+                </Typography>
+                <Typography variant="body1" gutterBottom>
+                  الكمية: {selectedOverviewCategory === 'الكل' ? item.totalQuantity : item.quantitySold}
+                </Typography>
+                <Typography variant="body1">
+                  الربح: {(selectedOverviewCategory === 'الكل' ? item.totalProfit : item.profit).toFixed(2)}
+                </Typography>
+              </CardContent>
+            </StyledCard>
+          </Grid>
+        ))}
+      </Grid>
+    );
+  };
 
   // Modify the renderSalesTimingAnalysis to handle image errors
   const renderSalesTimingAnalysis = () => (
@@ -909,56 +969,509 @@ const SalesReports = () => {
     </Grid>
   );
 
+const RankingItem = styled(Box)(({ theme }) => ({
+  padding: '16px',
+  marginBottom: '8px',
+  borderRadius: '10px',
+  transition: 'all 0.2s ease-in-out',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  },
+}));
+
   const renderProductAnalysisSection = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={12}>
+      {/* Top Statistics Cards */}
+      <Grid item xs={12} md={3}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>إجمالي المنتجات</Typography>
+            <Typography variant="h4" color="primary">
+              {calculateProductMetrics(orders).length}
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>متوسط هامش الربح</Typography>
+            <Typography variant="h4" color="success.main">
+              {calculateProductMetrics(orders)
+                .reduce((acc, item) => acc + item.profitMargin, 0) / calculateProductMetrics(orders).length}%
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>أعلى منتج مبيعاً</Typography>
+            <Typography variant="h4" color="info.main">
+              {calculateProductMetrics(orders)
+                .sort((a, b) => b.quantitySold - a.quantitySold)[0]?.name || '-'}
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+      <Grid item xs={12} md={3}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>إجمالي المبيعات</Typography>
+            <Typography variant="h4" color="secondary.main">
+              {calculateProductMetrics(orders)
+                .reduce((acc, item) => acc + item.revenue, 0).toFixed(2)}
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+
+      {/* Main Charts */}
+      <Grid item xs={12}>
         <StyledCard>
           <CardContent>
-            <StyledTypography variant="h6" gutterBottom>تحليل المنتجات</StyledTypography>
-            <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={calculateProductMetrics(orders)}>
-                <XAxis dataKey="name" tick={{ fontFamily: 'inherit' }} />
-                <YAxis yAxisId="left" tick={{ fontFamily: 'inherit' }} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontFamily: 'inherit' }} />
-                <StyledTooltip />
-                <StyledLegend />
-                <CartesianGrid stroke="#f5f5f5" />
-                <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
-                <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
-                <Line yAxisId="right" type="monotone" dataKey="profitMargin" stroke="#ff7300" name="هامش الربح %" />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <Box sx={{ height: '500px' }}>
+              <StyledTypography variant="h6" gutterBottom>مقارنة أداء المنتجات</StyledTypography>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={calculateProductMetrics(orders)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
+                  <XAxis dataKey="name" tick={{ fontFamily: 'inherit' }} angle={-45} textAnchor="end" height={80} />
+                  <YAxis yAxisId="left" tick={{ fontFamily: 'inherit' }} />
+                  <YAxis yAxisId="right" tick={{ fontFamily: 'inherit' }} />
+                  <StyledTooltip />
+                  <StyledLegend />
+                  <Bar yAxisId="left" dataKey="quantitySold" fill="#8884d8" name="الكمية المباعة" />
+                  <Bar yAxisId="left" dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
+                  <Line yAxisId="right" type="monotone" dataKey="profitMargin" stroke="#ff7300" name="هامش الربح %" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Box>
           </CardContent>
         </StyledCard>
       </Grid>
-      {/* ...rest of the product analysis section... */}
+
+      {/* Category Performance */}
+      <Grid item xs={12} md={6}>
+        <StyledCard>
+          <CardContent>
+            <StyledTypography variant="h6" gutterBottom>أداء الفئات</StyledTypography>
+            <Box sx={{ height: '400px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={calculateCategoryTotals(orders)}
+                    dataKey="totalRevenue"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    label={({
+                      cx,
+                      cy,
+                      midAngle,
+                      innerRadius,
+                      outerRadius,
+                      value,
+                      name
+                    }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill="#000"
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          style={{ fontSize: '12px', fontFamily: 'inherit' }}
+                        >
+                          {name}
+                        </text>
+                      );
+                    }}
+                  >
+                    {calculateCategoryTotals(orders).map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <Box
+                            sx={{
+                              backgroundColor: '#fff',
+                              padding: '10px',
+                              border: '1px solid #ccc',
+                              borderRadius: '4px',
+                              fontFamily: 'inherit'
+                            }}
+                          >
+                            <Typography sx={{ fontFamily: 'inherit' }}>
+                              {`${payload[0].name}: ${payload[0].value.toFixed(2)}`}
+                            </Typography>
+                          </Box>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend 
+                    formatter={(value, entry, index) => (
+                      <span style={{ fontFamily: 'inherit', color: '#000' }}>{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardContent>
+        </StyledCard>
+      </Grid>
+
+      {/* Product Rankings - Modern Version */}
+      <Grid item xs={12} md={6}>
+        <StyledCard>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <StyledTypography variant="h6">ترتيب المنتجات</StyledTypography>
+              <Typography variant="caption" color="text.secondary">
+                حسب الإيرادات
+              </Typography>
+            </Box>
+            <Box sx={{ height: '400px', overflowY: 'auto', pr: 1 }}>
+              {calculateProductMetrics(orders)
+                .sort((a, b) => b.revenue - a.revenue)
+                .map((product, index) => (
+                  <RankingItem
+                    key={index}
+                    sx={{
+                      bgcolor: index % 2 === 0 ? 'rgba(136, 132, 216, 0.05)' : 'transparent',
+                      borderLeft: `4px solid ${COLORS[index % COLORS.length]}`
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          bgcolor: COLORS[index % COLORS.length],
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2,
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        {index + 1}
+                      </Typography>
+                      <Box>
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                          {product.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          الكمية المباعة: {product.quantitySold}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                        {product.revenue.toFixed(2)}
+                      </Typography>
+                      <Typography variant="caption" color="success.main">
+                        {product.profitMargin.toFixed(1)}% هامش الربح
+                      </Typography>
+                    </Box>
+                  </RankingItem>
+                ))}
+            </Box>
+          </CardContent>
+        </StyledCard>
+      </Grid>
+
+      {/* Product Timing Analysis - NEW SECTION */}
+      <Grid item xs={12}>
+        <StyledCard>
+          <CardContent>
+            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <StyledTypography variant="h6">تحليل أوقات البيع للمنتجات</StyledTypography>
+              <FormControl sx={{ minWidth: 200 }}>
+                <InputLabel>اختر المنتج</InputLabel>
+                <Select
+                  value={selectedProduct || ''}
+                  onChange={(e) => setSelectedProduct(e.target.value)}
+                  size="small"
+                >
+                  {calculateProductMetrics(orders)
+                    .map(product => (
+                      <MenuItem key={product.name} value={product.name}>
+                        {product.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {selectedProduct && (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
+                    <Typography variant="h6" gutterBottom>توزيع المبيعات حسب أيام الأسبوع</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart 
+                        data={calculateProductTimings(orders)
+                          .find(p => p.name === selectedProduct)?.weekdayTotals 
+                          ? Object.entries(calculateProductTimings(orders)
+                              .find(p => p.name === selectedProduct).weekdayTotals)
+                              .map(([day, value]) => ({ day, value }))
+                          : []}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="day" 
+                          tick={{ fontSize: 12, fontFamily: 'inherit' }}
+                        />
+                        <YAxis tick={{ fontSize: 12, fontFamily: 'inherit' }} />
+                        <Tooltip
+                          contentStyle={{ fontFamily: 'inherit', direction: 'rtl' }}
+                          formatter={(value) => [`${value} قطعة`, 'الكمية']}
+                        />
+                        <Bar 
+                          dataKey="value" 
+                          fill="#8884d8"
+                          radius={[4, 4, 0, 0]}
+                        >
+                          {calculateProductTimings(orders)
+                            .find(p => p.name === selectedProduct)?.weekdayTotals 
+                            ? Object.entries(calculateProductTimings(orders)
+                                .find(p => p.name === selectedProduct).weekdayTotals)
+                                .map((entry, index) => (
+                                  <Cell 
+                                    key={`cell-${index}`} 
+                                    fill={COLORS[index % COLORS.length]} 
+                                  />
+                                ))
+                            : null}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
+                    <Typography variant="h6" gutterBottom>توزيع المبيعات حسب الوقت</Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart 
+                        data={calculateProductTimings(orders)
+                          .find(p => p.name === selectedProduct)?.timeChartData || []}
+                      >
+                        <defs>
+                          <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="time" 
+                          tick={{ fontSize: 12, fontFamily: 'inherit' }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                        />
+                        <YAxis tick={{ fontSize: 12, fontFamily: 'inherit' }} />
+                        <Tooltip
+                          contentStyle={{ fontFamily: 'inherit', direction: 'rtl' }}
+                          formatter={(value) => [`${value} قطعة`, 'الكمية']}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="qty" 
+                          stroke="#8884d8"
+                          fillOpacity={1}
+                          fill="url(#colorSales)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            bgcolor: 'primary.light', 
+                            color: 'primary.contrastText',
+                            borderRadius: 2
+                          }}
+                        >
+                          <Typography variant="h6" gutterBottom>أفضل وقت للبيع</Typography>
+                          <Typography variant="h4">
+                            {calculateProductTimings(orders)
+                              .find(p => p.name === selectedProduct)?.peakTime || '-'}
+                          </Typography>
+                          <Typography variant="subtitle1">
+                            الكمية: {calculateProductTimings(orders)
+                              .find(p => p.name === selectedProduct)?.maxTimeQuantity || 0} قطعة
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Paper 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            bgcolor: 'secondary.light', 
+                            color: 'secondary.contrastText',
+                            borderRadius: 2
+                          }}
+                        >
+                          <Typography variant="h6" gutterBottom>أفضل يوم للبيع</Typography>
+                          <Typography variant="h4">
+                            {calculateProductTimings(orders)
+                              .find(p => p.name === selectedProduct)?.peakDay || '-'}
+                          </Typography>
+                          <Typography variant="subtitle1">
+                            الكمية: {calculateProductTimings(orders)
+                              .find(p => p.name === selectedProduct)?.maxDayQuantity || 0} قطعة
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Grid>
+              </Grid>
+            )}
+          </CardContent>
+        </StyledCard>
+      </Grid>
     </Grid>
   );
 
+  // Add renderTrendsSection inside the component
   const renderTrendsSection = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={12}>
+<Grid container spacing={3}>
+      {/* Summary Cards */}
+      <Grid item xs={12} md={4}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>متوسط المبيعات اليومية</Typography>
+            <Typography variant="h4" color="primary">
+              {(calculateDailyTrends(orders).reduce((acc, day) => acc + day.revenue, 0) / 
+                calculateDailyTrends(orders).length).toFixed(2)}
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>متوسط عدد الطلبات</Typography>
+            <Typography variant="h4" color="secondary.main">
+              {(calculateDailyTrends(orders).reduce((acc, day) => acc + day.orders, 0) / 
+                calculateDailyTrends(orders).length).toFixed(1)}
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+
+      <Grid item xs={12} md={4}>
+        <MetricCard>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>متوسط قيمة الطلب</Typography>
+            <Typography variant="h4" color="success.main">
+              {(calculateDailyTrends(orders).reduce((acc, day) => acc + day.averageOrderValue, 0) / 
+                calculateDailyTrends(orders).length).toFixed(2)}
+            </Typography>
+          </CardContent>
+        </MetricCard>
+      </Grid>
+
+      {/* Daily Trends Chart */}
+      <Grid item xs={12}>
+        <StyledRevCard>
+          <CardContent>
+            <Box sx={{ height: '400px' }}>
+              <ChartTitle>اتجاهات المبيعات اليومية</ChartTitle>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={calculateDailyTrends(orders)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" angle={-45} textAnchor="end" height={60} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="الإيرادات" />
+                  <Line type="monotone" dataKey="itemsSold" stroke="#82ca9d" name="العناصر المباعة" />
+                  <Line type="monotone" dataKey="averageOrderValue" stroke="#ffc658" name="متوسط قيمة الطلب" />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardContent>
+        </StyledRevCard>
+      </Grid>
+
+      {/* Time Distribution */}
+      <Grid item xs={12} md={6}>
         <StyledCard>
           <CardContent>
-            <StyledTypography variant="h6" gutterBottom>اتجاهات المبيعات اليومية</StyledTypography>
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={calculateDailyTrends(orders)}>
-                <XAxis dataKey="date" tick={{ fontFamily: 'inherit' }} />
-                <YAxis tick={{ fontFamily: 'inherit' }} />
-                <StyledTooltip />
-                <StyledLegend />
-                <CartesianGrid stroke="#f5f5f5" />
-                <Line type="monotone" dataKey="revenue" stroke="#8884d8" name="الإيرادات" />
-                <Line type="monotone" dataKey="itemsSold" stroke="#82ca9d" name="العناصر المباعة" />
-                <Line type="monotone" dataKey="averageOrderValue" stroke="#ffc658" name="متوسط قيمة الطلب" />
-              </LineChart>
-            </ResponsiveContainer>
+            <StyledTypography variant="h6" gutterBottom>التوزيع حسب الوقت</StyledTypography>
+            <Box sx={{ height: '300px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={calculateDailyTrends(orders)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" angle={-45} textAnchor="end" height={60} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="orders" fill="#8884d8" name="عدد الطلبات" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
           </CardContent>
         </StyledCard>
       </Grid>
-      {/* ...rest of the trends section... */}
-    </Grid>
-  );
+
+      {/* Weekly Analysis */}
+      <Grid item xs={12} md={6}>
+        <StyledCard>
+          <CardContent>
+            <StyledTypography variant="h6" gutterBottom>التحليل الأسبوعي</StyledTypography>
+            <Box sx={{ height: '300px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={calculateDailyTrends(orders)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" angle={-45} textAnchor="end" height={60} />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="revenue" fill="#82ca9d" name="الإيرادات" />
+                  <Line type="monotone" dataKey="averageOrderValue" stroke="#ff7300" name="متوسط قيمة الطلب" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardContent>
+        </StyledCard>
+      </Grid>
+  </Grid>
+);
 
   return (
     <ErrorBoundary>
@@ -1029,17 +1542,17 @@ const SalesReports = () => {
           </Tabs>
         </Box>
 
-        <TabPanel value={tabValue} index={0}>
+        <ScrollableTabPanel value={tabValue} index={0}>
           {renderOverviewTab()}
-        </TabPanel>
+        </ScrollableTabPanel>
 
-        <TabPanel value={tabValue} index={1}>
+        <ScrollableTabPanel value={tabValue} index={1}>
           {renderProductAnalysisSection()}
-        </TabPanel>
+        </ScrollableTabPanel>
 
-        <TabPanel value={tabValue} index={2}>
+        <ScrollableTabPanel value={tabValue} index={2}>
           {renderTrendsSection()}
-        </TabPanel>
+        </ScrollableTabPanel>
       </ManagementContainer>
     </ErrorBoundary>
   );

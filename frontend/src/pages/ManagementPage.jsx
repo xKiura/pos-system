@@ -93,6 +93,19 @@ const HistoryItem = styled.div`
   padding: 1rem;
   border-bottom: 1px solid #e2e8f0;
   
+  .employee-info {
+    display: flex;
+    gap: 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .origin-page {
+    color: #64748b;
+    font-style: italic;
+  }
+  
   &:last-child {
     border-bottom: none;
   }
@@ -109,6 +122,8 @@ const HistorySection = styled(HistoryContainer)`
     &.settings { background: #e0f2fe; color: #0369a1; }
     &.product { background: #dcfce7; color: #166534; }
     &.bill { background: #fee2e2; color: #991b1b; }
+    &.inventory { background: #fef3c7; color: #92400e; } /* New color for inventory changes */
+    &.report { background: #f3e8ff; color: #6b21a8; } /* New color for report exports */
   }
 `;
 
@@ -120,7 +135,9 @@ const translations = {
     PRODUCT_DELETE: 'حذف منتج',
     BILL_REFUND: 'استرجاع فاتورة',
     BILL_REPRINT: 'إعادة طباعة فاتورة',
-    BILL_DELETE: 'حذف فاتورة'
+    BILL_DELETE: 'حذف فاتورة',
+    INVENTORY_UPDATE: 'تحديث المخزون',
+    REPORT_EXPORT: 'تصدير تقرير'
   }
 };
 
@@ -211,15 +228,8 @@ function ManagementPage() {
     try {
       const newSettings = { ...settings, ...tempSettings };
       
-      // Get current employee info
       const currentEmployeeName = localStorage.getItem('employeeName');
       const currentEmployeeNumber = localStorage.getItem('employeeNumber');
-
-      // Debug: Log employee info before sending
-      console.log('Employee info before sending:', {
-        name: currentEmployeeName,
-        number: currentEmployeeNumber
-      });
 
       if (!currentEmployeeName || !currentEmployeeNumber) {
         console.error('Missing employee information');
@@ -227,12 +237,12 @@ function ManagementPage() {
         return;
       }
 
-      // Create history entry
       const historyEntry = {
         timestamp: new Date().toISOString(),
         employeeName: currentEmployeeName,
         employeeNumber: currentEmployeeNumber,
         type: 'SETTINGS',
+        origin: 'صفحة الإعدادات',
         changes: Object.entries(tempSettings).map(([key, value]) => ({
           setting: key,
           oldValue: formatChangeValue(key, settings[key]),
@@ -296,9 +306,26 @@ function ManagementPage() {
       case 'SETTINGS':
         return change.changes.map((c, i) => (
           <div key={i}>
-            تم تغيير {getSettingName(c.setting)} من {formatChangeValue(c.setting, c.oldValue)} إلى {formatChangeValue(c.setting, c.newValue)}
+            تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
           </div>
         ));
+      
+      case 'INVENTORY_UPDATE':
+        return (
+          <div>
+            {change.changes.map((c, i) => (
+              <div key={i}>
+                تم تحديث المنتج "{c.productName}":
+                <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
+                  <li>المخزون: من {c.oldStock} إلى {c.newStock}</li>
+                  {c.oldCostPrice !== c.newCostPrice && (
+                    <li>سعر التكلفة: من {c.oldCostPrice} إلى {c.newCostPrice} ر.س</li>
+                  )}
+                </ul>
+              </div>
+            ))}
+          </div>
+        );
       
       case 'PRODUCT_ADD':
         return `تمت إضافة منتج "${change.product.name}"`;
@@ -318,9 +345,62 @@ function ManagementPage() {
       case 'BILL_DELETE':
         return `تم حذف الفاتورة رقم ${change.billNumber}`;
       
+      case 'REPORT_EXPORT':
+        return (
+          <div>
+            <div>مصدر التغيير: {change.origin}</div>
+            {change.changes.map((c, i) => (
+              <div key={i}>{c.details}</div>
+            ))}
+          </div>
+        );
+      
       default:
         return 'تغيير غير معروف';
     }
+  };
+
+  const renderHistoryItem = (change) => {
+    const getChangeTypeBadgeClass = (type) => {
+      switch (type) {
+        case 'SETTINGS':
+          return 'settings';
+        case 'INVENTORY_UPDATE':
+          return 'inventory';
+        case 'REPORT_EXPORT':
+          return 'report';
+        case 'PRODUCT_ADD':
+        case 'PRODUCT_EDIT':
+        case 'PRODUCT_DELETE':
+          return 'product';
+        case 'BILL_REFUND':
+        case 'BILL_REPRINT':
+        case 'BILL_DELETE':
+          return 'bill';
+        default:
+          return '';
+      }
+    };
+
+    return (
+      <HistoryItem key={change.timestamp}>
+        <div className="employee-info">
+          <span>الموظف: {change.employeeName} #{change.employeeNumber}</span>
+          {change.origin && <span className="origin-page">({change.origin})</span>}
+        </div>
+        <div>
+          <span className={`change-type-badge ${getChangeTypeBadgeClass(change.type)}`}>
+            {translations.changeTypes[change.type]}
+          </span>
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          {formatChangeDetails(change)}
+        </div>
+        <div style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+          {format(new Date(change.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: ar })}
+        </div>
+      </HistoryItem>
+    );
   };
 
   return (

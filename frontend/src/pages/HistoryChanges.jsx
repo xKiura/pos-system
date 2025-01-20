@@ -73,6 +73,21 @@ const HistoryItem = styled(motion.div)`
   &:last-child {
     margin-bottom: 0;
   }
+
+  .employee-info {
+    display: flex;
+    gap: 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+  }
+
+  .origin-page {
+    color: #64748b;
+    font-style: italic;
+    margin-right: 0.5rem;
+  }
 `;
 
 // Add animation variants
@@ -115,6 +130,8 @@ const ChangeTypeBadge = styled.span`
   &.settings { background: #e0f2fe; color: #0369a1; }
   &.product { background: #dcfce7; color: #166534; }
   &.bill { background: #fee2e2; color: #991b1b; }
+  &.inventory { background: #fef3c7; color: #92400e; }
+  &.report { background: #f3e8ff; color: #6b21a8; }
 `;
 
 const TimeStamp = styled.span`
@@ -146,13 +163,16 @@ const translations = {
     PRODUCT_DELETE: 'حذف منتج',
     BILL_REFUND: 'استرجاع فاتورة',
     BILL_REPRINT: 'إعادة طباعة فاتورة',
-    BILL_DELETE: 'حذف فاتورة'
+    BILL_DELETE: 'حذف فاتورة',
+    INVENTORY_UPDATE: 'تحديث المخزون',
+    REPORT_EXPORT: 'تصدير تقرير المخزون'
   },
   filterLabels: {
     all: 'جميع التغييرات',
     settings: 'الإعدادات',
     products: 'المنتجات',
     bills: 'الفواتير',
+    inventory: 'المخزون',
     dateFrom: 'من تاريخ',
     dateTo: 'إلى تاريخ'
   }
@@ -192,11 +212,11 @@ export const HistoryChanges = ({ onRefresh }) => {
         axios.get('http://localhost:5001/bills-history')
       ]);
 
-      // Add console.log to check the data
-      console.log('Products history:', products.data);
-
       const allChanges = [
-        ...(settings.data || []).map(change => ({ ...change, type: 'SETTINGS' })),
+        ...(settings.data || []).filter(change => {
+          // Keep the original type instead of forcing everything to SETTINGS
+          return change.type || 'SETTINGS';
+        }),
         ...(products.data || []).map(change => ({
           ...change,
           type: change.action ? change.action.toUpperCase() : 'UNKNOWN'
@@ -206,9 +226,6 @@ export const HistoryChanges = ({ onRefresh }) => {
           type: change.action ? change.action.toUpperCase() : 'UNKNOWN'
         }))
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      // Add console.log to check the processed changes
-      console.log('Processed changes:', allChanges);
 
       setChanges(allChanges);
       if (onRefresh) {
@@ -223,7 +240,12 @@ export const HistoryChanges = ({ onRefresh }) => {
     let filtered = [...changes];
 
     if (filters.type !== 'all') {
-      filtered = filtered.filter(change => change.type && change.type.toLowerCase().startsWith(filters.type));
+      filtered = filtered.filter(change => {
+        if (filters.type === 'inventory') {
+          return change.type === 'INVENTORY_UPDATE' || change.type === 'REPORT_EXPORT';
+        }
+        return change.type && change.type.toLowerCase().startsWith(filters.type);
+      });
     }
 
     if (filters.dateFrom) {
@@ -249,10 +271,27 @@ export const HistoryChanges = ({ onRefresh }) => {
         return change.changes && Array.isArray(change.changes) 
           ? change.changes.map((c, i) => (
               <div key={i}>
-                تم تغيير {getSettingName(c.setting)} من {c.oldValue} إلى {c.newValue}
+                تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
               </div>
             ))
           : 'تم تغيير الإعدادات';
+      
+      case 'INVENTORY_UPDATE':
+        return (
+          <div>
+            {change.changes.map((c, i) => (
+              <div key={i}>
+                تم تحديث المنتج "{c.productName}":
+                <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
+                  <li>المخزون: من {c.oldStock} إلى {c.newStock}</li>
+                  {c.oldCostPrice !== c.newCostPrice && (
+                    <li>سعر التكلفة: من {c.oldCostPrice} إلى {c.newCostPrice} ر.س</li>
+                  )}
+                </ul>
+              </div>
+            ))}
+          </div>
+        );
       
       case 'PRODUCT_ADD':
         return `تمت إضافة منتج "${change.product?.name || 'غير معروف'}"`;
@@ -277,6 +316,27 @@ export const HistoryChanges = ({ onRefresh }) => {
     }
   };
 
+  const getChangeTypeBadgeClass = (type) => {
+    switch (type) {
+      case 'SETTINGS':
+        return 'settings';
+      case 'INVENTORY_UPDATE':
+        return 'inventory';
+      case 'REPORT_EXPORT':
+        return 'report';
+      case 'PRODUCT_ADD':
+      case 'PRODUCT_EDIT':
+      case 'PRODUCT_DELETE':
+        return 'product';
+      case 'BILL_REFUND':
+      case 'BILL_REPRINT':
+      case 'BILL_DELETE':
+        return 'bill';
+      default:
+        return 'inventory'; // Default to inventory for unknown types
+    }
+  };
+
   useEffect(() => {
     fetchAllChanges();
   }, []); // This will now be triggered when the component gets a new key
@@ -297,6 +357,7 @@ export const HistoryChanges = ({ onRefresh }) => {
               <option value="settings">{translations.filterLabels.settings}</option>
               <option value="product">{translations.filterLabels.products}</option>
               <option value="bill">{translations.filterLabels.bills}</option>
+              <option value="inventory">{translations.filterLabels.inventory}</option>
             </select>
           </FilterGroup>
           
@@ -332,7 +393,7 @@ export const HistoryChanges = ({ onRefresh }) => {
               }}
             >
               <div>
-                <ChangeTypeBadge className={change.type && change.type.toLowerCase().split('_')[0]}>
+                <ChangeTypeBadge className={getChangeTypeBadgeClass(change.type)}>
                   {translations.changeTypes[change.type] || 'UNKNOWN'}
                 </ChangeTypeBadge>
                 <TimeStamp>

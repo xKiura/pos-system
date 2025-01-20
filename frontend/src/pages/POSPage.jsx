@@ -539,7 +539,7 @@ function POSPage() {
                   .products-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); // Slightly smaller cards
-                    gap: 0.75rem; // Reduced gap
+                    gap: 0.50rem; // Reduced gap
                     padding: 0.75rem; // Reduced padding
                     overflow-y: auto;
                     height: calc(100vh - 250px); // Adjusted height
@@ -567,17 +567,17 @@ function POSPage() {
                   }
 
                   .product-card {
-                    height: 100%;
-                    max-height: 260px;
+                    height: 260px; // Fixed height
+                    width: 100%;
                     display: flex;
                     flex-direction: column;
                     background: #ffffff;
                     border-radius: 12px;
                     border: 1px solid #edf2f7;
                     transition: all 0.3s ease;
-                    margin: 0.75rem;
-                    margin-bottom: 1.25rem;
+                    margin: 0.50rem;
                     padding: 0.50rem;
+                    overflow: hidden; // Prevent content overflow
                   }
 
                   .product-card:hover {
@@ -590,6 +590,7 @@ function POSPage() {
                     padding-top: 70%; // Slightly reduced height ratio
                     background: #f8f9fa;
                     overflow: hidden;
+                    flex-shrink: 0; // Prevent image from shrinking
                   }
 
                   .product-image {
@@ -628,19 +629,22 @@ function POSPage() {
                     display: flex; // Added
                     flex-direction: column; // Added
                     padding: 20px; // Increased from 15px
+                    min-height: 0; // Allow content to shrink if needed
                   }
 
                   .product-title {
                     margin: 0;
-                    font-size: 1rem; // Increased from 0.9rem
+                    font-size: 0.9rem; // Increased from 0.9rem
                     font-weight: 600;
                     color: #2c3e50;
                     margin-bottom: 12px; // Increased from 8px
-                    height: 36px; // Increased from 32px
+                    height: 2.4em; // Set fixed height for 2 lines
+                    line-height: 1.2;
                     display: -webkit-box;
                     -webkit-line-clamp: 2;
                     -webkit-box-orient: vertical;
                     overflow: hidden;
+                    text-overflow: ellipsis;
                   }
 
                   .product-price {
@@ -648,6 +652,7 @@ function POSPage() {
                     font-weight: bold;
                     font-size: 1.2rem; // Increased from 1.1rem
                     margin-bottom: 15px; // Increased from 12px
+                    flex-shrink: 0; // Prevent price from shrinking
                   }
 
                   .product-actions {
@@ -658,6 +663,7 @@ function POSPage() {
                     border-radius: 20px;
                     padding: 5px;
                     margin-top: auto;
+                    flex-shrink: 0; // Prevent actions from shrinking
                   }
 
                   .action-btn {
@@ -755,13 +761,17 @@ function POSPage() {
                     }
                     
                     .product-card {
-                      max-height: 220px;
+                      height: 240px; // Slightly smaller on mobile
                     }
                     
                     .btn-clear, .btn-confirm {
                       padding: 0.5rem 0.75rem;
                       font-size: 0.8rem;
                       height: 36px;
+                    }
+                    
+                    .product-title {
+                      font-size: 0.85rem;
                     }
                   }
 
@@ -772,12 +782,11 @@ function POSPage() {
                     }
                     
                     .product-card {
-                      max-height: 200px;
+                      height: 220px; // Even smaller on very small screens
                     }
                     
                     .product-title {
                       font-size: 0.8rem;
-                      height: 32px;
                     }
                     
                     .product-price {

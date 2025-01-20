@@ -85,30 +85,33 @@ const AddProductButton = styled.button`
 
 const ProductGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.75rem;
-  margin-top: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 0.5rem;
 
   @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
   }
 
   @media (max-width: 576px) {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
   }
 `;
 
 const ProductCard = styled(motion.div)`
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
   }
 
   @media (max-width: 576px) {
@@ -119,7 +122,8 @@ const ProductCard = styled(motion.div)`
 const ProductImage = styled.div`
   position: relative;
   padding-top: 100%;
-  background: #f5f5f5;
+  background: #f8fafc;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 
   img {
     position: absolute;
@@ -128,64 +132,82 @@ const ProductImage = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  &:hover img {
+    transform: scale(1.05);
   }
 `;
 
 const ProductInfo = styled.div`
-  padding: 0.5rem;
+  padding: 1rem;
 `;
 
 const ProductName = styled.h3`
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #1a1a1a;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
 
   @media (max-width: 576px) {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
   }
 `;
 
 const ProductPrice = styled.div`
-  margin-top: 0.25rem;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #3699ff;
+  margin-bottom: 0.75rem;
 
   @media (max-width: 576px) {
-    font-size: 0.85rem;
+    font-size: 1rem;
   }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.25rem;
+  gap: 0.5rem;
   margin-top: 0.75rem;
 `;
 
 const ActionButton = styled.button`
   flex: 1;
-  padding: 0.35rem;
+  padding: 0.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  font-size: 0.8rem;
+  gap: 0.4rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  cursor: pointer;
 
   &.edit {
-    background: #ebf5ff;
+    background: #e6f0ff;
     color: #3699ff;
-    &:hover { background: #d1e9ff; }
+    &:hover {
+      background: #d1e9ff;
+      transform: translateY(-1px);
+    }
   }
 
   &.delete {
     background: #fff5f5;
     color: #f56565;
-    &:hover { background: #fed7d7; }
+    &:hover {
+      background: #fee2e2;
+      transform: translateY(-1px);
+    }
+  }
+
+  svg {
+    font-size: 0.9rem;
   }
 `;
 

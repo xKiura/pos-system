@@ -50,6 +50,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Add categories route
+const categoriesRouter = require('./routes/categories');
+app.use('/categories', categoriesRouter);
+
 // Settings routes
 app.get('/settings', async (req, res) => {
   try {
@@ -99,30 +103,32 @@ app.post('/settings', async (req, res) => {
 app.post('/settings-history', (req, res) => {
   console.log('Received history entry:', req.body);
   
-  // Verify employee info is present
   if (!req.body.employeeName || !req.body.employeeNumber) {
     console.error('Missing employee information in request');
     return res.status(400).json({ error: 'Employee information is required' });
   }
 
+  // Keep the original type from the request instead of modifying it
   const historyEntry = {
     id: Date.now(),
     timestamp: new Date().toISOString(),
     employeeName: req.body.employeeName,
     employeeNumber: req.body.employeeNumber,
-    type: req.body.type,
-    changes: req.body.changes
+    type: req.body.type || 'UNKNOWN',
+    origin: req.body.origin || 'غير محدد',
+    changes: req.body.changes || []
   };
 
-  console.log('Creating history entry with employee:', {
-    name: historyEntry.employeeName,
-    number: historyEntry.employeeNumber
+  // Log the entry for debugging
+  console.log('Processing history entry:', {
+    type: historyEntry.type,
+    origin: historyEntry.origin,
+    changes: historyEntry.changes
   });
 
   settingsHistory.unshift(historyEntry);
   settingsHistory = settingsHistory.slice(0, 100);
   
-  console.log('Updated settings history:', settingsHistory);
   res.json(historyEntry);
 });
 
