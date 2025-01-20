@@ -50,6 +50,7 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  direction: ltr;  /* Add this line */
 }
 
 .pin-error-message {

@@ -156,11 +156,24 @@ function ManagementPage() {
   const [changeHistory, setChangeHistory] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tempSettings, setTempSettings] = useState({});
-  const [employeeName] = useState(localStorage.getItem('employeeName') || 'Admin');
-  const [employeeNumber] = useState(localStorage.getItem('employeeNumber') || '0001');
   const [historyKey, setHistoryKey] = useState(0); // Add this new state
 
   useEffect(() => {
+    // Verify login status and employee info
+    const employeeName = localStorage.getItem('employeeName');
+    const employeeNumber = localStorage.getItem('employeeNumber');
+
+    if (!employeeName || !employeeNumber) {
+        console.error('No employee info found - redirecting to login');
+        navigate('/');
+        return;
+    }
+
+    console.log('Current employee info on mount:', {
+        name: employeeName,
+        number: employeeNumber
+    });
+    
     // Load settings from localStorage
     const savedSettings = localStorage.getItem('posSettings');
     if (savedSettings) {
@@ -169,7 +182,7 @@ function ManagementPage() {
 
     // Load all system changes
     fetchSystemHistory();
-  }, []);
+  }, [navigate]);
 
   const hasUnsavedChanges = () => {
     return Object.keys(tempSettings).length > 0 &&
@@ -198,15 +211,27 @@ function ManagementPage() {
     try {
       const newSettings = { ...settings, ...tempSettings };
       
-      // Save new settings
-      localStorage.setItem('posSettings', JSON.stringify(newSettings));
-      setSettings(newSettings);
+      // Get current employee info
+      const currentEmployeeName = localStorage.getItem('employeeName');
+      const currentEmployeeNumber = localStorage.getItem('employeeNumber');
 
-      // Create history entry with properly formatted changes
+      // Debug: Log employee info before sending
+      console.log('Employee info before sending:', {
+        name: currentEmployeeName,
+        number: currentEmployeeNumber
+      });
+
+      if (!currentEmployeeName || !currentEmployeeNumber) {
+        console.error('Missing employee information');
+        toast.error('معلومات الموظف غير متوفرة');
+        return;
+      }
+
+      // Create history entry
       const historyEntry = {
         timestamp: new Date().toISOString(),
-        employeeName,
-        employeeNumber,
+        employeeName: currentEmployeeName,
+        employeeNumber: currentEmployeeNumber,
         type: 'SETTINGS',
         changes: Object.entries(tempSettings).map(([key, value]) => ({
           setting: key,
@@ -215,13 +240,16 @@ function ManagementPage() {
         }))
       };
 
+      // Save new settings
+      localStorage.setItem('posSettings', JSON.stringify(newSettings));
+      setSettings(newSettings);
+
       // Send history entry to backend
-      await axios.post('http://localhost:5001/settings-history', historyEntry);
+      const response = await axios.post('http://localhost:5001/settings-history', historyEntry);
+      console.log('Server response:', response.data);
 
       // Force history component to refresh
       setHistoryKey(prev => prev + 1);
-
-      // Reset temp settings
       setTempSettings({});
       setShowConfirmModal(false);
       toast.success('تم حفظ التغييرات بنجاح');

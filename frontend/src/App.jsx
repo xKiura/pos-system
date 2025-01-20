@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate
+  Navigate,
+  useNavigate
 } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import POSPage from './pages/POSPage';
@@ -19,69 +20,94 @@ import { AuthProvider, useAuth } from './components/AuthContext';
 import { EmployeeProvider } from './context/EmployeeContext';
 import './App.css';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-  
-  return children;
-};
+const ProtectedRoute = React.memo(({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
 
-const App = () => {
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+});
+
+const AuthenticatedContent = () => {
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
-    <SettingsProvider>
-      <AuthProvider>
-        <EmployeeProvider>
-          <Router>
-            <div className='app'>
-              <MainLayout />
-              <div className='container'>
-                <div className='content'>
-                  <Routes>
-                    <Route path="/" element={<Navigate to="/login" replace />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/pos" element={
-                      <ProtectedRoute>
-                        <POSPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/manage-products" element={
-                      <ProtectedRoute>
-                        <ManageProductsPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/bills" element={
-                      <ProtectedRoute>
-                        <BillsPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/sales-reports" element={
-                      <ProtectedRoute>
-                        <SalesReports />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/inventory-reports" element={
-                      <ProtectedRoute>
-                        <InventoryReports />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/management" element={
-                      <ProtectedRoute>
-                        <ManagementPage />
-                      </ProtectedRoute>
-                    } />
-                  </Routes>
-                </div>
+    <MainLayout>
+      <div className="app-wrapper">
+        <div className="app-content">
+          <Routes>
+            <Route path="/" element={<Navigate to="/pos" replace />} />
+            {[
+              { path: '/pos', component: <POSPage /> },
+              { path: '/manage-products', component: <ManageProductsPage /> },
+              { path: '/bills', component: <BillsPage /> },
+              { path: '/sales-reports', component: <SalesReports /> },
+              { path: '/inventory-reports', component: <InventoryReports /> },
+              { path: '/management', component: <ManagementPage /> },
+            ].map(({ path, component }) => (
+              <Route
+                key={path}
+                path={path}
+                element={<ProtectedRoute>{component}</ProtectedRoute>}
+              />
+            ))}
+          </Routes>
+        </div>
+      </div>
+    </MainLayout>
+  );
+};
+
+const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+
+  return (
+    <Routes>
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated ? 
+          <Navigate to="/pos" replace /> : 
+          <MainLayout>
+            <div className="app-wrapper">
+              <div className="app-content">
+                <LoginPage />
               </div>
             </div>
-          </Router>
-        </EmployeeProvider>
-      </AuthProvider>
-    </SettingsProvider>
+          </MainLayout>
+        } 
+      />
+      <Route 
+        path="*" 
+        element={
+          isAuthenticated ? 
+          <AuthenticatedContent /> : 
+          <Navigate to="/login" replace />
+        }
+      />
+    </Routes>
   );
-}
+};
+
+const App = () => (
+  <Router>
+    <AuthProvider>
+      <SettingsProvider>
+        <EmployeeProvider>
+          <div className='app'>
+            <AppRoutes />
+          </div>
+        </EmployeeProvider>
+      </SettingsProvider>
+    </AuthProvider>
+  </Router>
+);
 
 export default App;

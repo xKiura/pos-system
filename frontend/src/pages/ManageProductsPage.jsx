@@ -268,24 +268,49 @@ const GlobalStyles = styled.div`
 // Add console.log inside the component to verify context values
 function ManageProductsPage() {
     const [products, setProducts] = useState([]);
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+    
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        fetchProducts();
+    }, [isAuthenticated, navigate]);
+
+    const logProductChange = async (action, productData) => {
+        try {
+            const employeeName = localStorage.getItem('employeeName');
+            const employeeNumber = localStorage.getItem('employeeNumber');
+
+            if (!employeeName || !employeeNumber) {
+                console.error('Employee information not found');
+                return;
+            }
+
+            const logData = {
+                timestamp: new Date().toISOString(),
+                employeeName,
+                employeeNumber,
+                action,
+                product: productData
+            };
+            
+            console.log('Sending product change log:', logData);
+            await axios.post('http://localhost:5001/products-history', logData);
+        } catch (error) {
+            console.error('Error logging product change:', error);
+        }
+    };
+
     const [product, setProduct] = useState({ name: '', price: '', image: '', category: '' });
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
     const [productToRemove, setProductToRemove] = useState(null);
-    const { isAuthenticated, employeeInfo } = useAuth();
-    const navigate = useNavigate();
     
-    useEffect(() => {
-        if (!isAuthenticated) {
-            navigate('/login');
-        }
-    }, [isAuthenticated, navigate]);
-    
-    // Add this console.log to verify the values
-    console.log('Employee Context Values:', { employeeInfo });
-
     useEffect(() => {
         fetchProducts();
     }, []);
@@ -302,24 +327,6 @@ function ManageProductsPage() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProduct({ ...product, [name]: value });
-    };
-
-    const logProductChange = async (action, productData) => {
-        try {
-            // Add console.log here to verify data being sent
-            const logData = {
-                timestamp: new Date().toISOString(),
-                employeeName: employeeInfo?.employeeName,
-                employeeNumber: employeeInfo?.employeeNumber,
-                action,
-                product: productData
-            };
-            console.log('Sending log data:', logData);
-            
-            await axios.post('http://localhost:5001/products-history', logData);
-        } catch (error) {
-            console.error('Error logging product change:', error);
-        }
     };
 
     const handleAddProduct = async () => {

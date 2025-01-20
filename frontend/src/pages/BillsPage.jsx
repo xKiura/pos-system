@@ -743,17 +743,28 @@ function BillsPage() {
 
     const logBillChange = async (action, billNumber) => {
         try {
-          await axios.post('http://localhost:5001/bills-history', {
-            timestamp: new Date().toISOString(),
-            employeeName,
-            employeeNumber,
-            action,
-            billNumber
-          });
+            const currentEmployeeName = localStorage.getItem('employeeName');
+            const currentEmployeeNumber = localStorage.getItem('employeeNumber');
+
+            if (!currentEmployeeName || !currentEmployeeNumber) {
+                console.error('Employee information not found');
+                return;
+            }
+
+            const logData = {
+                timestamp: new Date().toISOString(),
+                employeeName: currentEmployeeName,
+                employeeNumber: currentEmployeeNumber,
+                action,
+                billNumber
+            };
+
+            console.log('Sending bill change log:', logData);
+            await axios.post('http://localhost:5001/bills-history', logData);
         } catch (error) {
-          console.error('Error logging bill change:', error);
+            console.error('Error logging bill change:', error);
         }
-      };
+    };
 
     // Update the BillCardComponent
     const BillCardComponent = ({ order, onToggle, isExpanded }) => {

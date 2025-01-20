@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from './AuthContext';
+import api from '../services/api';
 import NumPad from './NumPad';
 import './SignUpPopup.css';
 
 const SignUpPopup = ({ onClose }) => {
-  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     employeeNumber: '',
@@ -72,12 +71,6 @@ const SignUpPopup = ({ onClose }) => {
     }));
   };
 
-  const saveUserToStorage = (userData) => {
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    existingUsers.push(userData);
-    localStorage.setItem('users', JSON.stringify(existingUsers));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setShowErrors(true);
@@ -113,21 +106,28 @@ const SignUpPopup = ({ onClose }) => {
     }
 
     if (Object.keys(newErrors).length === 0) {
-      const userData = {
-        name: formData.name,
-        employeeNumber: formData.employeeNumber,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        pin: formData.pin.join('')
-      };
+      try {
+        const userData = {
+          name: formData.name,
+          employeeNumber: formData.employeeNumber,
+          pin: formData.pin.join(''),
+          email: formData.email,
+          phoneNumber: formData.phoneNumber
+        };
 
-      saveUserToStorage(userData);
-      const success = register(userData);
+        const response = await api.post('/register', userData);
 
-      if (success) {
-        onClose();
-      } else {
-        setErrors({ submit: 'Failed to register user' });
+        if (response.data.success) {
+          alert('تم تسجيل الموظف بنجاح'); // Or use a better notification system
+          onClose();
+        } else {
+          setErrors({ submit: response.data.message });
+        }
+      } catch (error) {
+        console.error('Registration failed:', error);
+        setErrors({ 
+          submit: error.response?.data?.message || 'حدث خطأ أثناء التسجيل' 
+        });
       }
     } else {
       setErrors(newErrors);
@@ -219,20 +219,16 @@ const SignUpPopup = ({ onClose }) => {
                   {!pinMatch && <span className="pin-mismatch-message">الرقم السري غير متطابق</span>}
                 </div>
               </div>
-            </div>
 
-            {/* Move NumPad and submit button here */}
-            <div className="numpad-wrapper">
-              <NumPad
-                onNumberClick={handlePinInput}
-                onDelete={handlePinDelete}
-                onClear={handlePinClear}
-                pin={formData.pin}
-                confirmPin={formData.confirmPin}
-                pinError={pinError}
-                isValid={pinMatch}
-              />
-              <button type="submit" className="submit-button">تسجيل</button>
+              <div className="numpad-wrapper">
+                <NumPad
+                  onNumberClick={handlePinInput}
+                  onDelete={handlePinDelete}
+                  onClear={handlePinClear}
+                  pin={activePin === 'pin' ? formData.pin : formData.confirmPin}
+                />
+                <button type="submit" className="submit-button">تسجيل</button>
+              </div>
             </div>
           </form>
         </div>

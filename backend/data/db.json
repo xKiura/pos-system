@@ -1,1 +1,26 @@
-{}
+{
+  "settings": {
+    "taxRate": 15,
+    "printCopies": 1,
+    "requireManagerApproval": false,
+    "history": []
+  },
+  "users": [
+    {
+      "name": "s",
+      "employeeNumber": "3",
+      "pin": "3333",
+      "email": "s@s",
+      "phoneNumber": "3",
+      "createdAt": "2025-01-19T22:44:56.535Z"
+    },
+    {
+      "name": "dsds",
+      "employeeNumber": "4",
+      "pin": "4444",
+      "email": "dsds@dsds",
+      "phoneNumber": "2323",
+      "createdAt": "2025-01-20T00:13:24.698Z"
+    }
+  ]
+}

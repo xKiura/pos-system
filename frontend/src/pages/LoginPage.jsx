@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import NumPad from '../components/NumPad';
-import axios from 'axios';
-// Fix the import path to point to the correct location
-import { useEmployee } from '../context/EmployeeContext';  // <-- Updated this line
+import api from '../services/api';
+import { useEmployee } from '../context/EmployeeContext';
 
 function LoginPage() {
     const { login } = useAuth();
     const { setEmployee } = useEmployee();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        name: '',
         employeeNumber: '',
+        employeeName: '', // Add employee name
         pin: ['', '', '', '']
     });
     const [errors, setErrors] = useState({});
@@ -52,47 +51,85 @@ function LoginPage() {
         }
     };
 
+    const handleNameChange = (e) => {
+        const value = e.target.value;
+        // Only allow letters and spaces (Arabic and English)
+        if (value === '' || /^[\u0600-\u06FFa-zA-Z\s]+$/.test(value)) {
+            setFormData(prev => ({ ...prev, employeeName: value }));
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setShowErrors(true);
         const newErrors = {};
 
-        // Validation
-        if (!formData.name) {
-            newErrors.name = 'الاسم مطلوب';
+        // Strict validation for all fields
+        const normalizedName = formData.employeeName.trim();
+        
+        // Name validation
+        if (!normalizedName) {
+            newErrors.employeeName = 'اسم الموظف مطلوب';
+        } else if (!/^[\u0600-\u06FFa-zA-Z\s]+$/.test(normalizedName)) {
+            newErrors.employeeName = 'اسم الموظف يجب أن يحتوي على حروف فقط';
         }
 
-        if (!formData.employeeNumber) {
+        // Employee number validation
+        if (!formData.employeeNumber.trim()) {
             newErrors.employeeNumber = 'رقم الموظف مطلوب';
         }
 
-        if (formData.pin.join('').length !== 4) {
-            newErrors.pin = 'الرقم السري يجب أن يكون 4 أرقام';
+        // PIN validation
+        if (formData.pin.includes('')) {
+            newErrors.pin = 'الرقم السري مطلوب';
         }
 
-        if (Object.keys(newErrors).length === 0) {
-            const success = await handleLogin({ employeeNumber: formData.employeeNumber, pin: formData.pin.join('') });
-            if (success) {
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        try {
+            const loginData = {
+                employeeNumber: formData.employeeNumber.trim(),
+                employeeName: normalizedName,
+                pin: formData.pin.join('')
+            };
+
+            console.log('Attempting login with:', {
+                ...loginData,
+                pin: '****' // Hide PIN in logs
+            });
+
+            const response = await api.post('/login', loginData);
+            
+            if (response.data.success) {
+                // Clear any existing employee data
+                localStorage.removeItem('employeeName');
+                localStorage.removeItem('employeeNumber');
+
+                // Store the new employee data
+                localStorage.setItem('employeeName', response.data.employeeName);
+                localStorage.setItem('employeeNumber', response.data.employeeNumber);
+
+                // Log the stored data for verification
+                console.log('Stored employee info:', {
+                    name: localStorage.getItem('employeeName'),
+                    number: localStorage.getItem('employeeNumber')
+                });
+
+                login({
+                    name: response.data.employeeName,
+                    employeeNumber: response.data.employeeNumber
+                });
                 navigate('/pos');
             } else {
                 setErrors({ auth: 'بيانات تسجيل الدخول غير صحيحة' });
             }
-        } else {
-            setErrors(newErrors);
-        }
-    };
-
-    const handleLogin = async (credentials) => {
-        try {
-            const response = await axios.post('http://localhost:5000/login', credentials);
-            if (response.data.success) {
-                // Update both contexts
-                login(response.data.employeeName, response.data.employeeNumber);
-                setEmployee(response.data.employeeName, response.data.employeeNumber);
-                navigate('/pos');
-            }
         } catch (error) {
-            console.error('Login failed:', error);
+            const errorMessage = error.response?.data?.message || 'حدث خطأ أثناء تسجيل الدخول';
+            setErrors({ auth: errorMessage });
+            console.error('Login error:', error.response?.data || error);
         }
     };
 
@@ -103,12 +140,13 @@ function LoginPage() {
                 <div className="form-group">
                     <input
                         type="text"
-                        placeholder="الاسم"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className={showErrors && errors.name ? 'error' : ''}
+                        placeholder="اسم الموظف"
+                        value={formData.employeeName}
+                        onChange={handleNameChange}
+                        className={showErrors && errors.employeeName ? 'error' : ''}
                     />
-                    {showErrors && errors.name && <span className="error-message">{errors.name}</span>}
+                    {showErrors && errors.employeeName && 
+                        <span className="error-message">{errors.employeeName}</span>}
                 </div>
                 <div className="form-group">
                     <input
@@ -149,3 +187,4 @@ function LoginPage() {
 };
 
 export default LoginPage;
+

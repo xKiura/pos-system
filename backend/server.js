@@ -5,21 +5,36 @@ const LocalStorage = require('./services/localStorage');
 const app = express();
 const storage = new LocalStorage('db.json');
 
-// Initialize storage
+// Initialize empty arrays for history
+let settingsHistory = [];
+let productsHistory = [];
+let billsHistory = [];
+
+// Clear history data on server start
+const clearHistoryData = () => {
+  settingsHistory = [];
+  productsHistory = [];
+  billsHistory = [];
+};
+
+// Initialize storage and clear history
 storage.init()
-  .then(() => {
+  .then(async () => {
     console.log('Local storage initialized');
+    clearHistoryData(); // Clear history on server start
     
     // Initialize settings if they don't exist
-    return storage.get('settings') || storage.set('settings', {
+    await storage.get('settings') || await storage.set('settings', {
       taxRate: 15,
       printCopies: 1,
       requireManagerApproval: false,
       history: []
     });
-  })
-  .then(() => {
-    console.log('Settings initialized');
+
+    // Initialize users if they don't exist
+    await storage.get('users') || await storage.set('users', []);
+
+    console.log('Settings and users initialized');
   })
   .catch(err => {
     console.error('Error initializing storage:', err);
@@ -28,13 +43,11 @@ storage.init()
 // Store orders in memory
 let confirmedOrders = [];
 
-// Add these arrays to store history
-let settingsHistory = [];
-let productsHistory = [];
-let billsHistory = [];
-
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000', // Your React app's URL
+    credentials: true
+}));
 app.use(express.json());
 
 // Settings routes
@@ -82,21 +95,41 @@ app.post('/settings', async (req, res) => {
   }
 });
 
-// Settings history endpoints
-app.get('/settings-history', (req, res) => {
-  res.json(settingsHistory);
-});
-
+// Modified settings history endpoints
 app.post('/settings-history', (req, res) => {
+  console.log('Received history entry:', req.body);
+  
+  // Verify employee info is present
+  if (!req.body.employeeName || !req.body.employeeNumber) {
+    console.error('Missing employee information in request');
+    return res.status(400).json({ error: 'Employee information is required' });
+  }
+
   const historyEntry = {
     id: Date.now(),
-    ...req.body,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    employeeName: req.body.employeeName,
+    employeeNumber: req.body.employeeNumber,
+    type: req.body.type,
+    changes: req.body.changes
   };
+
+  console.log('Creating history entry with employee:', {
+    name: historyEntry.employeeName,
+    number: historyEntry.employeeNumber
+  });
+
   settingsHistory.unshift(historyEntry);
-  // Keep only last 100 entries
   settingsHistory = settingsHistory.slice(0, 100);
+  
+  console.log('Updated settings history:', settingsHistory);
   res.json(historyEntry);
+});
+
+// Modified get settings history endpoint
+app.get('/settings-history', (req, res) => {
+  console.log('Sending settings history:', settingsHistory);
+  res.json(settingsHistory);
 });
 
 // Products history endpoints
@@ -173,6 +206,133 @@ app.post('/refund-order/:orderNumber', (req, res) => {
     } catch (error) {
         console.error('Error processing refund:', error);
         res.status(500).json({ error: 'Failed to process refund' });
+    }
+});
+
+// Add these routes for authentication
+app.post('/register', async (req, res) => {
+    try {
+        const { name, employeeNumber, pin, email, phoneNumber } = req.body;
+
+        // Name validation with normalization
+        const normalizedName = name.trim();
+        if (!normalizedName || !/^[\u0600-\u06FFa-zA-Z\s]+$/.test(normalizedName)) {
+            return res.status(400).json({
+                success: false,
+                message: 'اسم الموظف يجب أن يحتوي على حروف فقط'
+            });
+        }
+
+        // Get existing users
+        let users = await storage.get('users') || [];
+
+        // Check if the employee number already exists
+        if (users.some(user => user.employeeNumber === employeeNumber)) {
+            return res.status(400).json({
+                success: false,
+                message: 'رقم الموظف مستخدم مسبقاً'
+            });
+        }
+
+        // Create new user
+        const newUser = {
+            name: normalizedName, // Store normalized name
+            employeeNumber,
+            pin,
+            email,
+            phoneNumber,
+            createdAt: new Date().toISOString()
+        };
+
+        // Add to users array
+        users.push(newUser);
+        await storage.set('users', users);
+
+        res.json({
+            success: true,
+            message: 'تم تسجيل الموظف بنجاح'
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ أثناء تسجيل الموظف'
+        });
+    }
+});
+
+app.post('/login', async (req, res) => {
+    try {
+        const { employeeNumber, employeeName, pin } = req.body;
+
+        // Input validation
+        if (!employeeName || !employeeNumber || !pin) {
+            return res.status(400).json({
+                success: false,
+                message: 'جميع الحقول مطلوبة'
+            });
+        }
+
+        // Get existing users
+        const users = await storage.get('users') || [];
+        
+        // Normalize input name and convert to string for comparison
+        const normalizedInputName = employeeName.trim();
+        const normalizedInputNumber = employeeNumber.toString();
+
+        // Debug login attempt
+        console.log('Login attempt:', {
+            attemptedName: normalizedInputName,
+            attemptedNumber: normalizedInputNumber,
+            hasPin: !!pin
+        });
+
+        // Find user with strict matching
+        const user = users.find(user => {
+            // Convert all values to strings and normalize for comparison
+            const storedName = user.name.trim();
+            const storedNumber = user.employeeNumber.toString();
+            const storedPin = user.pin.toString();
+
+            const nameMatches = storedName === normalizedInputName;
+            const numberMatches = storedNumber === normalizedInputNumber;
+            const pinMatches = storedPin === pin;
+
+            // Log each comparison for debugging
+            console.log('Credential comparison:', {
+                storedName,
+                nameMatches,
+                numberMatches,
+                pinMatches
+            });
+
+            // All three must match exactly
+            return nameMatches && numberMatches && pinMatches;
+        });
+
+        if (!user) {
+            // Log failed attempt details
+            console.log('Login failed - Invalid credentials');
+            return res.status(401).json({
+                success: false,
+                message: 'بيانات تسجيل الدخول غير صحيحة'
+            });
+        }
+
+        // Successful login
+        console.log('Login successful for:', user.name);
+        res.json({
+            success: true,
+            employeeName: user.name, // Send back the exact stored name
+            employeeNumber: user.employeeNumber
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ في النظام'
+        });
     }
 });
 

@@ -1,51 +1,30 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  });
-  
-  const [employeeInfo, setEmployeeInfo] = useState(() => {
-    const savedInfo = localStorage.getItem('employeeInfo');
-    return savedInfo ? JSON.parse(savedInfo) : null;
-  });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem('isAuthenticated', isAuthenticated);
-    if (employeeInfo) {
-      localStorage.setItem('employeeInfo', JSON.stringify(employeeInfo));
-    }
-  }, [isAuthenticated, employeeInfo]);
-
-  const login = (employeeName, employeeNumber) => {
+  const login = (userData) => {
+    setCurrentUser(userData);
     setIsAuthenticated(true);
-    setEmployeeInfo({ employeeName, employeeNumber });
   };
 
   const logout = () => {
+    setCurrentUser(null);
     setIsAuthenticated(false);
-    setEmployeeInfo(null);
-    localStorage.removeItem('employeeInfo');
+    // Clear all auth-related data from localStorage
+    localStorage.removeItem('employeeName');
+    localStorage.removeItem('employeeNumber');
+    // ...any other logout logic...
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      employeeInfo,
-      login, 
-      logout 
-    }}>
+    <AuthContext.Provider value={{ currentUser, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);

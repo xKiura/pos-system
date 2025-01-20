@@ -126,6 +126,11 @@ const UserInfo = styled.div`
   margin: 0.5rem 0;
   color: #4b5563;
   font-size: 0.875rem;
+  
+  .employee-info {
+    display: inline-block;
+    direction: ltr;
+  }
 `;
 
 const ChangeDetails = styled.div`
@@ -248,7 +253,27 @@ export const HistoryChanges = ({ onRefresh }) => {
               </div>
             ))
           : 'تم تغيير الإعدادات';
-      // ...existing code...
+      
+      case 'PRODUCT_ADD':
+        return `تمت إضافة منتج "${change.product?.name || 'غير معروف'}"`;
+      
+      case 'PRODUCT_EDIT':
+        return `تم تعديل منتج "${change.product?.name || 'غير معروف'}"`;
+      
+      case 'PRODUCT_DELETE':
+        return `تم حذف منتج "${change.product?.name || 'غير معروف'}"`;
+      
+      case 'BILL_REFUND':
+        return `تم استرجاع الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
+      
+      case 'BILL_REPRINT':
+        return `تمت إعادة طباعة الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
+      
+      case 'BILL_DELETE':
+        return `تم حذف الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
+      
+      default:
+        return 'تغيير غير معروف';
     }
   };
 
@@ -315,7 +340,10 @@ export const HistoryChanges = ({ onRefresh }) => {
                 </TimeStamp>
               </div>
               <UserInfo>
-                <strong>الموظف:</strong> {change.employeeName || 'غير معروف'} (#{change.employeeNumber || 'رقم غير معروف'})
+                <strong>الموظف:</strong>{' '}
+                <span className="employee-info">
+                  {change.employeeName} #{change.employeeNumber}
+                </span>
               </UserInfo>
               <ChangeDetails>
                 {formatChangeDetails(change)}
