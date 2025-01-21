@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaDownload, FaExclamationTriangle, FaSync } from 'react-icons/fa';
+import { FaArrowLeft, FaDownload, FaExclamationTriangle, FaSync, FaCheckCircle } from 'react-icons/fa';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -34,7 +34,8 @@ import {
   InputAdornment,
   Chip,
   Stack,
-  Snackbar
+  Snackbar,
+  Avatar // Add Avatar to the imports
 } from '@mui/material';
 import {
   BarChart,
@@ -360,6 +361,67 @@ const StyledSnackbar = styled(Snackbar)({
   }
 });
 
+// Update the styled table components
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  '& .MuiTable-root': {
+    borderCollapse: 'separate',
+    borderSpacing: '0 8px',
+  },
+  '& .MuiTableRow-root': {
+    backgroundColor: '#ffffff',
+    '&:hover': {
+      backgroundColor: '#f8fafc',
+    }
+  },
+  '& .MuiTableCell-root': {
+    borderBottom: 'none',
+    padding: '16px',
+    '&:first-of-type': {
+      borderTopLeftRadius: '8px',
+      borderBottomLeftRadius: '8px',
+    },
+    '&:last-of-type': {
+      borderTopRightRadius: '8px',
+      borderBottomRightRadius: '8px',
+    }
+  }
+}));
+
+// Add this function to format currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('ar-SA', {
+    style: 'currency',
+    currency: 'SAR'
+  }).format(amount);
+};
+
+// Add this near other styled components
+const StatusChip = styled(Chip)(({ theme }) => ({
+  fontFamily: 'inherit',
+  minWidth: '90px', // Increased from 80px to 90px
+  height: '32px',   // Increased from 28px to 32px
+  '& .MuiChip-icon': {
+    fontSize: '16px',
+    marginRight: '4px',  // Changed from -4px to 4px
+    marginLeft: '4px'
+  },
+  '& .MuiChip-label': {
+    padding: '0 8px',    // Reduced padding from 12px to 8px
+    fontSize: '0.875rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px'
+  },
+  '&.MuiChip-filled.MuiChip-colorError': {
+    background: '#fee2e2',
+    color: '#dc2626'
+  },
+  '&.MuiChip-filled.MuiChip-colorSuccess': {
+    background: '#dcfce7',
+    color: '#16a34a'
+  }
+}));
+
 const InventoryReports = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -448,97 +510,81 @@ const InventoryReports = () => {
 
   // Update the handleUpdateStock function
   const handleUpdateStock = async () => {
-    if (!selectedProduct || !newStockLevel || isNaN(Number(newStockLevel))) {
+    if (!selectedProduct) return;
+  
+    const stockLevel = Number(newStockLevel);
+    const costPrice = Number(newCostPrice);
+    const minStock = Number(newMinStock);
+  
+    if (isNaN(stockLevel) || isNaN(costPrice) || isNaN(minStock)) {
       setSnackbar({
         open: true,
-        message: 'الرجاء إدخال قيمة صحيحة للمخزون',
+        message: 'الرجاء إدخال قيم صحيحة',
         severity: 'error'
       });
       return;
     }
-
+  
     try {
-      const stockLevel = Number(newStockLevel);
-      const costPrice = Number(newCostPrice);
-      const minStock = Number(newMinStock);
-      
-      if (stockLevel < 0) {
-        setSnackbar({
-          open: true,
-          message: 'لا يمكن أن يكون المخزون بقيمة سالبة',
-          severity: 'error'
-        });
-        return;
-      }
-
-      // Update using axios
-      const response = await axios.patch(`http://localhost:5001/products/${selectedProduct.id}`, {
+      // Create the updated product object
+      const updatedProduct = {
+        ...selectedProduct,
         stock: stockLevel,
         costPrice: costPrice,
-        minStock: minStock,
-        adjustmentDate: new Date().toISOString()
-      });
-
-      const updatedProduct = response.data;
-
-      // Only include changes that actually occurred
-      const changes = [];
-      if (stockLevel !== selectedProduct.stock) {
-        changes.push({
-          field: 'stock',
-          oldValue: selectedProduct.stock,
-          newValue: stockLevel
+        minStock: minStock
+      };
+  
+      // Make the API call to update product
+      const response = await axios.patch(`http://localhost:5000/products/${selectedProduct.id}`, updatedProduct);
+  
+      if (response.data) {
+        // Update the local inventory state
+        setInventory(prev => 
+          prev.map(item => 
+            item.id === selectedProduct.id ? response.data : item
+          )
+        );
+  
+        try {
+          // Log to history - using the correct endpoint
+          const historyEntry = {
+            timestamp: new Date().toISOString(),
+            employeeName: localStorage.getItem('employeeName') || 'Unknown',
+            employeeNumber: localStorage.getItem('employeeNumber') || 'Unknown',
+            type: 'INVENTORY_UPDATE',
+            origin: 'صفحة المخزون',
+            changes: [{
+              productName: selectedProduct.name,
+              changes: [
+                { field: 'stock', oldValue: selectedProduct.stock, newValue: stockLevel },
+                { field: 'costPrice', oldValue: selectedProduct.costPrice, newValue: costPrice },
+                { field: 'minStock', oldValue: selectedProduct.minStock, newValue: minStock }
+              ]
+            }]
+          };
+  
+          // Changed from settings-history to history
+          await axios.post('http://localhost:5000/history', historyEntry);
+        } catch (historyError) {
+          console.warn('Failed to log history, but product was updated:', historyError);
+          // Don't throw error here - the main operation succeeded
+        }
+  
+        setSnackbar({
+          open: true,
+          message: 'تم تحديث المخزون بنجاح',
+          severity: 'success'
         });
+  
+        // Close dialog and reset form
+        setStockDialog(false);
+        setSelectedProduct(null);
+        setNewStockLevel('');
+        setNewCostPrice('');
+        setNewMinStock('');
       }
-      if (costPrice !== selectedProduct.costPrice) {
-        changes.push({
-          field: 'costPrice',
-          oldValue: selectedProduct.costPrice,
-          newValue: costPrice
-        });
-      }
-      if (minStock !== selectedProduct.minStock) {
-        changes.push({
-          field: 'minStock',
-          oldValue: selectedProduct.minStock,
-          newValue: minStock
-        });
-      }
-
-      // Only create history entry if there were actual changes
-      if (changes.length > 0) {
-        const historyEntry = {
-          timestamp: new Date().toISOString(),
-          employeeName: localStorage.getItem('employeeName'),
-          employeeNumber: localStorage.getItem('employeeNumber'),
-          type: 'INVENTORY_UPDATE',
-          origin: 'صفحة المخزون',
-          changes: [{
-            productName: selectedProduct.name,
-            changes: changes
-          }]
-        };
-
-        // Save to history using axios
-        await axios.post('http://localhost:5001/settings-history', historyEntry);
-      }
-
-      setInventory(prev => prev.map(item => 
-        item.id === selectedProduct.id ? updatedProduct : item
-      ));
-
-      setSnackbar({
-        open: true,
-        message: 'تم تحديث المخزون بنجاح',
-        severity: 'success'
-      });
-      setStockDialog(false);
-      setNewStockLevel('');
-      setNewCostPrice('');
-      setNewMinStock('');
-      setSelectedProduct(null);
-    } catch (err) {
-      console.error('Error updating stock:', err);
+    } catch (error) {
+      console.error('Error updating stock:', error);
       setSnackbar({
         open: true,
         message: 'حدث خطأ أثناء تحديث المخزون',
@@ -546,6 +592,7 @@ const InventoryReports = () => {
       });
     }
   };
+  
 
   const exportInventory = async () => {
     const headers = ['Product Name,Category,Stock Level,Low Stock Alert,Cost Price,Selling Price\n'];
@@ -574,11 +621,8 @@ const InventoryReports = () => {
         }]
       };
 
-      await fetch('http://localhost:5001/settings-history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(historyEntry)
-      });
+      // Changed from settings-history to history and port from 5001 to 5000
+      await axios.post('http://localhost:5000/history', historyEntry);
     } catch (err) {
       console.error('Error logging export:', err);
     }
@@ -812,55 +856,70 @@ const InventoryReports = () => {
         )}
       </Box>
 
-      <TableContainer>
+      <StyledTableContainer>
         <StyledTable><TableHead><TableRow>
           <StyledTableCell>اسم المنتج</StyledTableCell>
           <StyledTableCell>الفئة</StyledTableCell>
-          <StyledTableCell>المخزون</StyledTableCell>
-          <StyledTableCell>الحد الأدنى</StyledTableCell>
-          <StyledTableCell>سعر التكلفة</StyledTableCell>
-          <StyledTableCell>سعر البيع</StyledTableCell>
-          <StyledTableCell>الحالة</StyledTableCell>
-          <StyledTableCell>الإجراءات</StyledTableCell>
+          <StyledTableCell align="center">المخزون</StyledTableCell>
+          <StyledTableCell align="center">الحد الأدنى</StyledTableCell>
+          <StyledTableCell align="right">سعر التكلفة</StyledTableCell>
+          <StyledTableCell align="right">سعر البيع</StyledTableCell>
+          <StyledTableCell align="center">الحالة</StyledTableCell>
+          <StyledTableCell align="center">الإجراءات</StyledTableCell>
         </TableRow></TableHead><TableBody>
           {filteredInventory
             .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
             .map((item) => (<TableRow key={item.id}>
-              <TableCell>
+              <StyledTableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   {item.image && (
-                    <img 
-                      src={item.image} 
+                    <Avatar
+                      src={item.image}
                       alt={item.name}
-                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
+                      sx={{ width: 40, height: 40 }}
                     />
                   )}
-                  <Typography sx={{ fontFamily: 'inherit' }}>{item.name}</Typography>
+                  <Typography sx={{ fontWeight: 500 }}>{item.name}</Typography>
                 </Box>
-              </TableCell>
-              <TableCell sx={{ fontFamily: 'inherit' }}>{item.category}</TableCell>
-              <TableCell sx={{ fontFamily: 'inherit' }}>{item.stock}</TableCell>
-              <TableCell sx={{ fontFamily: 'inherit' }}>{item.minStock}</TableCell>  {/* Add this */}
-              <TableCell sx={{ fontFamily: 'inherit' }}>{item.costPrice} ر.س</TableCell>
-              <TableCell sx={{ fontFamily: 'inherit' }}>{item.price} ر.س</TableCell>
-              <TableCell>
-                <Alert 
-                  severity={item.stock <= item.minStock ? "error" : "success"}  // Changed < to <=
-                  icon={item.stock <= item.minStock ? <FaExclamationTriangle /> : null}  // Changed < to <=
-                  sx={{ 
-                    '& .MuiAlert-message': { 
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      fontFamily: 'inherit'
-                    }
+              </StyledTableCell>
+              <StyledTableCell>
+                <Chip
+                  label={item.category}
+                  size="small"
+                  sx={{
+                    bgcolor: '#e2e8f0',
+                    color: '#475569',
+                    fontWeight: 500
+                  }}
+                />
+              </StyledTableCell>
+              <StyledTableCell align="center">
+                <Typography
+                  sx={{
+                    fontWeight: 600,
+                    color: item.stock <= item.minStock ? '#ef4444' : '#10b981'
                   }}
                 >
-                  {item.stock <= item.minStock ? 'منخفض' : 'جيد'} {/* Changed < to <= */}
-                </Alert>
-              </TableCell>
-              <TableCell>
-                <ActionMenu>
+                  {item.stock}
+                </Typography>
+              </StyledTableCell>
+              <StyledTableCell align="center">{item.minStock}</StyledTableCell>
+              <StyledTableCell align="right">
+                {formatCurrency(item.costPrice)}
+              </StyledTableCell>
+              <StyledTableCell align="right">
+                {formatCurrency(item.price)}
+              </StyledTableCell>
+              <StyledTableCell align="center">
+                <StatusChip
+                  label={item.stock <= item.minStock ? 'منخفض' : 'جيد'}
+                  color={item.stock <= item.minStock ? 'error' : 'success'}
+                  size="small"
+                  icon={item.stock <= item.minStock ? <FaExclamationTriangle /> : <FaCheckCircle />}
+                />
+              </StyledTableCell>
+              <StyledTableCell align="center">
+                <Tooltip title="تحديث المخزون">
                   <ActionIconButton
                     onClick={() => {
                       setSelectedProduct(item);
@@ -870,36 +929,26 @@ const InventoryReports = () => {
                       setStockDialog(true);
                     }}
                   >
-                    <Box sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      color: '#3699ff',
-                      fontSize: '0.875rem',
-                      fontWeight: 500
-                    }}>
-                      <MdEdit size={18} />
-                      <span>تحديث</span>
-                    </Box>
+                    <MdEdit />
                   </ActionIconButton>
-                </ActionMenu>
-              </TableCell>
+                </Tooltip>
+              </StyledTableCell>
             </TableRow>))}
-          {filteredInventory.length === 0 && (<TableRow>
-            <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-              <Typography variant="body1" color="textSecondary">
-                لا توجد نتائج تطابق معايير البحث
-              </Typography>
-            </TableCell>
-          </TableRow>)}
         </TableBody></StyledTable>
-      </TableContainer>
+        {filteredInventory.length === 0 && (
+          <Box sx={{ textAlign: 'center', py: 3 }}>
+            <Typography color="textSecondary">
+              لا توجد نتائج تطابق معايير البحث
+            </Typography>
+          </Box>
+        )}
+      </StyledTableContainer>
       <StyledTablePagination
-        rowsPerPageOptions={[5, 10, 25]}
         component="div"
         count={filteredInventory.length}
-        rowsPerPage={rowsPerPage}
         page={page}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[5, 10, 25, 50]}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
         labelRowsPerPage="عدد العناصر في الصفحة:"
