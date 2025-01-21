@@ -1475,85 +1475,87 @@ const RankingItem = styled(Box)(({ theme }) => ({
 
   return (
     <ErrorBoundary>
-      <ManagementContainer>
-        <TopBar>
-          <ActionBar>
-            <Link to="/pos" className="back-button">
-              <FaArrowLeft /> العودة لصفحة المبيعات
-            </Link>
-          </ActionBar>
-          <PageTitle>تقارير المبيعات</PageTitle>
-        </TopBar>
+      <GlobalStylesWrapper>
+        <ManagementContainer>
+          <TopBar>
+            <ActionBar>
+              <Link to="/pos" className="back-button">
+                <FaArrowLeft /> العودة لصفحة المبيعات
+              </Link>
+            </ActionBar>
+            <PageTitle>تقارير المبيعات</PageTitle>
+          </TopBar>
 
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={3}>
-                <DatePicker
-                  label="تاريخ البداية"
-                  value={dateRange.start}
-                  onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
-                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <DatePicker
-                  label="تاريخ النهاية"
-                  value={dateRange.end}
-                  onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
-                  slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <StyledFormControl fullWidth>
-                  <InputLabel>نوع التصفية</InputLabel>
-                  <StyledSelect
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    label="نوع التصفية"
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Grid container spacing={3} alignItems="center">
+                <Grid item xs={12} md={3}>
+                  <DatePicker
+                    label="تاريخ البداية"
+                    value={dateRange.start}
+                    onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
+                    slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <DatePicker
+                    label="تاريخ النهاية"
+                    value={dateRange.end}
+                    onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
+                    slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <StyledFormControl fullWidth>
+                    <InputLabel>نوع التصفية</InputLabel>
+                    <StyledSelect
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      label="نوع التصفية"
+                    >
+                      <StyledMenuItem value="daily">يومي</StyledMenuItem>
+                      <StyledMenuItem value="weekly">أسبوعي</StyledMenuItem>
+                      <StyledMenuItem value="monthly">شهري</StyledMenuItem>
+                      <StyledMenuItem value="yearly">سنوي</StyledMenuItem>
+                    </StyledSelect>
+                  </StyledFormControl>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <StyledButton
+                    className="btn btn-primary text-white"
+                    startIcon={<FaDownload className='mx-2' />}
+                    onClick={handleExport}
+                    fullWidth
+                    sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
                   >
-                    <StyledMenuItem value="daily">يومي</StyledMenuItem>
-                    <StyledMenuItem value="weekly">أسبوعي</StyledMenuItem>
-                    <StyledMenuItem value="monthly">شهري</StyledMenuItem>
-                    <StyledMenuItem value="yearly">سنوي</StyledMenuItem>
-                  </StyledSelect>
-                </StyledFormControl>
+                    تصدير التقرير
+                  </StyledButton>
+                </Grid>
               </Grid>
-              <Grid item xs={12} md={3}>
-                <StyledButton
-                  className="btn btn-primary text-white"
-                  startIcon={<FaDownload className='mx-2' />}
-                  onClick={handleExport}
-                  fullWidth
-                  sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
-                >
-                  تصدير التقرير
-                </StyledButton>
-              </Grid>
-            </Grid>
-          </LocalizationProvider>
-        </Paper>
+            </LocalizationProvider>
+          </Paper>
 
-        <Box sx={{ mb: 3 }}>
-          <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-            <StyledTab label="نظرة عامة" />
-            <StyledTab label="تحليل المنتجات" />
-            <StyledTab label="الاتجاهات" />
-          </Tabs>
-        </Box>
+          <Box sx={{ mb: 3 }}>
+            <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+              <StyledTab label="نظرة عامة" />
+              <StyledTab label="تحليل المنتجات" />
+              <StyledTab label="الاتجاهات" />
+            </Tabs>
+          </Box>
 
-        <ScrollableTabPanel value={tabValue} index={0}>
-          {renderOverviewTab()}
-        </ScrollableTabPanel>
+          <ScrollableTabPanel value={tabValue} index={0}>
+            {renderOverviewTab()}
+          </ScrollableTabPanel>
 
-        <ScrollableTabPanel value={tabValue} index={1}>
-          {renderProductAnalysisSection()}
-        </ScrollableTabPanel>
+          <ScrollableTabPanel value={tabValue} index={1}>
+            {renderProductAnalysisSection()}
+          </ScrollableTabPanel>
 
-        <ScrollableTabPanel value={tabValue} index={2}>
-          {renderTrendsSection()}
-        </ScrollableTabPanel>
-      </ManagementContainer>
+          <ScrollableTabPanel value={tabValue} index={2}>
+            {renderTrendsSection()}
+          </ScrollableTabPanel>
+        </ManagementContainer>
+      </GlobalStylesWrapper>
     </ErrorBoundary>
   );
 };

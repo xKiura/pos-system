@@ -33,7 +33,8 @@ import {
   InputLabel,
   InputAdornment,
   Chip,
-  Stack
+  Stack,
+  Snackbar
 } from '@mui/material';
 import {
   BarChart,
@@ -49,6 +50,7 @@ import {
   Cell
 } from 'recharts';
 import { MdEdit, MdSearch, MdFilterList, MdClear } from 'react-icons/md';
+import MuiAlert from '@mui/material/Alert';
 
 // Styled Components
 const ManagementContainer = styled('div')(({ theme }) => ({
@@ -56,9 +58,8 @@ const ManagementContainer = styled('div')(({ theme }) => ({
   margin: '2rem auto',
   padding: '0 1.5rem',
   direction: 'rtl',
-  fontFamily: 'inherit',
   '& *': {
-    fontFamily: 'inherit'
+    fontFamily: 'inherit !important' // Add !important to override any other font definitions
   }
 }));
 
@@ -124,20 +125,15 @@ const StyledCard = styled(Card)({
 });
 
 const StyledTableCell = styled(TableCell)({
-  fontWeight: 500,
-  fontFamily: 'inherit',
+  fontFamily: 'inherit !important',
   '& *': {
-    fontFamily: 'inherit'
+    fontFamily: 'inherit !important'
   }
 });
 
 const StyledAlert = styled(Alert)({
-  margin: '1rem 0',
   '& .MuiAlert-message': {
-    fontFamily: 'inherit'
-  },
-  '& *': {
-    fontFamily: 'inherit'
+    fontFamily: 'inherit !important'
   }
 });
 
@@ -197,8 +193,10 @@ const StockAdjustmentDialogContent = ({
   selectedProduct, 
   newStockLevel,
   newCostPrice, 
+  newMinStock,  // Add this
   setNewStockLevel,
   setNewCostPrice, 
+  setNewMinStock,  // Add this
   handleUpdateStock, 
   onClose 
 }) => (
@@ -214,6 +212,20 @@ const StockAdjustmentDialogContent = ({
           type="number"
           value={newStockLevel}
           onChange={(e) => setNewStockLevel(e.target.value)}
+          sx={{ mb: 2, fontFamily: 'inherit' }}
+          InputProps={{
+            sx: { fontFamily: 'inherit' }
+          }}
+          InputLabelProps={{
+            sx: { fontFamily: 'inherit' }
+          }}
+        />
+        <TextField
+          fullWidth
+          label="الحد الأدنى للمخزون"
+          type="number"
+          value={newMinStock}
+          onChange={(e) => setNewMinStock(e.target.value)}
           sx={{ mb: 2, fontFamily: 'inherit' }}
           InputProps={{
             sx: { fontFamily: 'inherit' }
@@ -253,7 +265,7 @@ const StockAdjustmentDialogContent = ({
 );
 
 const StyledTab = styled(Tab)({
-  fontFamily: 'inherit'
+  fontFamily: 'inherit !important'
 });
 
 const StyledSelect = styled(Select)({
@@ -312,6 +324,41 @@ const StyledTablePagination = styled(TablePagination)({
   }
 });
 
+const StyledTable = styled(Table)({
+  '& .MuiTableCell-root': {
+    fontFamily: 'inherit !important'
+  }
+});
+
+// Add these styled components near the top with other styled components
+const ActionMenu = styled('div')({
+  display: 'flex',
+  gap: '8px',
+  alignItems: 'center',
+  justifyContent: 'flex-start'
+});
+
+const ActionIconButton = styled(IconButton)(({ theme }) => ({
+  padding: '8px',
+  borderRadius: '8px',
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: 'rgba(54, 153, 255, 0.1)',
+    transform: 'translateY(-2px)'
+  }
+}));
+
+// Add this styled component with other styled components
+const StyledSnackbar = styled(Snackbar)({
+  '& .MuiAlert-root': {
+    fontFamily: 'inherit',
+    alignItems: 'center'
+  },
+  '& .MuiAlert-message': {
+    fontFamily: 'inherit'
+  }
+});
+
 const InventoryReports = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -327,6 +374,14 @@ const InventoryReports = () => {
   const [categories, setCategories] = useState([]);
   const [adjustmentHistory, setAdjustmentHistory] = useState([]);
   const [newCostPrice, setNewCostPrice] = useState('');
+  const [newMinStock, setNewMinStock] = useState('');
+
+  // Add these new state variables
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   useEffect(() => {
     const init = async () => {
@@ -339,7 +394,7 @@ const InventoryReports = () => {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/products');
+      const response = await fetch('http://localhost:5001/products'); // Changed from 5000 to 5001
       if (!response.ok) throw new Error('Failed to fetch inventory');
       const data = await response.json();
       setInventory(data);
@@ -353,7 +408,7 @@ const InventoryReports = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5000/categories');
+      const response = await fetch('http://localhost:5001/categories');  // Changed from 5000 to 5001
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
       setCategories(data);
@@ -365,28 +420,45 @@ const InventoryReports = () => {
     }
   };
 
+  // Add this handler
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  // Update the handleUpdateStock function
   const handleUpdateStock = async () => {
     if (!selectedProduct || !newStockLevel || isNaN(Number(newStockLevel))) {
-      alert('الرجاء إدخال قيمة صحيحة للمخزون');
+      setSnackbar({
+        open: true,
+        message: 'الرجاء إدخال قيمة صحيحة للمخزون',
+        severity: 'error'
+      });
       return;
     }
 
     try {
       const stockLevel = Number(newStockLevel);
       const costPrice = Number(newCostPrice);
+      const minStock = Number(newMinStock);
       
       if (stockLevel < 0) {
-        alert('لا يمكن أن يكون المخزون بقيمة سالبة');
+        setSnackbar({
+          open: true,
+          message: 'لا يمكن أن يكون المخزون بقيمة سالبة',
+          severity: 'error'
+        });
         return;
       }
 
       // First update the product
-      const response = await fetch(`http://localhost:5000/products/${selectedProduct.id}`, {
+      const response = await fetch(`http://localhost:5001/products/${selectedProduct.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           stock: stockLevel,
           costPrice: costPrice,
+          minStock: minStock,
           adjustmentDate: new Date().toISOString()
         })
       });
@@ -394,41 +466,73 @@ const InventoryReports = () => {
       if (!response.ok) throw new Error('Failed to update stock');
       const updatedProduct = await response.json();
 
-      // Update the history entry format
-      const historyEntry = {
-        timestamp: new Date().toISOString(),
-        employeeName: localStorage.getItem('employeeName'),
-        employeeNumber: localStorage.getItem('employeeNumber'),
-        type: 'INVENTORY_UPDATE',
-        origin: 'صفحة المخزون',
-        changes: [{
-          productName: selectedProduct.name,
-          oldStock: selectedProduct.stock,
-          newStock: stockLevel,
-          oldCostPrice: selectedProduct.costPrice,
-          newCostPrice: costPrice
-        }]
-      };
+      // Only include changes that actually occurred
+      const changes = [];
+      if (stockLevel !== selectedProduct.stock) {
+        changes.push({
+          field: 'stock',
+          oldValue: selectedProduct.stock,
+          newValue: stockLevel
+        });
+      }
+      if (costPrice !== selectedProduct.costPrice) {
+        changes.push({
+          field: 'costPrice',
+          oldValue: selectedProduct.costPrice,
+          newValue: costPrice
+        });
+      }
+      if (minStock !== selectedProduct.minStock) {
+        changes.push({
+          field: 'minStock',
+          oldValue: selectedProduct.minStock,
+          newValue: minStock
+        });
+      }
 
-      // Save to history
-      await fetch('http://localhost:5001/settings-history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(historyEntry)
-      });
+      // Only create history entry if there were actual changes
+      if (changes.length > 0) {
+        const historyEntry = {
+          timestamp: new Date().toISOString(),
+          employeeName: localStorage.getItem('employeeName'),
+          employeeNumber: localStorage.getItem('employeeNumber'),
+          type: 'INVENTORY_UPDATE',
+          origin: 'صفحة المخزون',
+          changes: [{
+            productName: selectedProduct.name,
+            changes: changes
+          }]
+        };
+
+        // Save to history
+        await fetch('http://localhost:5001/settings-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(historyEntry)
+        });
+      }
 
       setInventory(prev => prev.map(item => 
         item.id === selectedProduct.id ? updatedProduct : item
       ));
 
-      alert('تم تحديث المخزون بنجاح');
+      setSnackbar({
+        open: true,
+        message: 'تم تحديث المخزون بنجاح',
+        severity: 'success'
+      });
       setStockDialog(false);
       setNewStockLevel('');
       setNewCostPrice('');
+      setNewMinStock('');
       setSelectedProduct(null);
     } catch (err) {
       console.error('Error updating stock:', err);
-      alert('حدث خطأ أثناء تحديث المخزون');
+      setSnackbar({
+        open: true,
+        message: 'حدث خطأ أثناء تحديث المخزون',
+        severity: 'error'
+      });
     }
   };
 
@@ -486,7 +590,7 @@ const InventoryReports = () => {
     });
   }, [inventory, searchTerm, filterCategory]);
 
-  const getLowStockItems = () => inventory.filter(item => item.stock < item.minStock);
+  const getLowStockItems = () => inventory.filter(item => item.stock <= item.minStock);
 
   const getCategoryStats = () => {
     return inventory.reduce((acc, item) => {
@@ -500,7 +604,7 @@ const InventoryReports = () => {
       }
       acc[item.category].totalItems += 1;
       acc[item.category].totalValue += item.stock * item.costPrice;
-      if (item.stock < item.minStock) acc[item.category].lowStock += 1;
+      if (item.stock <= item.minStock) acc[item.category].lowStock += 1;  // Changed < to <=
       return acc;
     }, {});
   };
@@ -698,95 +802,86 @@ const InventoryReports = () => {
       </Box>
 
       <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>اسم المنتج</StyledTableCell>
-              <StyledTableCell>الفئة</StyledTableCell>
-              <StyledTableCell>المخزون</StyledTableCell>
-              <StyledTableCell>سعر التكلفة</StyledTableCell>
-              <StyledTableCell>سعر البيع</StyledTableCell>
-              <StyledTableCell>الحالة</StyledTableCell>
-              <StyledTableCell>الإجراءات</StyledTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredInventory
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((item) => (
-                <TableRow 
-                  key={item.id}
-                  sx={{
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+        <StyledTable><TableHead><TableRow>
+          <StyledTableCell>اسم المنتج</StyledTableCell>
+          <StyledTableCell>الفئة</StyledTableCell>
+          <StyledTableCell>المخزون</StyledTableCell>
+          <StyledTableCell>الحد الأدنى</StyledTableCell>
+          <StyledTableCell>سعر التكلفة</StyledTableCell>
+          <StyledTableCell>سعر البيع</StyledTableCell>
+          <StyledTableCell>الحالة</StyledTableCell>
+          <StyledTableCell>الإجراءات</StyledTableCell>
+        </TableRow></TableHead><TableBody>
+          {filteredInventory
+            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+            .map((item) => (<TableRow key={item.id}>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {item.image && (
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  )}
+                  <Typography sx={{ fontFamily: 'inherit' }}>{item.name}</Typography>
+                </Box>
+              </TableCell>
+              <TableCell sx={{ fontFamily: 'inherit' }}>{item.category}</TableCell>
+              <TableCell sx={{ fontFamily: 'inherit' }}>{item.stock}</TableCell>
+              <TableCell sx={{ fontFamily: 'inherit' }}>{item.minStock}</TableCell>  {/* Add this */}
+              <TableCell sx={{ fontFamily: 'inherit' }}>{item.costPrice} ر.س</TableCell>
+              <TableCell sx={{ fontFamily: 'inherit' }}>{item.price} ر.س</TableCell>
+              <TableCell>
+                <Alert 
+                  severity={item.stock <= item.minStock ? "error" : "success"}  // Changed < to <=
+                  icon={item.stock <= item.minStock ? <FaExclamationTriangle /> : null}  // Changed < to <=
+                  sx={{ 
+                    '& .MuiAlert-message': { 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      fontFamily: 'inherit'
                     }
                   }}
                 >
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      {item.image && (
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                      )}
-                      <Typography sx={{ fontFamily: 'inherit' }}>{item.name}</Typography>
+                  {item.stock <= item.minStock ? 'منخفض' : 'جيد'} {/* Changed < to <= */}
+                </Alert>
+              </TableCell>
+              <TableCell>
+                <ActionMenu>
+                  <ActionIconButton
+                    onClick={() => {
+                      setSelectedProduct(item);
+                      setNewStockLevel(item.stock?.toString() || '0');
+                      setNewCostPrice(item.costPrice?.toString() || '0');
+                      setNewMinStock(item.minStock?.toString() || '0');
+                      setStockDialog(true);
+                    }}
+                  >
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      color: '#3699ff',
+                      fontSize: '0.875rem',
+                      fontWeight: 500
+                    }}>
+                      <MdEdit size={18} />
+                      <span>تحديث</span>
                     </Box>
-                  </TableCell>
-                  <TableCell sx={{ fontFamily: 'inherit' }}>{item.category}</TableCell>
-                  <TableCell sx={{ fontFamily: 'inherit' }}>{item.stock}</TableCell>
-                  <TableCell sx={{ fontFamily: 'inherit' }}>{item.costPrice} ر.س</TableCell>
-                  <TableCell sx={{ fontFamily: 'inherit' }}>{item.price} ر.س</TableCell>
-                  <TableCell>
-                    <Alert 
-                      severity={item.stock < item.minStock ? "error" : "success"}
-                      icon={item.stock < item.minStock ? <FaExclamationTriangle /> : null}
-                      sx={{ 
-                        '& .MuiAlert-message': { 
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          fontFamily: 'inherit'
-                        }
-                      }}
-                    >
-                      {item.stock < item.minStock ? 'منخفض' : 'جيد'}
-                    </Alert>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="تحديث المخزون والتكلفة">
-                      <IconButton
-                        onClick={() => {
-                          setSelectedProduct(item);
-                          setNewStockLevel(item.stock?.toString() || '0');
-                          setNewCostPrice(item.costPrice?.toString() || '0');
-                          setStockDialog(true);
-                        }}
-                        sx={{
-                          color: '#3699ff',
-                          '&:hover': {
-                            backgroundColor: 'rgba(54, 153, 255, 0.1)',
-                          }
-                        }}
-                      >
-                        <MdEdit size={20} />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            {filteredInventory.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                  <Typography variant="body1" color="textSecondary">
-                    لا توجد نتائج تطابق معايير البحث
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                  </ActionIconButton>
+                </ActionMenu>
+              </TableCell>
+            </TableRow>))}
+          {filteredInventory.length === 0 && (<TableRow>
+            <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+              <Typography variant="body1" color="textSecondary">
+                لا توجد نتائج تطابق معايير البحث
+              </Typography>
+            </TableCell>
+          </TableRow>)}
+        </TableBody></StyledTable>
       </TableContainer>
       <StyledTablePagination
         rowsPerPageOptions={[5, 10, 25]}
@@ -827,13 +922,38 @@ const InventoryReports = () => {
               selectedProduct={selectedProduct}
               newStockLevel={newStockLevel}
               newCostPrice={newCostPrice}
+              newMinStock={newMinStock}  // Add this
               setNewStockLevel={setNewStockLevel}
               setNewCostPrice={setNewCostPrice}
+              setNewMinStock={setNewMinStock}  // Add this
               handleUpdateStock={handleUpdateStock}
               onClose={() => setStockDialog(false)}
             />
           </StockAdjustmentDialog>
         )}
+
+        <StyledSnackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <MuiAlert
+            elevation={6}
+            variant="filled"
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{
+              width: '100%',
+              fontSize: '1rem',
+              '& .MuiAlert-icon': {
+                fontSize: '1.5rem'
+              }
+            }}
+          >
+            {snackbar.message}
+          </MuiAlert>
+        </StyledSnackbar>
       </ManagementContainer>
     </GlobalStyles>
   );

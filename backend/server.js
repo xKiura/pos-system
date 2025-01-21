@@ -1,9 +1,72 @@
+const fs = require('fs').promises;
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const LocalStorage = require('./services/localStorage');
 
 const app = express();
 const storage = new LocalStorage('db.json');
+
+// Ensure data directory exists
+const initializeServer = async () => {
+  try {
+    // Create data directory if it doesn't exist
+    await fs.mkdir(path.join(__dirname, 'data'), { recursive: true });
+    
+    // Initialize storage
+    await storage.init();
+    
+    // Check if db.json exists, if not create it with initial data
+    const dbPath = path.join(__dirname, 'data', 'db.json');
+    try {
+      await fs.access(dbPath);
+      // Read existing data
+      const data = await fs.readFile(dbPath, 'utf8');
+      const parsedData = JSON.parse(data);
+      
+      // Ensure products array exists
+      if (!parsedData.products) {
+        parsedData.products = [];
+        await fs.writeFile(dbPath, JSON.stringify(parsedData, null, 2));
+      }
+    } catch {
+      // Create new db.json with initial data
+      const initialData = {
+        products: [
+          {
+            id: "123",
+            name: "مندي لحم",
+            price: "45",
+            image: "https://example.com/image.jpg",
+            category: "رز",
+            stock: 10,
+            minStock: 5,
+            costPrice: 35
+          }
+          // Add more initial products if needed
+        ],
+        settings: {
+          taxRate: 15,
+          printCopies: 1,
+          requireManagerApproval: false,
+          history: []
+        },
+        users: []
+      };
+      await fs.writeFile(dbPath, JSON.stringify(initialData, null, 2));
+    }
+    
+    console.log('Server initialized successfully');
+  } catch (error) {
+    console.error('Error initializing server:', error);
+    process.exit(1);
+  }
+};
+
+// Initialize server before starting
+initializeServer().then(() => {
+  // ... rest of your server code ...
+});
 
 // Initialize empty arrays for history
 let settingsHistory = [];
@@ -53,6 +116,59 @@ app.use(express.json());
 // Add categories route
 const categoriesRouter = require('./routes/categories');
 app.use('/categories', categoriesRouter);
+
+// Add products endpoints
+app.get('/products', async (req, res) => {
+  try {
+    await storage.init(); // Ensure storage is initialized
+    const products = await storage.get('products');
+    console.log('Fetched products:', products); // Add logging
+    res.json(products || []);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+app.patch('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const products = await storage.get('products') || [];
+    const productIndex = products.findIndex(p => p.id === id);
+    
+    if (productIndex === -1) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const updatedProduct = {
+      ...products[productIndex],
+      ...req.body
+    };
+
+    products[productIndex] = updatedProduct;
+    await storage.set('products', products);
+    
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
+// Update categories endpoint
+app.get('/categories', async (req, res) => {
+  try {
+    await storage.init(); // Ensure storage is initialized
+    const products = await storage.get('products');
+    console.log('Products for categories:', products); // Add logging
+    const categories = [...new Set((products || []).map(product => product.category))];
+    console.log('Extracted categories:', categories); // Add logging
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
 
 // Settings routes
 app.get('/settings', async (req, res) => {
@@ -342,7 +458,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-const PORT = 5001;
+const PORT = 5001;  // Changed from 5000 to 5001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -313,17 +313,29 @@ function ManagementPage() {
       case 'INVENTORY_UPDATE':
         return (
           <div>
-            {change.changes.map((c, i) => (
-              <div key={i}>
-                تم تحديث المنتج "{c.productName}":
-                <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
-                  <li>المخزون: من {c.oldStock} إلى {c.newStock}</li>
-                  {c.oldCostPrice !== c.newCostPrice && (
-                    <li>سعر التكلفة: من {c.oldCostPrice} إلى {c.newCostPrice} ر.س</li>
-                  )}
-                </ul>
-              </div>
-            ))}
+            {change.changes.map((c, i) => {
+              const changes = [];
+              
+              // Only add items that actually changed
+              if (c.oldStock !== c.newStock) {
+                changes.push(<li key="stock">المخزون: من {c.oldStock} إلى {c.newStock}</li>);
+              }
+              if (c.oldCostPrice !== c.newCostPrice) {
+                changes.push(<li key="cost">سعر التكلفة: من {c.oldCostPrice} إلى {c.newCostPrice} ر.س</li>);
+              }
+              if (c.oldMinStock !== c.newMinStock) {
+                changes.push(<li key="minStock">الحد الأدنى: من {c.oldMinStock} إلى {c.newMinStock}</li>);
+              }
+
+              return changes.length > 0 ? (
+                <div key={i}>
+                  تم تحديث المنتج "{c.productName}":
+                  <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
+                    {changes}
+                  </ul>
+                </div>
+              ) : null;
+            })}
           </div>
         );
       

@@ -283,10 +283,13 @@ export const HistoryChanges = ({ onRefresh }) => {
               <div key={i}>
                 تم تحديث المنتج "{c.productName}":
                 <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
-                  <li>المخزون: من {c.oldStock} إلى {c.newStock}</li>
-                  {c.oldCostPrice !== c.newCostPrice && (
-                    <li>سعر التكلفة: من {c.oldCostPrice} إلى {c.newCostPrice} ر.س</li>
-                  )}
+                  {c.changes.map((change, index) => (
+                    <li key={index}>
+                      {change.field === 'stock' && `المخزون: من ${change.oldValue} إلى ${change.newValue}`}
+                      {change.field === 'costPrice' && `سعر التكلفة: من ${change.oldValue} إلى ${change.newValue} ر.س`}
+                      {change.field === 'minStock' && `الحد الأدنى: من ${change.oldValue} إلى ${change.newValue}`}
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
