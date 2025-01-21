@@ -302,8 +302,11 @@ function ManagementPage() {
   };
 
   const formatChangeDetails = (change) => {
+    if (!change) return 'تغيير غير معروف';
+
     switch (change.type) {
       case 'SETTINGS':
+        if (!change.changes || !Array.isArray(change.changes)) return 'تغيير في الإعدادات';
         return change.changes.map((c, i) => (
           <div key={i}>
             تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
@@ -311,58 +314,59 @@ function ManagementPage() {
         ));
       
       case 'INVENTORY_UPDATE':
+        if (!change.changes || !Array.isArray(change.changes)) return 'تحديث المخزون';
         return (
           <div>
             {change.changes.map((c, i) => {
-              const changes = [];
+              if (!c || !c.detailedChanges) return null;
               
-              // Only add items that actually changed
-              if (c.oldStock !== c.newStock) {
-                changes.push(<li key="stock">المخزون: من {c.oldStock} إلى {c.newStock}</li>);
-              }
-              if (c.oldCostPrice !== c.newCostPrice) {
-                changes.push(<li key="cost">سعر التكلفة: من {c.oldCostPrice} إلى {c.newCostPrice} ر.س</li>);
-              }
-              if (c.oldMinStock !== c.newMinStock) {
-                changes.push(<li key="minStock">الحد الأدنى: من {c.oldMinStock} إلى {c.newMinStock}</li>);
-              }
+              const changes = c.detailedChanges.map((detail, index) => (
+                <li key={index}>
+                  {detail.field}: من {detail.oldValue} إلى {detail.newValue}
+                  {detail.field === 'سعر التكلفة' ? ' ر.س' : ''}
+                </li>
+              ));
 
-              return changes.length > 0 ? (
+              return (
                 <div key={i}>
                   تم تحديث المنتج "{c.productName}":
                   <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
                     {changes}
                   </ul>
                 </div>
-              ) : null;
+              );
             })}
           </div>
         );
       
       case 'PRODUCT_ADD':
+        if (!change.product) return 'تمت إضافة منتج';
         return `تمت إضافة منتج "${change.product.name}"`;
       
       case 'PRODUCT_EDIT':
+        if (!change.product) return 'تم تعديل منتج';
         return `تم تعديل منتج "${change.product.name}"`;
       
       case 'PRODUCT_DELETE':
+        if (!change.product) return 'تم حذف منتج';
         return `تم حذف منتج "${change.product.name}"`;
       
       case 'BILL_REFUND':
-        return `تم استرجاع الفاتورة رقم ${change.billNumber}`;
+        return `تم استرجاع الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
       
       case 'BILL_REPRINT':
-        return `تمت إعادة طباعة الفاتورة رقم ${change.billNumber}`;
+        return `تمت إعادة طباعة الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
       
       case 'BILL_DELETE':
-        return `تم حذف الفاتورة رقم ${change.billNumber}`;
+        return `تم حذف الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
       
       case 'REPORT_EXPORT':
+        if (!change.changes || !Array.isArray(change.changes)) return 'تم تصدير تقرير';
         return (
           <div>
-            <div>مصدر التغيير: {change.origin}</div>
+            <div>مصدر التغيير: {change.origin || 'غير معروف'}</div>
             {change.changes.map((c, i) => (
-              <div key={i}>{c.details}</div>
+              <div key={i}>{c.details || 'تفاصيل غير متوفرة'}</div>
             ))}
           </div>
         );

@@ -213,15 +213,15 @@ export const HistoryChanges = ({ onRefresh }) => {
       ]);
 
       const allChanges = [
-        ...(settings.data || []).filter(change => {
-          // Keep the original type instead of forcing everything to SETTINGS
-          return change.type || 'SETTINGS';
-        }),
-        ...(products.data || []).map(change => ({
+        ...(Array.isArray(settings.data) ? settings.data : []).map(change => ({
+          ...change,
+          type: change.type || 'SETTINGS'
+        })),
+        ...(Array.isArray(products.data) ? products.data : []).map(change => ({
           ...change,
           type: change.action ? change.action.toUpperCase() : 'UNKNOWN'
         })),
-        ...(bills.data || []).map(change => ({
+        ...(Array.isArray(bills.data) ? bills.data : []).map(change => ({
           ...change,
           type: change.action ? change.action.toUpperCase() : 'UNKNOWN'
         }))
@@ -233,6 +233,7 @@ export const HistoryChanges = ({ onRefresh }) => {
       }
     } catch (error) {
       console.error('Error fetching history:', error);
+      setChanges([]);
     }
   };
 
@@ -268,31 +269,40 @@ export const HistoryChanges = ({ onRefresh }) => {
 
     switch (change.type) {
       case 'SETTINGS':
-        return change.changes && Array.isArray(change.changes) 
-          ? change.changes.map((c, i) => (
-              <div key={i}>
-                تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
-              </div>
-            ))
-          : 'تم تغيير الإعدادات';
+        if (!change.changes || !Array.isArray(change.changes)) return 'تغيير في الإعدادات';
+        return change.changes.map((c, i) => (
+          <div key={i}>
+            تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
+          </div>
+        ));
       
       case 'INVENTORY_UPDATE':
+        if (!change.changes || !Array.isArray(change.changes)) return 'تحديث في المخزون';
         return (
           <div>
-            {change.changes.map((c, i) => (
-              <div key={i}>
-                تم تحديث المنتج "{c.productName}":
-                <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
-                  {c.changes.map((change, index) => (
-                    <li key={index}>
-                      {change.field === 'stock' && `المخزون: من ${change.oldValue} إلى ${change.newValue}`}
-                      {change.field === 'costPrice' && `سعر التكلفة: من ${change.oldValue} إلى ${change.newValue} ر.س`}
-                      {change.field === 'minStock' && `الحد الأدنى: من ${change.oldValue} إلى ${change.newValue}`}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            {change.changes.map((c, i) => {
+              if (!c || !c.detailedChanges || !Array.isArray(c.detailedChanges)) {
+                return (
+                  <div key={i}>
+                    تم تحديث المنتج "{c?.productName || 'غير معروف'}"
+                  </div>
+                );
+              }
+
+              return (
+                <div key={i}>
+                  تم تحديث المنتج "{c.productName}":
+                  <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
+                    {c.detailedChanges.map((detail, index) => (
+                      <li key={index}>
+                        {detail.field}: من {detail.oldValue} إلى {detail.newValue}
+                        {detail.field === 'سعر التكلفة' ? ' ر.س' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         );
       
@@ -382,41 +392,48 @@ export const HistoryChanges = ({ onRefresh }) => {
 
       <ScrollableContent>
         <AnimatePresence mode="sync">
-          {filteredChanges.map((change, index) => (
-            <HistoryItem
-              key={change.timestamp + index}
-              variants={itemVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ 
-                duration: 0.2,
-                delay: index * 0.05,
-                ease: "easeOut"
-              }}
-            >
-              <div>
-                <ChangeTypeBadge className={getChangeTypeBadgeClass(change.type)}>
-                  {translations.changeTypes[change.type] || 'UNKNOWN'}
-                </ChangeTypeBadge>
-                <TimeStamp>
-                  {change.timestamp ? format(new Date(change.timestamp), 'PPpp', { locale: ar }) : 'وقت غير معروف'}
-                </TimeStamp>
-              </div>
-              <UserInfo>
-                <strong>الموظف:</strong>{' '}
-                <span className="employee-info">
-                  {change.employeeName} #{change.employeeNumber}
-                </span>
-              </UserInfo>
-              <ChangeDetails>
-                {formatChangeDetails(change)}
-              </ChangeDetails>
-            </HistoryItem>
-          ))}
+          {filteredChanges.map((change, index) => {
+            if (!change) return null;
+            
+            return (
+              <HistoryItem
+                key={`${change.timestamp || index}-${index}`}
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ 
+                  duration: 0.2,
+                  delay: index * 0.05,
+                  ease: "easeOut"
+                }}
+              >
+                <div>
+                  <ChangeTypeBadge className={getChangeTypeBadgeClass(change.type)}>
+                    {translations.changeTypes[change.type] || 'نوع غير معروف'}
+                  </ChangeTypeBadge>
+                  <TimeStamp>
+                    {change.timestamp ? 
+                      format(new Date(change.timestamp), 'PPpp', { locale: ar }) : 
+                      'وقت غير معروف'
+                    }
+                  </TimeStamp>
+                </div>
+                <UserInfo>
+                  <strong>الموظف:</strong>{' '}
+                  <span className="employee-info">
+                    {change.employeeName || 'غير معروف'} #{change.employeeNumber || '???'}
+                  </span>
+                </UserInfo>
+                <ChangeDetails>
+                  {formatChangeDetails(change)}
+                </ChangeDetails>
+              </HistoryItem>
+            );
+          })}
         </AnimatePresence>
         
-        {filteredChanges.length === 0 && (
+        {(!filteredChanges || filteredChanges.length === 0) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -546,28 +546,55 @@ const InventoryReports = () => {
         );
   
         try {
-          // Log to history - using the correct endpoint
+          // Create a detailed history entry
+          const changes = [];
+          
+          if (selectedProduct.stock !== stockLevel) {
+            changes.push({
+              field: 'المخزون',
+              oldValue: selectedProduct.stock,
+              newValue: stockLevel
+            });
+          }
+          
+          if (selectedProduct.costPrice !== costPrice) {
+            changes.push({
+              field: 'سعر التكلفة',
+              oldValue: selectedProduct.costPrice,
+              newValue: costPrice
+            });
+          }
+          
+          if (selectedProduct.minStock !== minStock) {
+            changes.push({
+              field: 'الحد الأدنى',
+              oldValue: selectedProduct.minStock,
+              newValue: minStock
+            });
+          }
+  
           const historyEntry = {
             timestamp: new Date().toISOString(),
             employeeName: localStorage.getItem('employeeName') || 'Unknown',
             employeeNumber: localStorage.getItem('employeeNumber') || 'Unknown',
             type: 'INVENTORY_UPDATE',
-            origin: 'صفحة المخزون',
+            origin: 'تقارير المخزون',
             changes: [{
               productName: selectedProduct.name,
-              changes: [
-                { field: 'stock', oldValue: selectedProduct.stock, newValue: stockLevel },
-                { field: 'costPrice', oldValue: selectedProduct.costPrice, newValue: costPrice },
-                { field: 'minStock', oldValue: selectedProduct.minStock, newValue: minStock }
-              ]
+              oldStock: selectedProduct.stock,
+              newStock: stockLevel,
+              oldCostPrice: selectedProduct.costPrice,
+              newCostPrice: costPrice,
+              oldMinStock: selectedProduct.minStock,
+              newMinStock: minStock,
+              detailedChanges: changes
             }]
           };
   
-          // Changed from settings-history to history
-          await axios.post('http://localhost:5000/history', historyEntry);
+          // Send to settings history endpoint for management page
+          await axios.post('http://localhost:5001/settings-history', historyEntry);
         } catch (historyError) {
           console.warn('Failed to log history, but product was updated:', historyError);
-          // Don't throw error here - the main operation succeeded
         }
   
         setSnackbar({
@@ -576,7 +603,6 @@ const InventoryReports = () => {
           severity: 'success'
         });
   
-        // Close dialog and reset form
         setStockDialog(false);
         setSelectedProduct(null);
         setNewStockLevel('');

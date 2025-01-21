@@ -6,9 +6,9 @@
       "price": "45",
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
       "category": "رز",
-      "stock": 3,
-      "minStock": 1,
-      "costPrice": 1,
+      "stock": 4,
+      "minStock": 2,
+      "costPrice": 0,
       "adjustmentDate": "2025-01-21T19:30:21.071Z"
     },
     {
