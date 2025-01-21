@@ -423,19 +423,19 @@ const InventoryReports = () => {
   const fetchCategories = async () => {
     try {
       console.log('Fetching categories...');
-      const response = await axios.get('http://localhost:5000/categories'); // Changed from 5001 to 5000
+      const response = await axios.get('http://localhost:5000/categories');
       console.log('Received categories data:', response.data);
       
       if (Array.isArray(response.data)) {
-        setCategories(['الكل', ...response.data]); // Add 'الكل' to categories
+        setCategories(response.data); // Remove 'الكل' - we'll use 'جميع الفئات' in the select instead
       } else {
         console.error('Received non-array data:', response.data);
-        const uniqueCategories = ['الكل', ...new Set(inventory.map(item => item.category))];
+        const uniqueCategories = [...new Set(inventory.map(item => item.category))];
         setCategories(uniqueCategories);
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
-      const uniqueCategories = ['الكل', ...new Set(inventory.map(item => item.category))];
+      const uniqueCategories = [...new Set(inventory.map(item => item.category))];
       setCategories(uniqueCategories);
     }
   };

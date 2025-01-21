@@ -145,6 +145,7 @@ app.get('/products', async (req, res) => {
 app.patch('/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    await storage.init();
     const products = await storage.get('products') || [];
     const productIndex = products.findIndex(p => p.id === id);
     
@@ -152,11 +153,13 @@ app.patch('/products/:id', async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Update the product with new data
     const updatedProduct = {
       ...products[productIndex],
-      ...req.body
+      ...req.body,
     };
 
+    // Save the updated product
     products[productIndex] = updatedProduct;
     await storage.set('products', products);
     
@@ -170,25 +173,14 @@ app.patch('/products/:id', async (req, res) => {
 // Update categories endpoint
 app.get('/categories', async (req, res) => {
   try {
-    console.log('Categories request received');
-    await storage.init(); // Ensure storage is initialized
-    const products = await storage.get('products');
-    console.log('Products for categories:', products);
-    
-    if (!products || !Array.isArray(products)) {
-      console.log('No valid products found, sending empty array');
-      return res.json([]);
-    }
-    
+    await storage.init();
+    const products = await storage.get('products') || [];
+    // Extract unique categories from products
     const categories = [...new Set(products.map(product => product.category))];
-    console.log('Sending categories:', categories);
     res.json(categories);
   } catch (error) {
-    console.error('Error in /categories route:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch categories',
-      details: error.message 
-    });
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 
