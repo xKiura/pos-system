@@ -45,6 +45,14 @@
       "email": "reda086689@gmail.com",
       "phoneNumber": "0578474275",
       "createdAt": "2025-01-20T10:42:12.374Z"
+    },
+    {
+      "name": "ali",
+      "employeeNumber": "10001",
+      "pin": "0000",
+      "email": "alabandiali31@gmail.com",
+      "phoneNumber": "0542553707",
+      "createdAt": "2025-01-21T20:21:12.175Z"
     }
   ],
   "products": []

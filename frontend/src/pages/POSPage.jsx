@@ -66,7 +66,7 @@ const animateAndRemoveAllItems = (items, finalCallback) => {
 
 function POSPage() {
   const { currentUser } = useAuth();
-  const { settings } = useSettings();
+  const { settings, setSettings } = useSettings();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -392,6 +392,20 @@ function POSPage() {
       return;
     }
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    // Add this section to load settings
+    const savedSettings = localStorage.getItem('posSettings');
+    if (savedSettings) {
+      try {
+        setSettings(JSON.parse(savedSettings));
+      } catch (error) {
+        console.error('Error parsing settings:', error);
+      }
+    }
+    
+    // ...rest of your existing useEffect code...
+  }, []);
 
   return (
     <div className="page-container">
@@ -857,6 +871,7 @@ function POSPage() {
                   employeeNumber={currentUser?.employeeNumber}
                   orderNumber={orderNumber}
                   isRefunded={false}  // Since this is for new bills
+                  settings={settings}  // Add this line
                 />
               </div>
               <div className="bill-container">

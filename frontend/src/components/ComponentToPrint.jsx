@@ -25,7 +25,12 @@ export const ComponentToPrint = React.forwardRef((props, ref) => {
   const { bill, employeeName, employeeNumber, orderNumber, isRefunded } = props;
   const { settings } = useSettings();
   
+  console.log('Print Settings:', settings); // Add this debug line
+
   const { subtotal, tax, total } = calculateTotals(bill, settings?.taxRate || 15);
+
+  const restaurantName = settings?.restaurantName || 'مطعمي';
+  const restaurantLogo = settings?.restaurantLogo;
 
   return (
     <div ref={ref} className="print-container" style={{
@@ -39,7 +44,22 @@ export const ComponentToPrint = React.forwardRef((props, ref) => {
         textAlign: 'center',
         marginBottom: '20px'
       }}>
-        <h2 style={{ margin: '0' }}>{settings.restaurantName}</h2>
+        {restaurantLogo && (
+          <img 
+            src={restaurantLogo} 
+            alt={restaurantName}
+            style={{
+              maxWidth: '150px',
+              maxHeight: '150px',
+              marginBottom: '10px'
+            }}
+          />
+        )}
+        <h2 style={{ 
+          margin: '0 0 10px 0',
+          fontSize: '1.5em',
+          fontWeight: 'bold'
+        }}>{restaurantName}</h2>
         <p style={{ margin: '5px 0' }}>
           رقم الفاتورة: #{orderNumber.toString().padStart(6, '0')}
         </p>

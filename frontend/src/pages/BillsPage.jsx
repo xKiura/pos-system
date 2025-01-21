@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { FaFilter, FaCalendar } from 'react-icons/fa';
 import { Box } from '@mui/material'; // Add this import
+import { useSettings } from '../context/SettingsContext';
 
 // Update TopBar styled component
 const TopBar = styled('div')(({ theme }) => ({
@@ -511,6 +512,7 @@ const roundToNearestHalf = (num) => {
 };
 
 function BillsPage() {
+    const { settings } = useSettings();
     const [dateFilter, setDateFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('الكل');
     const [totalProfit, setTotalProfit] = useState(0);
@@ -657,7 +659,7 @@ function BillsPage() {
 
         const printContent = `
             <div style="font-family: Arial, sans-serif; text-align: center; direction: rtl;">
-                <h2 style="margin: 0;">مندي ومشوي</h2>
+                <h2 style="margin: 0;">${settings?.restaurantName || 'مطعمي'}</h2>
                 <p style="margin: 5px 0;">رقم الفاتورة: ${order.orderNumber}</p>
                 <p style="margin: 5px 0;">${order.date} ${order.time}</p>
                 <p style="margin: 5px 0;">الموظف: ${order.employeeName} (#${order.employeeNumber})</p>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaHistory, FaSave, FaPercent, FaPrint, FaUserShield } from 'react-icons/fa';
+import { FaArrowLeft, FaHistory, FaSave, FaPercent, FaPrint, FaUserShield, FaStore, FaImage } from 'react-icons/fa';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
@@ -156,6 +156,8 @@ const formatChangeValue = (key, value) => {
 
 const getSettingName = (key) => {
   const names = {
+    restaurantName: 'اسم المطعم',
+    restaurantLogo: 'شعار المطعم',
     taxRate: 'نسبة الضريبة',
     printCopies: 'عدد النسخ',
     requireManagerApproval: 'موافقة المدير'
@@ -169,6 +171,8 @@ function ManagementPage() {
     taxRate: 15,
     printCopies: 1,
     requireManagerApproval: false,
+    restaurantName: 'مطعمي',
+    restaurantLogo: '',
   });
   const [changeHistory, setChangeHistory] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -237,6 +241,15 @@ function ManagementPage() {
         return;
       }
 
+      // Map the English keys to Arabic names when creating history
+      const keyToArabic = {
+        restaurantName: 'اسم المطعم',
+        restaurantLogo: 'شعار المطعم',
+        taxRate: 'نسبة الضريبة',
+        printCopies: 'عدد النسخ',
+        requireManagerApproval: 'موافقة المدير'
+      };
+
       const historyEntry = {
         timestamp: new Date().toISOString(),
         employeeName: currentEmployeeName,
@@ -244,7 +257,7 @@ function ManagementPage() {
         type: 'SETTINGS',
         origin: 'صفحة الإعدادات',
         changes: Object.entries(tempSettings).map(([key, value]) => ({
-          setting: key,
+          setting: keyToArabic[key] || key, // Use Arabic name instead of English key
           oldValue: formatChangeValue(key, settings[key]),
           newValue: formatChangeValue(key, value)
         }))
@@ -301,17 +314,30 @@ function ManagementPage() {
     }
   };
 
+  // Update the formatChangeDetails function
   const formatChangeDetails = (change) => {
     if (!change) return 'تغيير غير معروف';
 
     switch (change.type) {
       case 'SETTINGS':
         if (!change.changes || !Array.isArray(change.changes)) return 'تغيير في الإعدادات';
-        return change.changes.map((c, i) => (
-          <div key={i}>
-            تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
-          </div>
-        ));
+        return change.changes.map((c, i) => {
+          const settingName = getSettingName(c.setting);
+          let formattedOld = c.oldValue;
+          let formattedNew = c.newValue;
+
+          // Special handling for restaurant name and logo
+          if (c.setting === 'restaurantName' || c.setting === 'restaurantLogo') {
+            formattedOld = `"${c.oldValue || 'لا يوجد'}"`;
+            formattedNew = `"${c.newValue}"`;
+          }
+
+          return (
+            <div key={i}>
+              تم تغيير {settingName} من {formattedOld} إلى {formattedNew}
+            </div>
+          );
+        });
       
       case 'INVENTORY_UPDATE':
         if (!change.changes || !Array.isArray(change.changes)) return 'تحديث المخزون';
@@ -419,6 +445,18 @@ function ManagementPage() {
     );
   };
 
+  // Add this function to handle image upload
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleSettingChange('restaurantLogo', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <ManagementContainer>
       <TopBar>
@@ -431,6 +469,42 @@ function ManagementPage() {
       </TopBar>
 
       <SettingsGrid>
+        <SettingCard>
+          <h3><FaStore /> اسم المطعم</h3>
+          <Form.Group>
+            <Form.Control
+              type="text"
+              value={tempSettings.restaurantName ?? settings.restaurantName}
+              onChange={(e) => handleSettingChange('restaurantName', e.target.value)}
+              placeholder="أدخل اسم المطعم"
+            />
+          </Form.Group>
+        </SettingCard>
+
+        <SettingCard>
+          <h3><FaImage /> شعار المطعم</h3>
+          <div style={{ textAlign: 'center' }}>
+            {(tempSettings.restaurantLogo || settings.restaurantLogo) && (
+              <img 
+                src={tempSettings.restaurantLogo || settings.restaurantLogo} 
+                alt="شعار المطعم"
+                style={{ 
+                  maxWidth: '200px', 
+                  maxHeight: '200px', 
+                  marginBottom: '1rem' 
+                }}
+              />
+            )}
+            <Form.Group>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+            </Form.Group>
+          </div>
+        </SettingCard>
+
         <SettingCard>
           <h3><FaPercent /> نسبة الضريبة</h3>
           <Form.Group>

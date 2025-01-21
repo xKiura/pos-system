@@ -49,6 +49,8 @@ const initializeServer = async () => {
           taxRate: 15,
           printCopies: 1,
           requireManagerApproval: false,
+          restaurantName: 'مطعمي',
+          restaurantLogo: '',
           history: []
         },
         users: []
@@ -206,11 +208,22 @@ app.get('/settings/history', async (req, res) => {
 app.post('/settings', async (req, res) => {
   try {
     const settings = await storage.get('settings');
-    const { taxRate, printCopies, requireManagerApproval, changedBy, employeeNumber, changes } = req.body;
+    const { 
+      taxRate, 
+      printCopies, 
+      requireManagerApproval, 
+      restaurantName,
+      restaurantLogo,
+      changedBy, 
+      employeeNumber, 
+      changes 
+    } = req.body;
 
     if (taxRate !== undefined) settings.taxRate = taxRate;
     if (printCopies !== undefined) settings.printCopies = printCopies;
     if (requireManagerApproval !== undefined) settings.requireManagerApproval = requireManagerApproval;
+    if (restaurantName !== undefined) settings.restaurantName = restaurantName;
+    if (restaurantLogo !== undefined) settings.restaurantLogo = restaurantLogo;
 
     if (changes && changes.length > 0) {
       if (!settings.history) settings.history = [];
@@ -238,7 +251,7 @@ app.post('/settings-history', (req, res) => {
     return res.status(400).json({ error: 'Employee information is required' });
   }
 
-  // Keep the original type from the request instead of modifying it
+  // Keep the Arabic setting names as they are
   const historyEntry = {
     id: Date.now(),
     timestamp: new Date().toISOString(),
@@ -246,15 +259,8 @@ app.post('/settings-history', (req, res) => {
     employeeNumber: req.body.employeeNumber,
     type: req.body.type || 'UNKNOWN',
     origin: req.body.origin || 'غير محدد',
-    changes: req.body.changes || []
+    changes: req.body.changes || [] // Keep the Arabic setting names from the frontend
   };
-
-  // Log the entry for debugging
-  console.log('Processing history entry:', {
-    type: historyEntry.type,
-    origin: historyEntry.origin,
-    changes: historyEntry.changes
-  });
 
   settingsHistory.unshift(historyEntry);
   settingsHistory = settingsHistory.slice(0, 100);
