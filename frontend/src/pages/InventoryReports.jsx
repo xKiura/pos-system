@@ -51,6 +51,7 @@ import {
 } from 'recharts';
 import { MdEdit, MdSearch, MdFilterList, MdClear } from 'react-icons/md';
 import MuiAlert from '@mui/material/Alert';
+import axios from 'axios'; // Add this at the top with other imports
 
 // Styled Components
 const ManagementContainer = styled('div')(({ theme }) => ({
@@ -385,37 +386,56 @@ const InventoryReports = () => {
 
   useEffect(() => {
     const init = async () => {
-      await fetchInventory();
-      await fetchCategories();
+      try {
+        setLoading(true);
+        setError(null);
+        await fetchInventory(); // Fetch inventory first
+        await fetchCategories(); // Then fetch categories
+      } catch (err) {
+        console.error('Initialization error:', err);
+        setError('Failed to initialize data');
+      } finally {
+        setLoading(false);
+      }
     };
     init();
   }, []);
 
   const fetchInventory = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('http://localhost:5001/products'); // Changed from 5000 to 5001
-      if (!response.ok) throw new Error('Failed to fetch inventory');
-      const data = await response.json();
-      setInventory(data);
+      console.log('Fetching inventory...');
+      const response = await axios.get('http://localhost:5000/products'); // Changed from 5001 to 5000
+      console.log('Received inventory data:', response.data);
+      
+      if (Array.isArray(response.data)) {
+        setInventory(response.data);
+      } else {
+        console.error('Received non-array data:', response.data);
+        setInventory([]);
+      }
     } catch (err) {
-      setError(err.message);
       console.error('Error fetching inventory:', err);
-    } finally {
-      setLoading(false);
+      setError('Failed to fetch inventory data');
+      setInventory([]);
     }
   };
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5001/categories');  // Changed from 5000 to 5001
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      const data = await response.json();
-      setCategories(data);
+      console.log('Fetching categories...');
+      const response = await axios.get('http://localhost:5000/categories'); // Changed from 5001 to 5000
+      console.log('Received categories data:', response.data);
+      
+      if (Array.isArray(response.data)) {
+        setCategories(['الكل', ...response.data]); // Add 'الكل' to categories
+      } else {
+        console.error('Received non-array data:', response.data);
+        const uniqueCategories = ['الكل', ...new Set(inventory.map(item => item.category))];
+        setCategories(uniqueCategories);
+      }
     } catch (err) {
       console.error('Error fetching categories:', err);
-      // Fallback: Extract unique categories from inventory
-      const uniqueCategories = [...new Set(inventory.map(item => item.category))];
+      const uniqueCategories = ['الكل', ...new Set(inventory.map(item => item.category))];
       setCategories(uniqueCategories);
     }
   };
@@ -451,20 +471,15 @@ const InventoryReports = () => {
         return;
       }
 
-      // First update the product
-      const response = await fetch(`http://localhost:5001/products/${selectedProduct.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stock: stockLevel,
-          costPrice: costPrice,
-          minStock: minStock,
-          adjustmentDate: new Date().toISOString()
-        })
+      // Update using axios
+      const response = await axios.patch(`http://localhost:5001/products/${selectedProduct.id}`, {
+        stock: stockLevel,
+        costPrice: costPrice,
+        minStock: minStock,
+        adjustmentDate: new Date().toISOString()
       });
 
-      if (!response.ok) throw new Error('Failed to update stock');
-      const updatedProduct = await response.json();
+      const updatedProduct = response.data;
 
       // Only include changes that actually occurred
       const changes = [];
@@ -504,12 +519,8 @@ const InventoryReports = () => {
           }]
         };
 
-        // Save to history
-        await fetch('http://localhost:5001/settings-history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(historyEntry)
-        });
+        // Save to history using axios
+        await axios.post('http://localhost:5001/settings-history', historyEntry);
       }
 
       setInventory(prev => prev.map(item => 
@@ -620,7 +631,7 @@ const InventoryReports = () => {
 
   const renderInventoryOverview = () => (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={2.5}>
         <StyledCard>
           <CardContent>
             <Typography variant="h6" gutterBottom>إجمالي المنتجات</Typography>
@@ -628,7 +639,7 @@ const InventoryReports = () => {
           </CardContent>
         </StyledCard>
       </Grid>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={4}>
         <StyledCard>
           <CardContent>
             <Typography variant="h6" gutterBottom>المنتجات منخفضة المخزون</Typography>
@@ -638,7 +649,7 @@ const InventoryReports = () => {
           </CardContent>
         </StyledCard>
       </Grid>
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={2.5}>
         <StyledCard>
           <CardContent>
             <Typography variant="h6" gutterBottom>قيمة المخزون</Typography>

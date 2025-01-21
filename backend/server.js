@@ -108,8 +108,10 @@ let confirmedOrders = [];
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:3000', // Your React app's URL
-    credentials: true
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
@@ -117,16 +119,26 @@ app.use(express.json());
 const categoriesRouter = require('./routes/categories');
 app.use('/categories', categoriesRouter);
 
-// Add products endpoints
+// Update products endpoint
 app.get('/products', async (req, res) => {
   try {
-    await storage.init(); // Ensure storage is initialized
+    console.log('Products request received');
+    await storage.init();
     const products = await storage.get('products');
-    console.log('Fetched products:', products); // Add logging
-    res.json(products || []);
+    console.log('Products from storage:', products);
+    
+    if (!products) {
+      // Return empty array instead of null
+      return res.json([]);
+    }
+    
+    res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
-    res.status(500).json({ error: 'Failed to fetch products' });
+    res.status(500).json({ 
+      error: 'Failed to fetch products',
+      details: error.message 
+    });
   }
 });
 
@@ -158,15 +170,25 @@ app.patch('/products/:id', async (req, res) => {
 // Update categories endpoint
 app.get('/categories', async (req, res) => {
   try {
+    console.log('Categories request received');
     await storage.init(); // Ensure storage is initialized
     const products = await storage.get('products');
-    console.log('Products for categories:', products); // Add logging
-    const categories = [...new Set((products || []).map(product => product.category))];
-    console.log('Extracted categories:', categories); // Add logging
+    console.log('Products for categories:', products);
+    
+    if (!products || !Array.isArray(products)) {
+      console.log('No valid products found, sending empty array');
+      return res.json([]);
+    }
+    
+    const categories = [...new Set(products.map(product => product.category))];
+    console.log('Sending categories:', categories);
     res.json(categories);
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({ error: 'Failed to fetch categories' });
+    console.error('Error in /categories route:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch categories',
+      details: error.message 
+    });
   }
 });
 
