@@ -69,16 +69,16 @@ const animateAndRemoveAllItems = (items, finalCallback) => {
 const stockStyles = {
   productCard: {
     position: 'relative',
-    border: '2px solid transparent'
+    border: '2px solid transparent' // Default transparent border
   },
   outOfStock: {
-    borderColor: '#dc3545'
+    borderColor: '#dc3545' // Red border for out of stock
   },
   lowStock: {
-    borderColor: '#ffc107'
+    borderColor: '#ffc107' // Orange border for low stock
   },
   inStock: {
-    borderColor: '#28a745'
+    borderColor: 'transparent' // No visible border for in stock
   },
   stockBadge: {
     position: 'absolute',
@@ -675,7 +675,7 @@ function POSPage() {
                           className={`product-card ${stockStatus}`}
                           style={{
                             ...stockStyles.productCard,
-                            ...(isOutOfStock ? stockStyles.outOfStock : 
+                            ...(stockStatus === 'out-of-stock' ? stockStyles.outOfStock : 
                                 stockStatus === 'low-stock' ? stockStyles.lowStock : 
                                 stockStyles.inStock)
                           }}

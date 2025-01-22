@@ -49,10 +49,10 @@
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHOe-qXUPduZqi-bMx913X5GF39cK3Hdiyzg&s",
       "category": "وجبات",
       "stock": 5,
-      "minStock": 1,
+      "minStock": 5,
       "costPrice": 1,
       "adjustmentDate": "",
-      "lastUpdated": "2025-01-22T03:34:18.922Z",
+      "lastUpdated": "2025-01-22T03:56:29.054Z",
       "employeeName": "s",
       "employeeNumber": "2"
     },
@@ -233,6 +233,26 @@
     "history": []
   },
   "productsHistory": [
+    {
+      "id": 1737518189058,
+      "timestamp": "2025-01-22T03:56:29.058Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "وجبة مندي ومشوي",
+          "detailedChanges": [
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 1,
+              "newValue": 5
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": 1737517586507,
       "timestamp": "2025-01-22T03:46:26.507Z",

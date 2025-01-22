@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaDownload, FaExclamationTriangle, FaSync, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaDownload, FaExclamationTriangle, FaSync, FaCheckCircle, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify'; // Add this import
 import 'react-toastify/dist/ReactToastify.css'; // Add this import if not already present
 import Box from '@mui/material/Box';
@@ -397,26 +397,32 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-// Add this near other styled components
+// Update the StatusChip styled component to have fixed width
 const StatusChip = styled(Chip)(({ theme }) => ({
   fontFamily: 'inherit',
-  minWidth: '90px', // Increased from 80px to 90px
-  height: '32px',   // Increased from 28px to 32px
+  width: '100px', // Fixed width for all statuses
+  height: '32px',
   '& .MuiChip-icon': {
     fontSize: '16px',
-    marginRight: '4px',  // Changed from -4px to 4px
+    marginRight: '4px',
     marginLeft: '4px'
   },
   '& .MuiChip-label': {
-    padding: '0 8px',    // Reduced padding from 12px to 8px
+    padding: '0 8px',
     fontSize: '0.875rem',
     display: 'flex',
     alignItems: 'center',
-    gap: '4px'
+    gap: '4px',
+    justifyContent: 'center', // Center the content
+    width: '100%' // Take full width of chip
   },
   '&.MuiChip-filled.MuiChip-colorError': {
     background: '#fee2e2',
     color: '#dc2626'
+  },
+  '&.MuiChip-filled.MuiChip-colorWarning': {
+    background: '#fff7ed',
+    color: '#ea580c'
   },
   '&.MuiChip-filled.MuiChip-colorSuccess': {
     background: '#dcfce7',
@@ -966,10 +972,22 @@ const InventoryReports = () => {
               </StyledTableCell>
               <StyledTableCell align="center">
                 <StatusChip
-                  label={item.stock <= item.minStock ? 'منخفض' : 'جيد'}
-                  color={item.stock <= item.minStock ? 'error' : 'success'}
+                  label={
+                    item.stock === 0 ? 'نفذ المخزون' :
+                    item.stock <= item.minStock ? 'منخفض' : 
+                    'جيد'
+                  }
+                  color={
+                    item.stock === 0 ? 'error' :
+                    item.stock <= item.minStock ? 'warning' : 
+                    'success'
+                  }
                   size="small"
-                  icon={item.stock <= item.minStock ? <FaExclamationTriangle /> : <FaCheckCircle />}
+                  icon={
+                    item.stock === 0 ? <FaTimes /> : // Changed from FaExclamationTriangle
+                    item.stock <= item.minStock ? <FaExclamationTriangle /> :
+                    <FaCheckCircle />
+                  }
                 />
               </StyledTableCell>
               <StyledTableCell align="center">
