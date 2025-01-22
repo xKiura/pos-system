@@ -24,8 +24,6 @@ const calculateTotals = (bill, taxRate = 15) => {
 export const ComponentToPrint = React.forwardRef((props, ref) => {
   const { bill, employeeName, employeeNumber, orderNumber, isRefunded } = props;
   const { settings } = useSettings();
-  
-  console.log('Print Settings:', settings); // Add this debug line
 
   const { subtotal, tax, total } = calculateTotals(bill, settings?.taxRate || 15);
 

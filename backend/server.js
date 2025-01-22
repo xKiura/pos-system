@@ -1,36 +1,26 @@
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsPromises = require('fs').promises; // Add this line
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const LocalStorage = require('./services/localStorage');
+const bodyParser = require('body-parser');
 
 const app = express();
-const storage = new LocalStorage('db.json');
+const dbPath = path.join(__dirname, 'db.json'); // Use __dirname to ensure correct path
+const storage = new LocalStorage(dbPath);
+const PORT = 5000; // Change port to 5000
 
-// Ensure data directory exists
+// Initialize server function
 const initializeServer = async () => {
   try {
-    // Create data directory if it doesn't exist
-    await fs.mkdir(path.join(__dirname, 'data'), { recursive: true });
-    
-    // Initialize storage
+    // Initialize storage first
     await storage.init();
-    
-    // Check if db.json exists, if not create it with initial data
-    const dbPath = path.join(__dirname, 'data', 'db.json');
-    try {
-      await fs.access(dbPath);
-      // Read existing data
-      const data = await fs.readFile(dbPath, 'utf8');
-      const parsedData = JSON.parse(data);
-      
-      // Ensure products array exists
-      if (!parsedData.products) {
-        parsedData.products = [];
-        await fs.writeFile(dbPath, JSON.stringify(parsedData, null, 2));
-      }
-    } catch {
-      // Create new db.json with initial data
+
+    // Check if we need to populate initial data
+    const data = await storage.get('products');
+    if (!data) {
+      // Set initial data
       const initialData = {
         products: [
           {
@@ -43,7 +33,6 @@ const initializeServer = async () => {
             minStock: 5,
             costPrice: 35
           }
-          // Add more initial products if needed
         ],
         settings: {
           taxRate: 15,
@@ -53,11 +42,19 @@ const initializeServer = async () => {
           restaurantLogo: '',
           history: []
         },
-        users: []
+        users: [],
+        "confirmed-orders": []
       };
-      await fs.writeFile(dbPath, JSON.stringify(initialData, null, 2));
+
+      // Save initial data to storage
+      await Promise.all([
+        storage.set('products', initialData.products),
+        storage.set('settings', initialData.settings),
+        storage.set('users', initialData.users),
+        storage.set('confirmed-orders', initialData['confirmed-orders'])
+      ]);
     }
-    
+
     console.log('Server initialized successfully');
   } catch (error) {
     console.error('Error initializing server:', error);
@@ -65,82 +62,46 @@ const initializeServer = async () => {
   }
 };
 
-// Initialize server before starting
-initializeServer().then(() => {
-  // ... rest of your server code ...
-});
+// CORS middleware update
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Initialize empty arrays for history
-let settingsHistory = [];
-let productsHistory = [];
-let billsHistory = [];
+app.use(express.json());
+app.use(bodyParser.json());
 
-// Clear history data on server start
-const clearHistoryData = () => {
-  settingsHistory = [];
-  productsHistory = [];
-  billsHistory = [];
+// Update the storage methods to work directly with db.json
+const readFromDb = async () => {
+  try {
+    const data = await fsPromises.readFile(dbPath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error reading from db:', error);
+    return null;
+  }
 };
 
-// Initialize storage and clear history
-storage.init()
-  .then(async () => {
-    console.log('Local storage initialized');
-    clearHistoryData(); // Clear history on server start
-    
-    // Initialize settings if they don't exist
-    await storage.get('settings') || await storage.set('settings', {
-      taxRate: 15,
-      printCopies: 1,
-      requireManagerApproval: false,
-      history: []
-    });
-
-    // Initialize users if they don't exist
-    await storage.get('users') || await storage.set('users', []);
-
-    console.log('Settings and users initialized');
-  })
-  .catch(err => {
-    console.error('Error initializing storage:', err);
-  });
-
-// Store orders in memory
-let confirmedOrders = [];
-
-// Middleware
-app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json());
-
-// Add categories route
-const categoriesRouter = require('./routes/categories');
-app.use('/categories', categoriesRouter);
+const writeToDb = async (data) => {
+  try {
+    await fsPromises.writeFile(dbPath, JSON.stringify(data, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error writing to db:', error);
+    return false;
+  }
+};
 
 // Update products endpoint
 app.get('/products', async (req, res) => {
   try {
-    console.log('Products request received');
-    await storage.init();
-    const products = await storage.get('products');
-    console.log('Products from storage:', products);
-    
-    if (!products) {
-      // Return empty array instead of null
-      return res.json([]);
-    }
-    
-    res.json(products);
+    const data = await readFromDb();
+    res.json(data.products || []);
   } catch (error) {
     console.error('Error fetching products:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch products',
-      details: error.message 
-    });
+    res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
@@ -172,12 +133,93 @@ app.patch('/products/:id', async (req, res) => {
   }
 });
 
+app.post('/products', async (req, res) => {
+  try {
+    const newProduct = {
+      id: Date.now().toString(),
+      name: req.body.name,
+      price: req.body.price,
+      image: req.body.image,
+      category: req.body.category,
+      stock: req.body.stock || 0,
+      minStock: req.body.minStock || 0,
+      costPrice: req.body.costPrice || 0,
+      adjustmentDate: new Date().toISOString()
+    };
+
+    // Validate required fields
+    if (!newProduct.name || !newProduct.price || !newProduct.category) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        requiredFields: ['name', 'price', 'category']
+      });
+    }
+
+    const data = await readFromDb();
+    data.products = data.products || [];
+    data.products.push(newProduct);
+    
+    await writeToDb(data);
+    
+    console.log('Product added successfully:', newProduct);
+    res.status(201).json(newProduct);
+  } catch (error) {
+    console.error('Error adding product:', error);
+    res.status(500).json({ error: 'Failed to add product' });
+  }
+});
+
+app.put('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await readFromDb();
+    const productIndex = data.products.findIndex(p => p.id === id);
+
+    if (productIndex === -1) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const updatedProduct = {
+      ...data.products[productIndex],
+      ...req.body,
+      adjustmentDate: new Date().toISOString()
+    };
+
+    data.products[productIndex] = updatedProduct;
+    await writeToDb(data);
+
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Failed to update product' });
+  }
+});
+
+app.delete('/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await readFromDb();
+    
+    const productIndex = data.products.findIndex(p => p.id === id);
+    if (productIndex === -1) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    data.products = data.products.filter(p => p.id !== id);
+    await writeToDb(data);
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
 // Update categories endpoint
 app.get('/categories', async (req, res) => {
   try {
     await storage.init();
     const products = await storage.get('products') || [];
-    // Extract unique categories from products
     const categories = [...new Set(products.map(product => product.category))];
     res.json(categories);
   } catch (error) {
@@ -280,15 +322,30 @@ app.get('/products-history', (req, res) => {
 });
 
 app.post('/products-history', (req, res) => {
-  const historyEntry = {
-    id: Date.now(),
-    ...req.body,
-    timestamp: new Date().toISOString()
-  };
-  productsHistory.unshift(historyEntry);
-  // Keep only last 100 entries
-  productsHistory = productsHistory.slice(0, 100);
-  res.json(historyEntry);
+  try {
+    const historyEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      type: req.body.type || 'UNKNOWN',
+      origin: req.body.origin || 'صفحة المخزون',
+      changes: req.body.changes || []
+    };
+
+    const data = readFromDb();
+    if (!data.productsHistory) {
+      data.productsHistory = [];
+    }
+    data.productsHistory.unshift(historyEntry);
+    data.productsHistory = data.productsHistory.slice(0, 100);
+    
+    writeToDb(data);
+    res.json(historyEntry);
+  } catch (error) {
+    console.error('Error saving history:', error);
+    res.status(500).json({ error: 'Failed to save history' });
+  }
 });
 
 // Bills history endpoints
@@ -309,87 +366,169 @@ app.post('/bills-history', (req, res) => {
 });
 
 // Existing order endpoints
-app.post('/confirmed-orders', (req, res) => {
-  const order = req.body;
-  confirmedOrders.push(order);
-  res.status(201).json(order);
+app.post('/confirmed-orders', async (req, res) => {
+  try {
+    const order = req.body;
+    const data = await readFromDb();
+    const products = data.products || [];
+    
+    // Validate stock
+    const insufficientStock = [];
+    for (const orderItem of order.items) {
+      const product = products.find(p => p.id === orderItem.id);
+      if (!product || product.stock < orderItem.quantity) {
+        insufficientStock.push({
+          name: product?.name || 'Unknown product',
+          requested: orderItem.quantity,
+          available: product?.stock || 0
+        });
+      }
+    }
+
+    if (insufficientStock.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient stock',
+        details: insufficientStock
+      });
+    }
+
+    // Update stock levels
+    const updatedProducts = products.map(product => {
+      const orderItem = order.items.find(item => item.id === product.id);
+      if (orderItem) {
+        return {
+          ...product,
+          stock: product.stock - orderItem.quantity
+        };
+      }
+      return product;
+    });
+
+    // Save updated products and new order
+    data.products = updatedProducts;
+    if (!data['confirmed-orders']) {
+      data['confirmed-orders'] = [];
+    }
+    
+    const newOrder = {
+      ...order,
+      id: Date.now().toString(),
+      confirmedAt: new Date().toISOString()
+    };
+    
+    data['confirmed-orders'].unshift(newOrder);
+    
+    await writeToDb(data);
+
+    res.json({
+      success: true,
+      order: newOrder,
+      updatedProducts
+    });
+
+  } catch (error) {
+    console.error('Error confirming order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to confirm order',
+      details: error.message
+    });
+  }
 });
 
-app.get('/confirmed-orders', (req, res) => {
-  res.json(confirmedOrders);
+// Update the confirmed-orders GET endpoint
+app.get('/confirmed-orders', async (req, res) => {
+    try {
+        const data = await readFromDb();
+        const orders = data['confirmed-orders'] || [];
+        // Log the data being sent
+        console.log('Sending orders:', orders.length, 'orders found');
+        res.json(orders);
+    } catch (error) {
+        console.error('Error fetching confirmed orders:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch confirmed orders',
+            details: error.message
+        });
+    }
 });
 
 // Update the refund endpoint
-app.post('/refund-order/:orderNumber', (req, res) => {
-    try {
-        const orderNumber = parseInt(req.params.orderNumber, 10);
-        const orderData = req.body;
-
-        // Find the order to refund using number comparison
-        const orderIndex = confirmedOrders.findIndex(o => {
-            const confirmedOrderNumber = parseInt(o.orderNumber, 10);
-            return confirmedOrderNumber === orderNumber;
-        });
-        
-        if (orderIndex === -1) {
-            console.log('Order not found:', orderNumber);
-            console.log('Available orders:', confirmedOrders.map(o => o.orderNumber));
-            return res.status(404).json({ error: 'Order not found' });
-        }
-
-        // Update the order
-        confirmedOrders[orderIndex] = {
-            ...confirmedOrders[orderIndex],
-            isRefunded: true,
-            refundedAt: new Date().toISOString()
-        };
-
-        res.json(confirmedOrders[orderIndex]);
-    } catch (error) {
-        console.error('Error processing refund:', error);
-        res.status(500).json({ error: 'Failed to process refund' });
+app.post('/refund-order/:orderNumber', async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const data = await readFromDb();
+    
+    // Find the order to refund
+    const orderIndex = data['confirmed-orders'].findIndex(o => o.orderNumber === orderNumber);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found'
+      });
     }
+
+    // Update the order to mark it as refunded
+    const order = data['confirmed-orders'][orderIndex];
+    const refundedOrder = {
+      ...order,
+      isRefunded: true,
+      refundedAt: new Date().toISOString(),
+      refundedBy: {
+        name: req.body.employeeName,
+        number: req.body.employeeNumber
+      }
+    };
+
+    // Update the database
+    data['confirmed-orders'][orderIndex] = refundedOrder;
+    await writeToDb(data);
+
+    // Send success response
+    res.json({
+      success: true,
+      order: refundedOrder
+    });
+
+  } catch (error) {
+    console.error('Error processing refund:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to process refund',
+      details: error.message
+    });
+  }
 });
 
 // Add these routes for authentication
 app.post('/register', async (req, res) => {
     try {
-        const { name, employeeNumber, pin, email, phoneNumber } = req.body;
-
-        // Name validation with normalization
-        const normalizedName = name.trim();
-        if (!normalizedName || !/^[\u0600-\u06FFa-zA-Z\s]+$/.test(normalizedName)) {
-            return res.status(400).json({
-                success: false,
-                message: 'اسم الموظف يجب أن يحتوي على حروف فقط'
-            });
-        }
-
+        const { name, employeeNumber, pin } = req.body;
+        await storage.init();
+        
         // Get existing users
         let users = await storage.get('users') || [];
-
-        // Check if the employee number already exists
-        if (users.some(user => user.employeeNumber === employeeNumber)) {
+        
+        // Check if user already exists
+        if (users.some(u => u.employeeNumber === employeeNumber)) {
             return res.status(400).json({
                 success: false,
                 message: 'رقم الموظف مستخدم مسبقاً'
             });
         }
-
-        // Create new user
+        
+        // Add new user
         const newUser = {
-            name: normalizedName, // Store normalized name
-            employeeNumber,
-            pin,
-            email,
-            phoneNumber,
-            createdAt: new Date().toISOString()
+            name: name.trim(),
+            employeeNumber: employeeNumber.toString(),
+            pin: pin.toString()
         };
-
-        // Add to users array
+        
         users.push(newUser);
         await storage.set('users', users);
-
+        
         res.json({
             success: true,
             message: 'تم تسجيل الموظف بنجاح'
@@ -478,7 +617,277 @@ app.post('/login', async (req, res) => {
     }
 });
 
-const PORT = 5001;  // Changed from 5000 to 5001
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Initialize empty arrays for history
+let settingsHistory = [];
+let productsHistory = [];
+let billsHistory = [];
+
+// Clear history data on server start
+const clearHistoryData = () => {
+  settingsHistory = [];
+  productsHistory = [];
+  billsHistory = [];
+};
+
+// Initialize storage and clear history
+storage.init()
+  .then(async () => {
+    console.log('Local storage initialized');
+    clearHistoryData(); // Clear history on server start
+    
+    // Initialize settings if they don't exist
+    await storage.get('settings') || await storage.set('settings', {
+      taxRate: 15,
+      printCopies: 1,
+      requireManagerApproval: false,
+      history: []
+    });
+
+    // Initialize users if they don't exist
+    await storage.get('users') || await storage.set('users', []);
+
+    console.log('Settings and users initialized');
+  })
+  .catch(err => {
+    console.error('Error initializing storage:', err);
+  });
+
+// Store orders in memory
+let confirmedOrders = [];
+
+// Middleware
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+
+// Add categories route
+const categoriesRouter = require('./routes/categories');
+app.use('/categories', categoriesRouter);
+
+// Initialize data files if they don't exist
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir);
+}
+
+const dataFiles = {
+    orders: path.join(dataDir, 'orders.json'),
+    settings: path.join(dataDir, 'settings.json'),
+    history: path.join(dataDir, 'history.json'),
+    confirmedOrders: path.join(dataDir, 'confirmed-orders.json'),
+    settingsHistory: path.join(dataDir, 'settings-history.json'),
+    productsHistory: path.join(dataDir, 'products-history.json'),
+    billsHistory: path.join(dataDir, 'bills-history.json')
+};
+
+// Initialize each data file if it doesn't exist
+Object.entries(dataFiles).forEach(([key, file]) => {
+    if (!fs.existsSync(file)) {
+        fs.writeFileSync(file, JSON.stringify([]));
+    }
+});
+
+// Helper function to read data
+const readData = (file) => {
+    try {
+        return JSON.parse(fs.readFileSync(file));
+    } catch (error) {
+        console.error(`Error reading ${file}:`, error);
+        return [];
+    }
+};
+
+// Helper function to write data
+const writeData = (file, data) => {
+    try {
+        fs.writeFileSync(file, JSON.stringify(data, null, 2));
+        return true;
+    } catch (error) {
+        console.error(`Error writing to ${file}:`, error);
+        return false;
+    }
+};
+
+// Orders endpoints
+app.get('/confirmed-orders', (req, res) => {
+    const orders = readData(dataFiles.confirmedOrders);
+    res.json(orders);
+});
+
+app.post('/confirmed-orders', async (req, res) => {
+  try {
+    const order = req.body;
+    await storage.init();
+    
+    const products = await storage.get('products') || [];
+    const insufficientStock = [];
+
+    // Final stock validation
+    for (const orderItem of order.items) {
+      const product = products.find(p => p.id === orderItem.id);
+      if (!product || product.stock < orderItem.quantity) {
+        insufficientStock.push({
+          name: product?.name || 'Unknown product',
+          requested: orderItem.quantity,
+          available: product?.stock || 0
+        });
+      }
+    }
+
+    if (insufficientStock.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient stock',
+        details: insufficientStock
+      });
+    }
+
+    // Atomic stock update
+    const updatedProducts = products.map(product => {
+      const orderItem = order.items.find(item => item.id === product.id);
+      if (orderItem) {
+        return {
+          ...product,
+          stock: Math.max(0, product.stock - orderItem.quantity),
+          lastUpdated: new Date().toISOString()
+        };
+      }
+      return product;
+    });
+
+    // Save updated products first
+    await storage.set('products', updatedProducts);
+
+    // Then save the order
+    const confirmedOrder = {
+      ...order,
+      status: 'completed',
+      confirmedAt: new Date().toISOString(),
+      orderNumber: order.orderNumber,
+      total: order.total
+    };
+
+    // Update orders collection
+    const orders = await storage.get('orders') || [];
+    orders.unshift(confirmedOrder);
+    await storage.set('orders', orders);
+
+    res.status(200).json({
+      success: true,
+      order: confirmedOrder,
+      updatedProducts
+    });
+
+  } catch (error) {
+    console.error('Error processing order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process order',
+      details: error.message
+    });
+  }
+});
+
+// Settings history endpoints
+app.post('/settings-history', (req, res) => {
+    const history = readData(dataFiles.settingsHistory);
+    const entry = { ...req.body, id: Date.now() };
+    history.push(entry);
+    
+    if (writeData(dataFiles.settingsHistory, history)) {
+        res.json({ success: true, entry });
+    } else {
+        res.status(500).json({ success: false, message: 'Failed to save history' });
+    }
+});
+
+app.get('/settings-history', (req, res) => {
+    const history = readData(dataFiles.settingsHistory);
+    res.json(history);
+});
+
+// Products history endpoints
+app.post('/products-history', (req, res) => {
+  try {
+    const historyEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      type: req.body.type || 'UNKNOWN',
+      origin: req.body.origin || 'صفحة المخزون',
+      changes: req.body.changes || []
+    };
+
+    const data = readFromDb();
+    if (!data.productsHistory) {
+      data.productsHistory = [];
+    }
+    data.productsHistory.unshift(historyEntry);
+    data.productsHistory = data.productsHistory.slice(0, 100);
+    
+    writeToDb(data);
+    res.json(historyEntry);
+  } catch (error) {
+    console.error('Error saving history:', error);
+    res.status(500).json({ error: 'Failed to save history' });
+  }
+});
+
+app.get('/products-history', (req, res) => {
+  try {
+    const data = readFromDb();
+    res.json(data.productsHistory || []);
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// Bills history endpoints
+app.post('/bills-history', (req, res) => {
+    const history = readData(dataFiles.billsHistory);
+    const entry = { ...req.body, id: Date.now() };
+    history.push(entry);
+    
+    if (writeData(dataFiles.billsHistory, history)) {
+        res.json({ success: true, entry });
+    } else {
+        res.status(500).json({ success: false, message: 'Failed to save history' });
+    }
+});
+
+app.get('/bills-history', (req, res) => {
+    const history = readData(dataFiles.billsHistory);
+    res.json(history);
+});
+
+// Refund order endpoint
+app.post('/refund-order/:orderNumber', (req, res) => {
+    const orders = readData(dataFiles.confirmedOrders);
+    const orderIndex = orders.findIndex(o => o.orderNumber === req.params.orderNumber);
+    
+    if (orderIndex === -1) {
+        return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    
+    orders[orderIndex] = { ...orders[orderIndex], ...req.body, isRefunded: true };
+    
+    if (writeData(dataFiles.confirmedOrders, orders)) {
+        res.json({ success: true, order: orders[orderIndex] });
+    } else {
+        res.status(500).json({ success: false, message: 'Failed to process refund' });
+    }
+});
+
+// Start server
+initializeServer().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Using database at: ${dbPath}`);
+  });
 });

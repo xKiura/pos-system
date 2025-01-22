@@ -6,6 +6,7 @@ import { Modal, Button } from 'react-bootstrap';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../components/AuthContext';
+import { endpoints } from '../config/api';
 
 const StyledContainer = styled.div`
   max-width: 1000px;
@@ -313,6 +314,7 @@ function ManageProductsPage() {
     const [products, setProducts] = useState([]);
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const [error, setError] = useState(null);
     
     useEffect(() => {
         if (!isAuthenticated) {
@@ -340,8 +342,7 @@ function ManageProductsPage() {
                 product: productData
             };
             
-            console.log('Sending product change log:', logData);
-            await axios.post('http://localhost:5001/products-history', logData);
+            await axios.post(endpoints.productsHistory, logData);
         } catch (error) {
             console.error('Error logging product change:', error);
         }
@@ -360,10 +361,28 @@ function ManageProductsPage() {
 
     const fetchProducts = async () => {
         try {
-            const result = await axios.get('http://localhost:5000/products');
-            setProducts(result.data);
+            const response = await fetch(endpoints.products);
+            const data = await response.json();
+            setProducts(data);
         } catch (error) {
             console.error('Error fetching products:', error);
+        }
+    };
+
+    const updateProduct = async (productId, updates) => {
+        try {
+            const response = await fetch(`${endpoints.products}/${productId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+            
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            return data;
+        } catch (error) {
+            console.error('Error updating product:', error);
+            throw error;
         }
     };
 
@@ -374,37 +393,59 @@ function ManageProductsPage() {
 
     const handleAddProduct = async () => {
         try {
-            const result = await axios.post('http://localhost:5000/products', product);
-            setProducts([...products, result.data]);
-            await logProductChange('PRODUCT_ADD', result.data);
-            setProduct({ name: '', price: '', image: '', category: '' });
-            setShowAddModal(false);
+            setError(null);
+            
+            // Validate form data
+            if (!product.name || !product.price || !product.category) {
+                setError('Please fill in all required fields');
+                return;
+            }
+
+            const response = await axios.post(endpoints.products, {
+                ...product,
+                price: product.price.toString(),
+                stock: 0,
+                minStock: 0,
+                costPrice: 0
+            });
+
+            if (response.data) {
+                setProducts([...products, response.data]);
+                await logProductChange('PRODUCT_ADD', response.data);
+                setProduct({ name: '', price: '', image: '', category: '' });
+                setShowAddModal(false);
+            }
         } catch (error) {
             console.error('Error adding product:', error);
+            setError(error.response?.data?.error || 'Failed to add product. Please try again.');
         }
     };
 
     const handleEditProduct = async () => {
         try {
-            const result = await axios.put(`http://localhost:5000/products/${productToEdit.id}`, product);
+            setError(null);
+            const result = await axios.put(`${endpoints.products}/${productToEdit.id}`, product);
             setProducts(products.map(prod => (prod.id === productToEdit.id ? result.data : prod)));
             await logProductChange('PRODUCT_EDIT', result.data);
             setProduct({ name: '', price: '', image: '', category: '' });
             setShowEditModal(false);
         } catch (error) {
             console.error('Error editing product:', error);
+            setError('Failed to edit product. Please try again.');
         }
     };
 
     const handleRemoveProduct = async () => {
         try {
+            setError(null);
             const productToLog = products.find(p => p.id === productToRemove);
-            await axios.delete(`http://localhost:5000/products/${productToRemove}`);
+            await axios.delete(`${endpoints.products}/${productToRemove}`);
             await logProductChange('PRODUCT_DELETE', productToLog);
             setProducts(products.filter(product => product.id !== productToRemove));
             setShowRemoveModal(false);
         } catch (error) {
             console.error('Error removing product:', error);
+            setError('Failed to remove product. Please try again.');
         }
     };
 
@@ -539,6 +580,17 @@ function ManageProductsPage() {
                                 ))}
                             </select>
                         </StyledForm>
+                        {error && (
+                            <div style={{
+                                color: '#e53e3e',
+                                backgroundColor: '#fff5f5',
+                                padding: '0.75rem',
+                                borderRadius: '4px',
+                                marginTop: '1rem'
+                            }}>
+                                {error}
+                            </div>
+                        )}
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowAddModal(false)}>
@@ -602,6 +654,17 @@ function ManageProductsPage() {
                                 ))}
                             </select>
                         </StyledForm>
+                        {error && (
+                            <div style={{
+                                color: '#e53e3e',
+                                backgroundColor: '#fff5f5',
+                                padding: '0.75rem',
+                                borderRadius: '4px',
+                                marginTop: '1rem'
+                            }}>
+                                {error}
+                            </div>
+                        )}
                     </Modal.Body>
                     <Modal.Footer>
                         <Button variant="secondary" onClick={() => setShowEditModal(false)}>

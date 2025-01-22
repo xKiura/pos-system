@@ -25,6 +25,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../components/AuthContext';
+import { endpoints } from '../config/api';
 
 // Add this utility function at the top
 const debounce = (func, wait) => {
@@ -62,6 +63,47 @@ const animateAndRemoveAllItems = (items, finalCallback) => {
       }
     }, index * 50); // Stagger the animations
   });
+};
+
+// Add these styles to your existing styles section
+const stockStyles = {
+  productCard: {
+    position: 'relative',
+    border: '2px solid transparent'
+  },
+  outOfStock: {
+    borderColor: '#dc3545'
+  },
+  lowStock: {
+    borderColor: '#ffc107'
+  },
+  inStock: {
+    borderColor: '#28a745'
+  },
+  stockBadge: {
+    position: 'absolute',
+    top: '10px',
+    left: '10px',
+    padding: '4px 8px',
+    borderRadius: '20px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    zIndex: 2,
+    backdropFilter: 'blur(4px)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  }
+};
+
+// Stock validation function
+const validateStock = async (product, quantity) => {
+  try {
+    const response = await axios.get(`http://localhost:5000/products/${product.id}`);
+    const currentStock = response.data.stock;
+    return currentStock >= quantity;
+  } catch (error) {
+    console.error('Error validating stock:', error);
+    return false;
+  }
 };
 
 function POSPage() {
@@ -143,12 +185,11 @@ function POSPage() {
   const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      const result = await axios.get('http://localhost:5000/products');
-      setProducts(result.data);
+      const response = await axios.get('http://localhost:5000/products');
+      setProducts(response.data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
-      setError('Failed to load products. Please check if the server is running.');
+      toast.error('فشل في تحميل المنتجات');
     } finally {
       setIsLoading(false);
     }
@@ -181,7 +222,28 @@ function POSPage() {
   }, [filteredProducts]);
 
   // Define handleProductUpdate before other functions
+  const canAddToBill = useCallback((product, quantity = 1) => {
+    if (!product.stock || product.stock === 0) {
+      toast.error(`المنتج ${product.name} غير متوفر في المخزون`);
+      return false;
+    }
+    
+    const currentInBill = bill.find(item => item.id === product.id)?.quantity || 0;
+    const newTotal = currentInBill + quantity;
+    
+    if (newTotal > product.stock) {
+      toast.error(`الكمية المطلوبة تتجاوز المخزون المتوفر (${product.stock})`);
+      return false;
+    }
+    
+    return true;
+  }, [bill]);
+
   const handleProductUpdate = useCallback((product, increment) => {
+    if (increment > 0 && !canAddToBill(product, increment)) {
+      return; // Don't proceed if we can't add the item
+    }
+
     setBill(prevBill => {
       const existingItem = prevBill.find(item => item.id === product.id);
       
@@ -209,28 +271,41 @@ function POSPage() {
         totalAmount: parseFloat(product.price)
       }];
     });
-  }, []);
+  }, [canAddToBill]);
 
   // Optimize addProductToBill with debounce
-  const addProductToBill = useCallback((product) => {
+  const addProductToBill = useCallback(async (product) => {
+    const isStockAvailable = await validateStock(product, 1);
+    
+    if (!isStockAvailable) {
+      toast.error(`لا يوجد مخزون كافٍ من ${product.name}`);
+      await fetchProducts(); // Refresh products
+      return;
+    }
+  
     handleProductUpdate(product, 1);
     
     setNewItemIds(prev => {
       if (prev.includes(product.id)) return prev;
       return [...prev, product.id];
     });
-
+  
     const removeNewItemId = () => {
       setNewItemIds(prev => prev.filter(id => id !== product.id));
     };
-
+  
     requestAnimationFrame(() => {
       setTimeout(removeNewItemId, 800);
     });
-  }, [handleProductUpdate]);
+  }, [handleProductUpdate, fetchProducts]);
 
   // Optimize quantity updates
   const updateProductQuantity = useCallback((product, increment) => {
+    if (increment > 0 && !canAddToBill(product, increment)) {
+      toast.error(`لا يوجد مخزون كافٍ من ${product.name}`);
+      return;
+    }
+  
     handleProductUpdate(product, increment);
   }, [handleProductUpdate]);
 
@@ -239,10 +314,27 @@ function POSPage() {
     debouncedSetFilter(newFilter);
   }, [debouncedSetFilter]);
 
+  // Update the animateAndRemoveItem function
+  const animateAndRemoveItem = (itemId, callback) => {
+    const element = document.querySelector(`[data-bill-item-id="${itemId}"]`);
+    if (element) {
+      // Add the animation class
+      element.classList.add('remove-item-animation');
+      // Wait for animation to complete before removing
+      setTimeout(() => {
+        callback();
+        // Remove the animation class after state update
+        element.classList.remove('remove-item-animation');
+      }, 300); // Match this with CSS animation duration
+    } else {
+      callback();
+    }
+  };
+
   // Update the removeItem function
   const removeItem = (product) => {
     animateAndRemoveItem(product.id, () => {
-      setBill(prevBill => prevBill.filter(billItem => billItem.id !== product.id));
+      setBill(prevBill => prevBill.filter(item => item.id !== product.id));
     });
   };
 
@@ -267,7 +359,7 @@ function POSPage() {
 
   const saveConfirmedOrder = async (order) => {
     try {
-      await axios.post('http://localhost:5001/confirmed-orders', {
+      await axios.post('http://localhost:5000/confirmed-orders', {
         ...order,
         employeeName: currentUser?.name,
         employeeNumber: currentUser?.employeeNumber,
@@ -282,32 +374,89 @@ function POSPage() {
     documentTitle: settings?.restaurantName || 'Receipt',
     contentRef: componentRef,
     copyCount: settings?.printCopies || 1,
-    onAfterPrint: async () => {
-      const { subtotal, tax, total } = calculateTotals();
-      const confirmedOrder = {
-        date: new Date().toLocaleDateString(),
-        confirmedAt: new Date().toISOString(),
-        category: filter,
-        items: bill,
-        employeeName: currentUser?.name,
-        employeeNumber: currentUser?.employeeNumber,
-        orderNumber: orderNumber.toString().padStart(6, '0'),
-        totalIncome: subtotal,
-        categoryIncome: bill.reduce((acc, item) => acc + (item.category === filter ? item.totalAmount : 0), 0),
-        productIncome: subtotal,
-        tax: tax,
-        totalIncomeWithTax: total
-      };
-      await saveConfirmedOrder(confirmedOrder);
-      incrementOrderNumber();
-      
-      // Animate items before clearing
-      const itemsToRemove = [...bill];
-      animateAndRemoveAllItems(itemsToRemove, () => {
+    onBeforePrint: async () => {
+      try {
+        const { subtotal, tax, total } = calculateTotals();
+        
+        const orderData = {
+          date: new Date().toISOString(),
+          items: bill.map(item => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            totalAmount: item.totalAmount
+          })),
+          employeeName: currentUser?.name,
+          employeeNumber: currentUser?.employeeNumber,
+          orderNumber: orderNumber.toString().padStart(6, '0'),
+          subtotal,
+          tax,
+          total
+        };
+
+        // Update to use port 5000
+        const response = await axios.post('http://localhost:5000/confirmed-orders', orderData);
+
+        if (response.data.success === false) {
+          toast.error('فشل في تأكيد الطلب: ' + (response.data.error || 'خطأ غير معروف'));
+          return false;
+        }
+
+        // Update products with new stock levels
+        setProducts(response.data.updatedProducts);
+        
+        // Clear the bill
         setBill([]);
-      });
+        
+        // Increment order number
+        incrementOrderNumber();
+        
+        toast.success('تم تأكيد الطلب وتحديث المخزون بنجاح');
+        return true;
+
+      } catch (error) {
+        console.error('Error confirming order:', error);
+        toast.error('حدث خطأ أثناء تأكيد الطلب');
+        return false;
+      }
     }
   });
+
+  const updateProductStock = useCallback((updatedProducts) => {
+    setProducts(currentProducts => {
+      const newProducts = [...currentProducts];
+      updatedProducts.forEach(updatedProduct => {
+        const index = newProducts.findIndex(p => p.id === updatedProduct.id);
+        if (index !== -1) {
+          newProducts[index] = updatedProduct;
+        }
+      });
+      return newProducts;
+    });
+  }, []);
+
+  const confirmOrder = async (orderData) => {
+    try {
+      const response = await fetch(endpoints.confirmedOrders, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+      
+      // Now updateProductStock is in scope
+      updateProductStock(data.updatedProducts);
+      return data;
+    } catch (error) {
+      console.error('Error confirming order:', error);
+      throw error;
+    }
+  };
 
   const handleConfirmOrder = async (orderData) => {
     try {
@@ -407,6 +556,16 @@ function POSPage() {
     // ...rest of your existing useEffect code...
   }, []);
 
+  // Add this helper function for stock status
+  const getStockStatus = useCallback((product) => {
+    const stock = product.stock || 0;
+    const minStock = product.minStock || 0;
+
+    if (stock === 0) return 'out-of-stock';
+    if (stock <= minStock) return 'low-stock';
+    return 'in-stock';
+  }, []);
+
   return (
     <div className="page-container">
       <div className="content-wrapper">
@@ -480,50 +639,77 @@ function POSPage() {
                   </div>
                 ) : (
                   <div className="products-grid">
-                    {visibleProducts.map((product, key) => (
-                      <div
-                        key={key}
-                        className={`product-card ${isFiltering ? 'filtering' : ''}`}
-                      >
-                        <div className="product-image-wrapper">
-                          <img 
-                            src={product.image || 'https://placehold.co/150x150'}
-                            alt={product.name}
-                            className="product-image"
-                            onError={(e) => {
-                              e.target.src = 'https://placehold.co/150x150';
-                            }}
-                          />
-                          {bill.find(i => i.id === product.id)?.quantity > 0 && (
-                            <div className="quantity-badge">
-                              {bill.find(i => i.id === product.id)?.quantity}
+                    {visibleProducts.map((product, key) => {
+                      const stockStatus = getStockStatus(product);
+                      const isOutOfStock = stockStatus === 'out-of-stock';
+                      const currentInBill = bill.find(i => i.id === product.id)?.quantity || 0;
+                      const availableStock = product.stock - currentInBill;
+
+                      return (
+                        <div
+                          key={key}
+                          className={`product-card ${stockStatus}`}
+                          style={{
+                            ...stockStyles.productCard,
+                            ...(isOutOfStock ? stockStyles.outOfStock : 
+                                stockStatus === 'low-stock' ? stockStyles.lowStock : 
+                                stockStyles.inStock)
+                          }}
+                        >
+                          <div className="product-image-wrapper">
+                            <img 
+                              src={product.image || 'https://placehold.co/150x150'}
+                              alt={product.name}
+                              className={`product-image ${isOutOfStock ? 'out-of-stock' : ''}`}
+                              onError={(e) => {
+                                e.target.src = 'https://placehold.co/150x150';
+                              }}
+                            />
+                            {currentInBill > 0 && (
+                              <div className="quantity-badge">
+                                {currentInBill}
+                              </div>
+                            )}
+                          </div>
+                          <div className="product-content p-2">
+                            <h5 className="product-title">{product.name}</h5>
+                            <div className="product-price">{product.price} ر.س</div>
+                            <div className="product-actions mt-3">
+                              <button 
+                                className="action-btn decrease"
+                                onClick={() => updateProductQuantity(product, -1)}
+                                disabled={!currentInBill}
+                              >
+                                <FaMinus />
+                              </button>
+                              <span className="quantity-display">
+                                {currentInBill}
+                              </span>
+                              <button 
+                                className="action-btn increase"
+                                onClick={() => updateProductQuantity(product, 1)}
+                                disabled={isOutOfStock || currentInBill >= product.stock}
+                              >
+                                <FaPlus />
+                              </button>
                             </div>
-                          )}
-                        </div>
-                        <div className="product-content p-2">
-                          <h5 className="product-title">{product.name}</h5>
-                          <div className="product-price">{product.price} ر.س</div>
-                          <div className="product-actions mt-3">
-                            <button 
-                              className="action-btn decrease"
-                              onClick={() => updateProductQuantity(product, -1)}
-                              disabled={!bill.find(i => i.id === product.id)}
+                            <div 
+                              className="stock-badge" 
+                              data-status={stockStatus}
+                              style={{
+                                ...stockStyles.stockBadge,
+                                position: 'static',
+                                marginTop: '0.5rem',
+                                textAlign: 'center',
+                                width: '100%'
+                              }}
                             >
-                              <FaMinus />
-                            </button>
-                            <span className="quantity-display">
-                              {bill.find(i => i.id === product.id)?.quantity || 0}
-                            </span>
-                            <button 
-                              className="action-btn increase"
-                              onClick={() => updateProductQuantity(product, 1)}
-                            >
-                              <FaPlus />
-                            </button>
+                              المخزون: {availableStock}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -905,9 +1091,9 @@ function POSPage() {
                     </div>
                   ) : (
                     <div className="bill-items">
-                      {bill.map((billItem, key) => (
+                      {bill.map((billItem) => (
                         <div 
-                          key={key} 
+                          key={billItem.id} // Change from using array index to using item.id
                           className={`bill-item ${newItemIds.includes(billItem.id) ? 'new-item' : ''}`}
                           data-bill-item-id={billItem.id}
                         >

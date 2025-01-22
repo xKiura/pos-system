@@ -207,9 +207,9 @@ export const HistoryChanges = ({ onRefresh }) => {
   const fetchAllChanges = async () => {
     try {
       const [settings, products, bills] = await Promise.all([
-        axios.get('http://localhost:5001/settings-history'),
-        axios.get('http://localhost:5001/products-history'),
-        axios.get('http://localhost:5001/bills-history')
+        axios.get('http://localhost:5000/settings-history'),
+        axios.get('http://localhost:5000/products-history'),
+        axios.get('http://localhost:5000/bills-history')
       ]);
 
       const allChanges = [

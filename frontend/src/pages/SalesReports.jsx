@@ -51,6 +51,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { styled } from '@mui/material/styles';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 // Update GlobalStylesWrapper to apply the font family globally
 const GlobalStylesWrapper = styled('div')(({ theme }) => ({
@@ -340,6 +341,181 @@ const StyledLegend = styled(Legend)({
   }
 });
 
+// Update the Select component styling
+const AnimatedSelect = styled(Select)(({ theme }) => ({
+  fontFamily: 'inherit',
+  '& .MuiSelect-select': {
+    fontFamily: 'inherit',
+    transition: 'all 0.3s ease',
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    transition: 'all 0.3s ease',
+    borderColor: 'rgba(0, 0, 0, 0.23)',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+    boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.08)',
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: theme.palette.primary.main,
+    borderWidth: '2px',
+    boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.12)',
+  }
+}));
+
+// Add this new component for the product selection header
+const ProductSelectionHeader = styled(Box)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  '& .MuiFormControl-root': {
+    width: '250px',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+    }
+  },
+  '& .selection-title': {
+    fontFamily: 'inherit',
+    fontSize: '1.25rem',
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+    display: 'flex',
+    alignItems: 'center',
+    '&::before': {
+      content: '""',
+      width: '4px',
+      height: '24px',
+      backgroundColor: theme.palette.primary.main,
+      marginLeft: theme.spacing(2),
+      borderRadius: '2px',
+    }
+  }
+}));
+
+// Update the MenuItem styling
+const AnimatedMenuItem = styled(MenuItem)(({ theme }) => ({
+  fontFamily: 'inherit',
+  transition: 'all 0.2s ease',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    left: 0,
+    width: '3px',
+    height: '0%',
+    backgroundColor: theme.palette.primary.main,
+    transition: 'height 0.2s ease',
+  },
+  '&:hover': {
+    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+    paddingLeft: theme.spacing(3),
+    '&::before': {
+      height: '100%',
+    }
+  },
+  '&.Mui-selected': {
+    '&::before': {
+      height: '100%',
+    }
+  }
+}));
+
+// Add this styled component for consistent chart typography
+const ChartTypography = styled(Typography)(({ theme }) => ({
+  fontFamily: 'inherit',
+  '&.chart-title': {
+    fontSize: '1rem',
+    fontWeight: 600,
+    marginBottom: theme.spacing(2),
+  },
+  '&.chart-value': {
+    fontSize: '1.5rem',
+    fontWeight: 600,
+  },
+  '&.chart-subtitle': {
+    fontSize: '0.875rem',
+  }
+}));
+
+// Update the chart containers styling
+const ChartContainer = styled(Box)(({ theme }) => ({
+  '& .recharts-text': {
+    fontFamily: 'inherit !important'
+  },
+  '& .recharts-label': {
+    fontFamily: 'inherit !important'
+  },
+  '& .recharts-tooltip-label': {
+    fontFamily: 'inherit !important'
+  },
+  '& .recharts-tooltip-item': {
+    fontFamily: 'inherit !important'
+  }
+}));
+
+// Add this new styled component for consistent chart styling
+const ChartBox = styled(Box)(({ theme }) => ({
+  '& .recharts-text': {
+    fontFamily: 'inherit !important',
+  },
+  '& .recharts-label': {
+    fontFamily: 'inherit !important',
+  },
+  '& .recharts-cartesian-axis-tick-value': {
+    fontFamily: 'inherit !important',
+  },
+  '& .recharts-tooltip-label': {
+    fontFamily: 'inherit !important',
+  },
+  '& .recharts-tooltip-item': {
+    fontFamily: 'inherit !important',
+  },
+  '& .recharts-legend-item-text': {
+    fontFamily: 'inherit !important',
+  }
+}));
+
+// Update the stats cards typography
+const StatsTypography = styled(Typography)(({ theme }) => ({
+  fontFamily: 'inherit !important',
+  '&.chart-title': {
+    fontSize: '1rem',
+    fontWeight: 600,
+  },
+  '&.chart-value': {
+    fontSize: '1.5rem',
+    fontWeight: 600,
+  },
+  '&.chart-subtitle': {
+    fontSize: '0.875rem',
+  }
+}));
+
+// Add this to ensure consistent font in MUI components
+const muiThemeUpdate = {
+  components: {
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          fontFamily: 'inherit'
+        }
+      }
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          fontFamily: 'inherit'
+        }
+      }
+    }
+  }
+};
+
+// Wrap your component with ThemeProvider using the updated theme
+const theme = createTheme(muiThemeUpdate);
+
 const SalesReports = () => {
   // Add new state for products with images
   const [products, setProducts] = useState([]);
@@ -368,7 +544,7 @@ const SalesReports = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5001/confirmed-orders');
+      const response = await fetch('http://localhost:5000/confirmed-orders');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -473,38 +649,61 @@ const SalesReports = () => {
   const calculateProductMetrics = (orders) => {
     if (!Array.isArray(orders)) return [];
     
-    const metrics = orders.reduce((acc, order) => {
-      order.items.forEach(item => {
-        if (!acc[item.name]) {
-          acc[item.name] = {
-            name: item.name,
-            quantitySold: 0,
-            revenue: 0,
-            profit: 0,
-            averagePrice: 0,
-            totalCost: 0,
-            profitMargin: 0
-          };
-        }
-        acc[item.name].quantitySold += Number(item.quantity) || 0;
-        acc[item.name].revenue += formatNumber(item.price * item.quantity);
-        acc[item.name].totalCost += formatNumber(item.costPrice * item.quantity);
-        acc[item.name].profit += formatNumber((item.price - item.costPrice) * item.quantity);
-      });
-      return acc;
+    const metricsObject = orders.reduce((acc, order) => {
+        // Skip refunded orders
+        if (order.isRefunded) return acc;
+
+        order.items.forEach(item => {
+            if (!acc[item.name]) {
+                acc[item.name] = {
+                    name: item.name,
+                    category: item.category || 'غير مصنف',
+                    quantitySold: 0,
+                    revenue: 0,
+                    profit: 0,
+                    averagePrice: 0,
+                    totalCost: 0,
+                    profitMargin: 0
+                };
+            }
+            acc[item.name].quantitySold += Number(item.quantity) || 0;
+            acc[item.name].revenue += formatNumber(item.price * item.quantity);
+            acc[item.name].totalCost += formatNumber(item.costPrice * item.quantity);
+            acc[item.name].profit += formatNumber((item.price - item.costPrice) * item.quantity);
+        });
+        return acc;
     }, {});
 
-    return Object.values(metrics).map(item => ({
-      ...item,
-      averagePrice: formatNumber(item.revenue / item.quantitySold),
-      profitMargin: formatNumber((item.profit / item.revenue) * 100)
-    }));
-  };
+    return Object.values(metricsObject).map(product => {
+        product.averagePrice = product.revenue / product.quantitySold;
+        product.profitMargin = (product.profit / product.revenue) * 100;
+        return product;
+    });
+};
+
+const calculateTotalSales = (orders) => {
+    return orders.reduce((total, order) => {
+        // Skip refunded orders in total calculations
+        if (order.isRefunded) return total;
+        return total + order.total;
+    }, 0);
+};
+
+const calculateRefundedAmount = (orders) => {
+    return orders.reduce((total, order) => {
+        // Only sum refunded orders
+        if (!order.isRefunded) return total;
+        return total + order.total;
+    }, 0);
+};
 
   const calculateDailyTrends = (orders) => {
     if (!Array.isArray(orders)) return [];
     
     const dailyData = orders.reduce((acc, order) => {
+      // Skip refunded orders
+      if (order.isRefunded) return acc;
+
       const date = new Date(order.date).toLocaleDateString();
       if (!acc[date]) {
         acc[date] = {
@@ -521,10 +720,7 @@ const SalesReports = () => {
       return acc;
     }, {});
 
-    return Object.values(dailyData).map(day => ({
-      ...day,
-      averageOrderValue: formatNumber(day.revenue / day.orders)
-    }));
+    return Object.values(dailyData);
   };
 
   // Modify calculateProductTimings to include product images
@@ -757,26 +953,56 @@ const SalesReports = () => {
     </Grid>
   );
 
+  const renderOverviewMetrics = () => (
+    <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+            <MetricCard>
+                <CardContent>
+                    <Typography variant="h6" gutterBottom>إجمالي المبيعات</Typography>
+                    <Typography variant="h4" color="primary">
+                        {calculateTotalSales(orders).toFixed(2)} ر.س
+                    </Typography>
+                </CardContent>
+            </MetricCard>
+        </Grid>
+        <Grid item xs={12} md={4}>
+            <MetricCard>
+                <CardContent>
+                    <Typography variant="h6" gutterBottom>المبالغ المستردة</Typography>
+                    <Typography variant="h4" color="error">
+                        {calculateRefundedAmount(orders).toFixed(2)} ر.س
+                    </Typography>
+                </CardContent>
+            </MetricCard>
+        </Grid>
+        <Grid item xs={12} md={4}>
+            <MetricCard>
+                <CardContent>
+                    <Typography variant="h6" gutterBottom>صافي المبيعات</Typography>
+                    <Typography variant="h4" color="success.main">
+                        {(calculateTotalSales(orders) - calculateRefundedAmount(orders)).toFixed(2)} ر.س
+                    </Typography>
+                </CardContent>
+            </MetricCard>
+        </Grid>
+    </Grid>
+);
+
   const renderOverviewTab = () => {
     // Get category data
     const categoryData = calculateCategoryTotals(orders);
     
     // Get products for selected category
-    const categoryProducts = calculateProductMetrics(orders)
-      .filter(product => {
-        const productFromOrders = orders.find(order => 
-          order.items.some(item => item.name === product.name)
-        );
-        return selectedOverviewCategory === 'الكل' || 
-          (productFromOrders && productFromOrders.items.find(item => 
-            item.name === product.name
-          )?.category === selectedOverviewCategory);
-      });
+    const allProductMetrics = calculateProductMetrics(orders);
+    const categoryProducts = allProductMetrics.filter(product => 
+      selectedOverviewCategory === 'الكل' || product.category === selectedOverviewCategory
+    );
 
     const displayData = selectedOverviewCategory === 'الكل' ? categoryData : categoryProducts;
 
     return (
       <Grid container spacing={3}>
+        {renderOverviewMetrics()}
         <Grid item xs={12}>
           <StyledRevCard>
             <CardContent sx={{ p: 3 }}>
@@ -1365,6 +1591,55 @@ const RankingItem = styled(Box)(({ theme }) => ({
     </Grid>
   );
 
+  const renderProductTimingAnalysis = () => (
+    <StyledCard>
+      <CardContent>
+        <ProductSelectionHeader>
+          <Typography className="selection-title">
+            تحليل أوقات البيع للمنتجات
+          </Typography>
+          <FormControl>
+            <InputLabel sx={{ fontFamily: 'inherit' }}>اختر المنتج</InputLabel>
+            <AnimatedSelect
+              value={selectedProduct || ''}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              size="small"
+            >
+              {calculateProductMetrics(orders)
+                .map(product => (
+                  <AnimatedMenuItem key={product.name} value={product.name}>
+                    {product.name}
+                  </AnimatedMenuItem>
+                ))}
+            </AnimatedSelect>
+          </FormControl>
+        </ProductSelectionHeader>
+
+        {/* Update all Typography components within the product timing analysis section */}
+        {selectedProduct && (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'background.paper', 
+                borderRadius: 2, 
+                boxShadow: 1,
+                '& .MuiTypography-root': {
+                  fontFamily: 'inherit'
+                }
+              }}>
+                {/* ... existing content ... */}
+              </Box>
+            </Grid>
+            
+            {/* Update other Grid items similarly */}
+            // ...existing code...
+          </Grid>
+        )}
+      </CardContent>
+    </StyledCard>
+  );
+
   // Add renderTrendsSection inside the component
   const renderTrendsSection = () => (
 <Grid container spacing={3}>
@@ -1474,89 +1749,91 @@ const RankingItem = styled(Box)(({ theme }) => ({
 );
 
   return (
-    <ErrorBoundary>
-      <GlobalStylesWrapper>
-        <ManagementContainer>
-          <TopBar>
-            <ActionBar>
-              <Link to="/pos" className="back-button">
-                <FaArrowLeft /> العودة لصفحة المبيعات
-              </Link>
-            </ActionBar>
-            <PageTitle>تقارير المبيعات</PageTitle>
-          </TopBar>
+    <ThemeProvider theme={theme}>
+      <ErrorBoundary>
+        <GlobalStylesWrapper>
+          <ManagementContainer>
+            <TopBar>
+              <ActionBar>
+                <Link to="/pos" className="back-button">
+                  <FaArrowLeft /> العودة لصفحة المبيعات
+                </Link>
+              </ActionBar>
+              <PageTitle>تقارير المبيعات</PageTitle>
+            </TopBar>
 
-          <Paper sx={{ p: 2, mb: 3 }}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <Grid container spacing={3} alignItems="center">
-                <Grid item xs={12} md={3}>
-                  <DatePicker
-                    label="تاريخ البداية"
-                    value={dateRange.start}
-                    onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
-                    slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <DatePicker
-                    label="تاريخ النهاية"
-                    value={dateRange.end}
-                    onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
-                    slotProps={{ textField: { fullWidth: true, size: "small" } }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <StyledFormControl fullWidth>
-                    <InputLabel>نوع التصفية</InputLabel>
-                    <StyledSelect
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
-                      label="نوع التصفية"
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <Grid container spacing={3} alignItems="center">
+                  <Grid item xs={12} md={3}>
+                    <DatePicker
+                      label="تاريخ البداية"
+                      value={dateRange.start}
+                      onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
+                      slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <DatePicker
+                      label="تاريخ النهاية"
+                      value={dateRange.end}
+                      onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
+                      slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <StyledFormControl fullWidth>
+                      <InputLabel>نوع التصفية</InputLabel>
+                      <StyledSelect
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        label="نوع التصفية"
+                      >
+                        <StyledMenuItem value="daily">يومي</StyledMenuItem>
+                        <StyledMenuItem value="weekly">أسبوعي</StyledMenuItem>
+                        <StyledMenuItem value="monthly">شهري</StyledMenuItem>
+                        <StyledMenuItem value="yearly">سنوي</StyledMenuItem>
+                      </StyledSelect>
+                    </StyledFormControl>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <StyledButton
+                      className="btn btn-primary text-white"
+                      startIcon={<FaDownload className='mx-2' />}
+                      onClick={handleExport}
+                      fullWidth
+                      sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
                     >
-                      <StyledMenuItem value="daily">يومي</StyledMenuItem>
-                      <StyledMenuItem value="weekly">أسبوعي</StyledMenuItem>
-                      <StyledMenuItem value="monthly">شهري</StyledMenuItem>
-                      <StyledMenuItem value="yearly">سنوي</StyledMenuItem>
-                    </StyledSelect>
-                  </StyledFormControl>
+                      تصدير التقرير
+                    </StyledButton>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={3}>
-                  <StyledButton
-                    className="btn btn-primary text-white"
-                    startIcon={<FaDownload className='mx-2' />}
-                    onClick={handleExport}
-                    fullWidth
-                    sx={{ backgroundColor: '#0d6efd', '&:hover': { backgroundColor: '#0b5ed7' } }}
-                  >
-                    تصدير التقرير
-                  </StyledButton>
-                </Grid>
-              </Grid>
-            </LocalizationProvider>
-          </Paper>
+              </LocalizationProvider>
+            </Paper>
 
-          <Box sx={{ mb: 3 }}>
-            <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-              <StyledTab label="نظرة عامة" />
-              <StyledTab label="تحليل المنتجات" />
-              <StyledTab label="الاتجاهات" />
-            </Tabs>
-          </Box>
+            <Box sx={{ mb: 3 }}>
+              <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+                <StyledTab label="نظرة عامة" />
+                <StyledTab label="تحليل المنتجات" />
+                <StyledTab label="الاتجاهات" />
+              </Tabs>
+            </Box>
 
-          <ScrollableTabPanel value={tabValue} index={0}>
-            {renderOverviewTab()}
-          </ScrollableTabPanel>
+            <ScrollableTabPanel value={tabValue} index={0}>
+              {renderOverviewTab()}
+            </ScrollableTabPanel>
 
-          <ScrollableTabPanel value={tabValue} index={1}>
-            {renderProductAnalysisSection()}
-          </ScrollableTabPanel>
+            <ScrollableTabPanel value={tabValue} index={1}>
+              {renderProductAnalysisSection()}
+            </ScrollableTabPanel>
 
-          <ScrollableTabPanel value={tabValue} index={2}>
-            {renderTrendsSection()}
-          </ScrollableTabPanel>
-        </ManagementContainer>
-      </GlobalStylesWrapper>
-    </ErrorBoundary>
+            <ScrollableTabPanel value={tabValue} index={2}>
+              {renderTrendsSection()}
+            </ScrollableTabPanel>
+          </ManagementContainer>
+        </GlobalStylesWrapper>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 };
 

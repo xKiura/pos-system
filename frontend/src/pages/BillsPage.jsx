@@ -8,6 +8,10 @@ import styled from 'styled-components';
 import { FaFilter, FaCalendar } from 'react-icons/fa';
 import { Box } from '@mui/material'; // Add this import
 import { useSettings } from '../context/SettingsContext';
+import { endpoints } from '../config/api'; // Add this import
+import { readFromDb } from '../services/api';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Update TopBar styled component
 const TopBar = styled('div')(({ theme }) => ({
@@ -528,6 +532,8 @@ function BillsPage() {
     const [orderToDelete, setOrderToDelete] = useState(null);
     const [orderNumber, setOrderNumber] = useState(1);
     const [refundedOrders, setRefundedOrders] = useState(new Set());
+    const [showRefundModal, setShowRefundModal] = useState(false);
+    const [orderToRefund, setOrderToRefund] = useState(null);
 
     useEffect(() => {
         const savedEmployeeName = localStorage.getItem('employeeName');
@@ -559,25 +565,57 @@ function BillsPage() {
 
     const fetchConfirmedOrders = async () => {
         try {
-            const result = await axios.get('http://localhost:5001/confirmed-orders');
-            const ordersWithDateTime = result.data.map(order => {
-                const confirmedDate = new Date(order.confirmedAt);
-                return {
-                    ...order,
-                    date: confirmedDate.toLocaleDateString('en-GB'),
-                    time: confirmedDate.toLocaleTimeString('en-GB')
-                };
-            });
-            setConfirmedOrders(ordersWithDateTime);
+            const response = await axios.get('http://localhost:5000/confirmed-orders');
+            
+            if (response.data && Array.isArray(response.data)) {
+                const ordersWithDateTime = response.data.map(order => {
+                    const date = new Date(order.date || order.confirmedAt);
+                    return {
+                        ...order,
+                        date: date.toLocaleDateString('en-GB'),
+                        time: date.toLocaleTimeString('en-GB')
+                    };
+                });
+                console.log('Processed orders:', ordersWithDateTime.length, 'orders found'); // Modified debug log
+                setConfirmedOrders(ordersWithDateTime);
+                setFilteredOrders(ordersWithDateTime);
+            } else {
+                console.error('Invalid data format received:', response.data);
+                setConfirmedOrders([]);
+                setFilteredOrders([]);
+            }
         } catch (error) {
             console.error('Error fetching confirmed orders:', error);
+            setConfirmedOrders([]);
+            setFilteredOrders([]);
         }
     };
 
+    // Update useEffect to include error handling
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                await fetchConfirmedOrders();
+            } catch (error) {
+                console.error('Error in useEffect:', error);
+            }
+        };
+        fetchData();
+    }, []);
+
     const filterOrders = () => {
-        const filtered = confirmedOrders.filter(order => {
-            return (!dateFilter || order.date === dateFilter) && (categoryFilter === 'الكل' || order.items.some(item => item.category === categoryFilter));
-        });
+        let filtered = [...confirmedOrders];
+        
+        if (dateFilter) {
+            filtered = filtered.filter(order => order.date === dateFilter);
+        }
+        
+        if (categoryFilter !== 'الكل') {
+            filtered = filtered.filter(order => 
+                order.items.some(item => item.category === categoryFilter)
+            );
+        }
+        
         setFilteredOrders(filtered);
         calculateProfits(filtered);
     };
@@ -587,6 +625,9 @@ function BillsPage() {
         let productSales = {};
 
         orders.forEach(order => {
+            // Skip refunded orders in calculations
+            if (order.isRefunded) return;
+
             order.items.forEach(item => {
                 if (categoryFilter !== 'الكل' && item.category !== categoryFilter) {
                     return;
@@ -602,7 +643,6 @@ function BillsPage() {
 
         setTotalProfit(totalProfit);
         setProductSales(productSales);
-        // Replace Math.round with roundToNearestHalf for consistency
         const tax = roundToNearestHalf(totalProfit * 0.15);
         setTotalWithTax(totalProfit + tax);
     };
@@ -613,7 +653,7 @@ function BillsPage() {
 
     const handleDeleteAll = async () => {
         try {
-            await axios.delete('http://localhost:5001/confirmed-orders');
+            await axios.delete('http://localhost:5000/confirmed-orders');
             setConfirmedOrders([]);
             setFilteredOrders([]);
             setShowModal(false);
@@ -634,7 +674,7 @@ function BillsPage() {
         console.log(`Attempting to delete order number: ${orderNumber}`);
 
         try {
-            const response = await axios.delete(`http://localhost:5001/confirmed-orders/${parseInt(orderNumber, 10)}`);
+            const response = await axios.delete(`http://localhost:5000/confirmed-orders/${parseInt(orderNumber, 10)}`);
             console.log('Delete response:', response);
             setConfirmedOrders(confirmedOrders.filter(order => order.orderNumber !== orderNumber));
             setFilteredOrders(filteredOrders.filter(order => order.orderNumber !== orderNumber));
@@ -719,35 +759,62 @@ function BillsPage() {
     };
 
     // Add refund functionality
-    const handleRefund = async (order) => {
-        try {
-            // Ensure orderNumber is a plain number without leading zeros
-            const plainOrderNumber = parseInt(order.orderNumber, 10);
-            
-            const response = await axios.post(`http://localhost:5001/refund-order/${plainOrderNumber}`, {
-                ...order,
-                orderNumber: plainOrderNumber, // Send plain number in body too
-                refundedAt: new Date().toISOString()
-            });
+    const initiateRefund = (order) => {
+        setOrderToRefund(order);
+        setShowRefundModal(true);
+    };
 
-            if (response.status === 200) {
+    const confirmRefund = async () => {
+        if (!orderToRefund) return;
+
+        try {
+            const currentEmployeeName = localStorage.getItem('employeeName');
+            const currentEmployeeNumber = localStorage.getItem('employeeNumber');
+        
+            if (!currentEmployeeName || !currentEmployeeNumber) {
+                toast.error('معلومات الموظف غير متوفرة');
+                setShowRefundModal(false);
+                return;
+            }
+        
+            const paddedOrderNumber = orderToRefund.orderNumber.toString().padStart(6, '0');
+            
+            const response = await axios.post(
+                `http://localhost:5000/refund-order/${paddedOrderNumber}`,
+                {
+                    employeeName: currentEmployeeName,
+                    employeeNumber: currentEmployeeNumber
+                }
+            );
+        
+            if (response.data.success) {
                 const updatedOrders = confirmedOrders.map(o => 
-                    o.orderNumber === order.orderNumber 
+                    o.orderNumber === orderToRefund.orderNumber 
                         ? { ...o, isRefunded: true, refundedAt: new Date().toISOString() }
                         : o
                 );
                 setConfirmedOrders(updatedOrders);
-                setFilteredOrders(updatedOrders.filter(o => 
+                
+                const newFiltered = updatedOrders.filter(o => 
                     (!dateFilter || o.date === dateFilter) && 
                     (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
-                ));
-                setRefundedOrders(prev => new Set([...prev, order.orderNumber]));
-                await logBillChange('BILL_REFUND', order.orderNumber);
+                );
+                setFilteredOrders(newFiltered);
+                calculateProfits(newFiltered);
+                
+                setRefundedOrders(prev => new Set([...prev, orderToRefund.orderNumber]));
+                
+                await logBillChange('BILL_REFUND', orderToRefund.orderNumber);
+                toast.success('تم استرجاع الفاتورة بنجاح');
+            } else {
+                throw new Error(response.data.error || 'Failed to process refund');
             }
         } catch (error) {
             console.error('Error processing refund:', error);
-            alert('Failed to process refund. Please try again.');
+            const errorMessage = error.response?.data?.error || 'فشل في استرجاع الفاتورة';
+            toast.error(`${errorMessage}. الرجاء المحاولة مرة أخرى.`);
         }
+        setShowRefundModal(false);
     };
 
     const logBillChange = async (action, billNumber) => {
@@ -769,7 +836,7 @@ function BillsPage() {
             };
 
             console.log('Sending bill change log:', logData);
-            await axios.post('http://localhost:5001/bills-history', logData);
+            await axios.post('http://localhost:5000/bills-history', logData);
         } catch (error) {
             console.error('Error logging bill change:', error);
         }
@@ -844,7 +911,7 @@ function BillsPage() {
                                 $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleRefund(order);
+                                    initiateRefund(order);
                                 }}
                                 disabled={order.isRefunded || refundedOrders.has(order.orderNumber)}
                             >
@@ -1008,6 +1075,25 @@ function BillsPage() {
                         <Button variant="danger" onClick={() => handleDeleteOrder(orderToDelete)}>مسح</Button>
                     </Modal.Footer>
                 </Modal>
+
+                {/* Add the refund confirmation modal */}
+                <Modal show={showRefundModal} onHide={() => setShowRefundModal(false)}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>تأكيد الاسترجاع</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        هل أنت متأكد أنك تريد استرجاع الفاتورة رقم {orderToRefund?.orderNumber}؟
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowRefundModal(false)}>
+                            إلغاء
+                        </Button>
+                        <Button variant="warning" onClick={confirmRefund}>
+                            تأكيد الاسترجاع
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+
             </StyledContainer>
         </GlobalStyles>
     );

@@ -6,7 +6,7 @@
       "price": "45",
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
       "category": "رز",
-      "stock": 4,
+      "stock": 2,
       "minStock": 2,
       "costPrice": 0,
       "adjustmentDate": "2025-01-21T19:30:21.071Z"
@@ -120,6 +120,41 @@
       "minStock": 0,
       "costPrice": 0,
       "adjustmentDate": ""
+    }
+  ],
+  "users": [
+    {
+      "name": "s",
+      "employeeNumber": "2",
+      "pin": "0000"
+    }
+  ],
+  "confirmed-orders": [
+    {
+      "date": "2025-01-22T02:32:37.346Z",
+      "items": [
+        {
+          "id": "123",
+          "name": "مندي لحم",
+          "quantity": 2,
+          "price": "45",
+          "totalAmount": 90
+        }
+      ],
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "orderNumber": "000027",
+      "subtotal": 90,
+      "tax": 13.5,
+      "total": 103.5,
+      "id": "1737513157350",
+      "confirmedAt": "2025-01-22T02:32:37.350Z",
+      "isRefunded": true,
+      "refundedAt": "2025-01-22T02:32:43.572Z",
+      "refundedBy": {
+        "name": "s",
+        "number": "2"
+      }
     }
   ]
 }

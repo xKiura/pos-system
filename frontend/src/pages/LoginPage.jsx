@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import NumPad from '../components/NumPad';
-import api from '../services/api';
+import { toast } from 'react-toastify';
+import { endpoints } from '../config/api';
 import { useEmployee } from '../context/EmployeeContext';
 
 function LoginPage() {
@@ -62,24 +63,17 @@ function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setShowErrors(true);
+        
+        // Validation
         const newErrors = {};
-
-        // Strict validation for all fields
         const normalizedName = formData.employeeName.trim();
         
-        // Name validation
         if (!normalizedName) {
             newErrors.employeeName = 'اسم الموظف مطلوب';
-        } else if (!/^[\u0600-\u06FFa-zA-Z\s]+$/.test(normalizedName)) {
-            newErrors.employeeName = 'اسم الموظف يجب أن يحتوي على حروف فقط';
         }
-
-        // Employee number validation
         if (!formData.employeeNumber.trim()) {
             newErrors.employeeNumber = 'رقم الموظف مطلوب';
         }
-
-        // PIN validation
         if (formData.pin.includes('')) {
             newErrors.pin = 'الرقم السري مطلوب';
         }
@@ -98,38 +92,21 @@ function LoginPage() {
 
             console.log('Attempting login with:', {
                 ...loginData,
-                pin: '****' // Hide PIN in logs
+                pin: '****'
             });
 
-            const response = await api.post('/login', loginData);
-            
-            if (response.data.success) {
-                // Clear any existing employee data
-                localStorage.removeItem('employeeName');
-                localStorage.removeItem('employeeNumber');
+            const result = await login(loginData);
 
-                // Store the new employee data
-                localStorage.setItem('employeeName', response.data.employeeName);
-                localStorage.setItem('employeeNumber', response.data.employeeNumber);
-
-                // Log the stored data for verification
-                console.log('Stored employee info:', {
-                    name: localStorage.getItem('employeeName'),
-                    number: localStorage.getItem('employeeNumber')
-                });
-
-                login({
-                    name: response.data.employeeName,
-                    employeeNumber: response.data.employeeNumber
-                });
+            if (result.success) {
                 navigate('/pos');
             } else {
-                setErrors({ auth: 'بيانات تسجيل الدخول غير صحيحة' });
+                toast.error(result.message);
+                setErrors({ auth: result.message });
             }
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'حدث خطأ أثناء تسجيل الدخول';
-            setErrors({ auth: errorMessage });
-            console.error('Login error:', error.response?.data || error);
+            console.error('Login error:', error);
+            toast.error('حدث خطأ أثناء تسجيل الدخول');
+            setErrors({ auth: 'حدث خطأ أثناء تسجيل الدخول' });
         }
     };
 

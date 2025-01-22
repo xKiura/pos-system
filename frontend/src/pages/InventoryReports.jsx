@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaDownload, FaExclamationTriangle, FaSync, FaCheckCircle } from 'react-icons/fa';
+import { toast } from 'react-toastify'; // Add this import
+import 'react-toastify/dist/ReactToastify.css'; // Add this import if not already present
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -446,6 +448,38 @@ const InventoryReports = () => {
     severity: 'success'
   });
 
+  // Add this new effect for real-time updates
+  useEffect(() => {
+    // Initial fetch
+    fetchInventory();
+
+    // Set up polling for updates every 30 seconds
+    const intervalId = setInterval(fetchInventory, 30000);
+
+    // Cleanup on unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Update fetchInventory to handle errors better
+  const fetchInventory = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:5000/products'); // Keep this as 5000 for db.json
+      
+      if (Array.isArray(response.data)) {
+        setInventory(response.data);
+      } else {
+        console.error('Invalid data format received:', response.data);
+        toast.error('تنسيق البيانات غير صحيح');
+      }
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+      toast.error('فشل في تحديث بيانات المخزون');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -463,29 +497,11 @@ const InventoryReports = () => {
     init();
   }, []);
 
-  const fetchInventory = async () => {
-    try {
-      console.log('Fetching inventory...');
-      const response = await axios.get('http://localhost:5000/products'); // Changed from 5001 to 5000
-      console.log('Received inventory data:', response.data);
-      
-      if (Array.isArray(response.data)) {
-        setInventory(response.data);
-      } else {
-        console.error('Received non-array data:', response.data);
-        setInventory([]);
-      }
-    } catch (err) {
-      console.error('Error fetching inventory:', err);
-      setError('Failed to fetch inventory data');
-      setInventory([]);
-    }
-  };
-
   const fetchCategories = async () => {
     try {
       console.log('Fetching categories...');
-      const response = await axios.get('http://localhost:5000/categories');
+      // Change port from 5000 to 5001
+      const response = await axios.get('http://localhost:5000/categories'); // Keep this as 5000 for db.json
       console.log('Received categories data:', response.data);
       
       if (Array.isArray(response.data)) {
@@ -526,88 +542,92 @@ const InventoryReports = () => {
     }
   
     try {
-      // Create the updated product object
-      const updatedProduct = {
-        ...selectedProduct,
-        stock: stockLevel,
-        costPrice: costPrice,
-        minStock: minStock
-      };
+      // Create array to store changes
+      const detailedChanges = [];
   
-      // Make the API call to update product
-      const response = await axios.patch(`http://localhost:5000/products/${selectedProduct.id}`, updatedProduct);
+      // Check which fields changed and add them to the array
+      if (stockLevel !== selectedProduct.stock) {
+        detailedChanges.push({
+          field: 'المخزون',
+          oldValue: selectedProduct.stock || 0,
+          newValue: stockLevel
+        });
+      }
   
-      if (response.data) {
-        // Update the local inventory state
-        setInventory(prev => 
-          prev.map(item => 
-            item.id === selectedProduct.id ? response.data : item
-          )
+      if (costPrice !== selectedProduct.costPrice) {
+        detailedChanges.push({
+          field: 'سعر التكلفة',
+          oldValue: selectedProduct.costPrice || 0,
+          newValue: costPrice
+        });
+      }
+  
+      if (minStock !== selectedProduct.minStock) {
+        detailedChanges.push({
+          field: 'الحد الأدنى',
+          oldValue: selectedProduct.minStock || 0,
+          newValue: minStock
+        });
+      }
+  
+      // Only proceed if there are actual changes
+      if (detailedChanges.length > 0) {
+        const updatedProduct = {
+          ...selectedProduct,
+          stock: stockLevel,
+          costPrice: costPrice,
+          minStock: minStock,
+          lastUpdated: new Date().toISOString()
+        };
+  
+        // Update product first
+        const response = await axios.patch(
+          `http://localhost:5000/products/${selectedProduct.id}`, 
+          updatedProduct
         );
   
-        try {
-          // Create a detailed history entry
-          const changes = [];
-          
-          if (selectedProduct.stock !== stockLevel) {
-            changes.push({
-              field: 'المخزون',
-              oldValue: selectedProduct.stock,
-              newValue: stockLevel
-            });
-          }
-          
-          if (selectedProduct.costPrice !== costPrice) {
-            changes.push({
-              field: 'سعر التكلفة',
-              oldValue: selectedProduct.costPrice,
-              newValue: costPrice
-            });
-          }
-          
-          if (selectedProduct.minStock !== minStock) {
-            changes.push({
-              field: 'الحد الأدنى',
-              oldValue: selectedProduct.minStock,
-              newValue: minStock
-            });
-          }
-  
+        if (response.data) {
+          // Record the history entry
           const historyEntry = {
             timestamp: new Date().toISOString(),
-            employeeName: localStorage.getItem('employeeName') || 'Unknown',
-            employeeNumber: localStorage.getItem('employeeNumber') || 'Unknown',
+            employeeName: localStorage.getItem('employeeName'),
+            employeeNumber: localStorage.getItem('employeeNumber'),
             type: 'INVENTORY_UPDATE',
-            origin: 'تقارير المخزون',
+            origin: 'صفحة المخزون',
             changes: [{
               productName: selectedProduct.name,
-              oldStock: selectedProduct.stock,
-              newStock: stockLevel,
-              oldCostPrice: selectedProduct.costPrice,
-              newCostPrice: costPrice,
-              oldMinStock: selectedProduct.minStock,
-              newMinStock: minStock,
-              detailedChanges: changes
+              detailedChanges
             }]
           };
   
-          // Send to settings history endpoint for management page
-          await axios.post('http://localhost:5001/settings-history', historyEntry);
-        } catch (historyError) {
-          console.warn('Failed to log history, but product was updated:', historyError);
-        }
+          // Send history entry to backend
+          await axios.post('http://localhost:5000/products-history', historyEntry);
   
+          // Update local state
+          setInventory(prev => 
+            prev.map(item => 
+              item.id === selectedProduct.id ? response.data : item
+            )
+          );
+  
+          setSnackbar({
+            open: true,
+            message: 'تم تحديث المخزون بنجاح',
+            severity: 'success'
+          });
+  
+          setStockDialog(false);
+          setSelectedProduct(null);
+          setNewStockLevel('');
+          setNewCostPrice('');
+          setNewMinStock('');
+        }
+      } else {
         setSnackbar({
           open: true,
-          message: 'تم تحديث المخزون بنجاح',
-          severity: 'success'
+          message: 'لم يتم إجراء أي تغييرات',
+          severity: 'info'
         });
-  
-        setStockDialog(false);
-        setSelectedProduct(null);
-        setNewStockLevel('');
-        setNewCostPrice('');
-        setNewMinStock('');
       }
     } catch (error) {
       console.error('Error updating stock:', error);
@@ -618,7 +638,11 @@ const InventoryReports = () => {
       });
     }
   };
-  
+
+  // Remove polling and use regular fetch
+  useEffect(() => {
+    fetchInventory();
+  }, []);
 
   const exportInventory = async () => {
     const headers = ['Product Name,Category,Stock Level,Low Stock Alert,Cost Price,Selling Price\n'];
@@ -647,7 +671,7 @@ const InventoryReports = () => {
         }]
       };
 
-      // Changed from settings-history to history and port from 5001 to 5000
+      // Changed from settings-history to history and port from 5000 to 5001
       await axios.post('http://localhost:5000/history', historyEntry);
     } catch (err) {
       console.error('Error logging export:', err);

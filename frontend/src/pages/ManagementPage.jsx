@@ -268,7 +268,7 @@ function ManagementPage() {
       setSettings(newSettings);
 
       // Send history entry to backend
-      const response = await axios.post('http://localhost:5001/settings-history', historyEntry);
+      const response = await axios.post('http://localhost:5000/settings-history', historyEntry);
       console.log('Server response:', response.data);
 
       // Force history component to refresh
@@ -284,28 +284,32 @@ function ManagementPage() {
 
   const fetchSystemHistory = async () => {
     try {
-      // Fetch all types of changes
-      const [settingsHistory, productsHistory, billsHistory] = await Promise.all([
-        axios.get('http://localhost:5001/settings-history'),
-        axios.get('http://localhost:5001/products-history'),
-        axios.get('http://localhost:5001/bills-history')
+      const [settings, products, bills] = await Promise.all([
+        axios.get('http://localhost:5000/settings-history'),
+        axios.get('http://localhost:5000/products-history'),
+        axios.get('http://localhost:5000/bills-history')
       ]);
 
-      // Combine and sort all changes
-      const allChanges = [
-        ...settingsHistory.data.map(change => ({
-          ...change,
-          type: 'SETTINGS'
-        })),
-        ...productsHistory.data.map(change => ({
-          ...change,
-          type: change.action.toUpperCase()
-        })),
-        ...billsHistory.data.map(change => ({
-          ...change,
-          type: change.action.toUpperCase()
-        }))
-      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const getEntryType = (entry) => {
+        if (entry.type) return entry.type;
+        if (entry.action) return entry.action.toUpperCase();
+        return 'UNKNOWN';
+      };
+
+      const settingsChanges = Array.isArray(settings.data) 
+        ? settings.data.map(change => ({ ...change, type: getEntryType(change) }))
+        : [];
+      
+      const productsChanges = Array.isArray(products.data)
+        ? products.data.map(change => ({ ...change, type: getEntryType(change) }))
+        : [];
+      
+      const billsChanges = Array.isArray(bills.data)
+        ? bills.data.map(change => ({ ...change, type: getEntryType(change) }))
+        : [];
+
+      const allChanges = [...settingsChanges, ...productsChanges, ...billsChanges]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
       setChangeHistory(allChanges);
     } catch (error) {
@@ -417,12 +421,18 @@ function ManagementPage() {
           return 'product';
         case 'BILL_REFUND':
         case 'BILL_REPRINT':
+          return 'product';
+        case 'BILL_REFUND':
+        case 'BILL_REPRINT':
         case 'BILL_DELETE':
           return 'bill';
         default:
-          return '';
+          return 'settings'; // Default class
       }
     };
+
+    const changeType = change.type || 'UNKNOWN';
+    const changeTypeText = translations.changeTypes[changeType] || translations.changeTypes.UNKNOWN;
 
     return (
       <HistoryItem key={change.timestamp}>
@@ -431,15 +441,15 @@ function ManagementPage() {
           {change.origin && <span className="origin-page">({change.origin})</span>}
         </div>
         <div>
-          <span className={`change-type-badge ${getChangeTypeBadgeClass(change.type)}`}>
-            {translations.changeTypes[change.type]}
+          <span className={`change-type-badge ${getChangeTypeBadgeClass(changeType)}`}>
+            {changeTypeText}
           </span>
         </div>
         <div style={{ marginTop: '0.5rem' }}>
           {formatChangeDetails(change)}
         </div>
         <div style={{ color: '#64748b', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-          {format(new Date(change.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: ar })}
+          {format(new Date(change.timestamp), 'dd MMMM yyyy, HH:mm:ss', { locale: ar })}
         </div>
       </HistoryItem>
     );
@@ -570,9 +580,4 @@ function ManagementPage() {
             <FaSave /> حفظ
           </Button>
         </Modal.Footer>
-      </Modal>
-    </ManagementContainer>
-  );
-}
-
-export default ManagementPage;
+      </Modal>    </ManagementContainer>  );}export default ManagementPage;
