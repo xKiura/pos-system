@@ -270,13 +270,20 @@ export const HistoryChanges = ({ onRefresh }) => {
         return (
           <div>
             {change.changes.map((c, i) => {
-              if (!c || !c.detailedChanges) return null;
+              if (!c || !c.detailedChanges || c.detailedChanges.length === 0) return null;
               
+              // Only show changes where oldValue !== newValue
+              const actualChanges = c.detailedChanges.filter(
+                detail => detail.oldValue !== detail.newValue
+              );
+
+              if (actualChanges.length === 0) return null;
+
               return (
                 <div key={i}>
                   تم تحديث المنتج "{c.productName}":
                   <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
-                    {c.detailedChanges.map((detail, index) => (
+                    {actualChanges.map((detail, index) => (
                       <li key={index}>
                         {detail.field}: من {detail.oldValue} إلى {detail.newValue}
                         {detail.field === 'سعر التكلفة' ? ' ر.س' : ''}
@@ -302,17 +309,25 @@ export const HistoryChanges = ({ onRefresh }) => {
       
       case 'PRODUCT_EDIT':
         if (!change.changes || !change.changes[0]) return 'تم تعديل منتج';
+        
+        // Filter out unchanged values
+        const actualChanges = change.changes[0].detailedChanges.filter(
+          detail => detail.oldValue !== detail.newValue
+        );
+
+        if (actualChanges.length === 0) return 'تم تعديل منتج';
+
         return (
-            <div>
-                تم تعديل المنتج "{change.changes[0].productName}":
-                <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
-                    {change.changes[0].detailedChanges.map((detail, index) => (
-                        <li key={index}>
-                            {detail.field}: من {detail.oldValue} إلى {detail.newValue}
-                        </li>
-                    ))}
-                </ul>
-            </div>
+          <div>
+            تم تعديل المنتج "{change.changes[0].productName}":
+            <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
+              {actualChanges.map((detail, index) => (
+                <li key={index}>
+                  {detail.field}: من {detail.oldValue} إلى {detail.newValue}
+                </li>
+              ))}
+            </ul>
+          </div>
         );
       
       case 'PRODUCT_DELETE':
