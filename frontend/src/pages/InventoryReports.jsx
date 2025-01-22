@@ -542,92 +542,45 @@ const InventoryReports = () => {
     }
   
     try {
-      // Create array to store changes
-      const detailedChanges = [];
+      // Get current employee info
+      const employeeName = localStorage.getItem('employeeName');
+      const employeeNumber = localStorage.getItem('employeeNumber');
   
-      // Check which fields changed and add them to the array
-      if (stockLevel !== selectedProduct.stock) {
-        detailedChanges.push({
-          field: 'المخزون',
-          oldValue: selectedProduct.stock || 0,
-          newValue: stockLevel
-        });
-      }
-  
-      if (costPrice !== selectedProduct.costPrice) {
-        detailedChanges.push({
-          field: 'سعر التكلفة',
-          oldValue: selectedProduct.costPrice || 0,
-          newValue: costPrice
-        });
-      }
-  
-      if (minStock !== selectedProduct.minStock) {
-        detailedChanges.push({
-          field: 'الحد الأدنى',
-          oldValue: selectedProduct.minStock || 0,
-          newValue: minStock
-        });
-      }
-  
-      // Only proceed if there are actual changes
-      if (detailedChanges.length > 0) {
-        const updatedProduct = {
+      // Include employee info in the update request
+      const response = await axios.patch(
+        `http://localhost:5000/products/${selectedProduct.id}`, 
+        {
           ...selectedProduct,
           stock: stockLevel,
           costPrice: costPrice,
           minStock: minStock,
-          lastUpdated: new Date().toISOString()
-        };
+          lastUpdated: new Date().toISOString(),
+          employeeName,
+          employeeNumber
+        }
+      );
   
-        // Update product first
-        const response = await axios.patch(
-          `http://localhost:5000/products/${selectedProduct.id}`, 
-          updatedProduct
+      if (response.data) {
+        setInventory(prev => 
+          prev.map(item => 
+            item.id === selectedProduct.id ? response.data : item
+          )
         );
   
-        if (response.data) {
-          // Record the history entry
-          const historyEntry = {
-            timestamp: new Date().toISOString(),
-            employeeName: localStorage.getItem('employeeName'),
-            employeeNumber: localStorage.getItem('employeeNumber'),
-            type: 'INVENTORY_UPDATE',
-            origin: 'صفحة المخزون',
-            changes: [{
-              productName: selectedProduct.name,
-              detailedChanges
-            }]
-          };
-  
-          // Send history entry to backend
-          await axios.post('http://localhost:5000/products-history', historyEntry);
-  
-          // Update local state
-          setInventory(prev => 
-            prev.map(item => 
-              item.id === selectedProduct.id ? response.data : item
-            )
-          );
-  
-          setSnackbar({
-            open: true,
-            message: 'تم تحديث المخزون بنجاح',
-            severity: 'success'
-          });
-  
-          setStockDialog(false);
-          setSelectedProduct(null);
-          setNewStockLevel('');
-          setNewCostPrice('');
-          setNewMinStock('');
-        }
-      } else {
         setSnackbar({
           open: true,
-          message: 'لم يتم إجراء أي تغييرات',
-          severity: 'info'
+          message: 'تم تحديث المخزون بنجاح',
+          severity: 'success'
         });
+  
+        setStockDialog(false);
+        setSelectedProduct(null);
+        setNewStockLevel('');
+        setNewCostPrice('');
+        setNewMinStock('');
+        
+        // Refresh inventory data
+        fetchInventory();
       }
     } catch (error) {
       console.error('Error updating stock:', error);

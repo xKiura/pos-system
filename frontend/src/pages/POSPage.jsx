@@ -395,7 +395,7 @@ function POSPage() {
           total
         };
 
-        // Update to use port 5000
+        // Send order to backend
         const response = await axios.post('http://localhost:5000/confirmed-orders', orderData);
 
         if (response.data.success === false) {

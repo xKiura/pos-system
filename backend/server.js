@@ -108,25 +108,72 @@ app.get('/products', async (req, res) => {
 app.patch('/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await storage.init();
-    const products = await storage.get('products') || [];
+    const data = await readFromDb();
+    const products = data.products || [];
     const productIndex = products.findIndex(p => p.id === id);
     
     if (productIndex === -1) {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Update the product with new data
+    const oldProduct = products[productIndex];
     const updatedProduct = {
-      ...products[productIndex],
+      ...oldProduct,
       ...req.body,
     };
 
-    // Save the updated product
-    products[productIndex] = updatedProduct;
-    await storage.set('products', products);
-    
-    res.json(updatedProduct);
+    const historyEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName || 'Unknown',
+      employeeNumber: req.body.employeeNumber || 'Unknown',
+      type: 'INVENTORY_UPDATE',  // Make sure this is explicitly set
+      origin: 'صفحة المخزون',
+      changes: [{
+        productName: oldProduct.name,
+        detailedChanges: []
+      }]
+    };
+
+    // Compare and record changes
+    if (oldProduct.stock !== updatedProduct.stock) {
+      historyEntry.changes[0].detailedChanges.push({
+        field: 'المخزون',
+        oldValue: oldProduct.stock,
+        newValue: updatedProduct.stock
+      });
+    }
+    if (oldProduct.minStock !== updatedProduct.minStock) {
+      historyEntry.changes[0].detailedChanges.push({
+        field: 'الحد الأدنى',
+        oldValue: oldProduct.minStock,
+        newValue: updatedProduct.minStock
+      });
+    }
+    if (oldProduct.costPrice !== updatedProduct.costPrice) {
+      historyEntry.changes[0].detailedChanges.push({
+        field: 'سعر التكلفة',
+        oldValue: oldProduct.costPrice,
+        newValue: updatedProduct.costPrice
+      });
+    }
+
+    // Only save history if there are actual changes
+    if (historyEntry.changes[0].detailedChanges.length > 0) {
+      if (!data.productsHistory) {
+        data.productsHistory = [];
+      }
+      data.productsHistory.unshift(historyEntry);
+      data.productsHistory = data.productsHistory.slice(0, 100);
+      products[productIndex] = updatedProduct;
+      data.products = products;
+      
+      await writeToDb(data);
+      res.json(updatedProduct);
+    } else {
+      res.status(400).json({ error: 'No changes detected' });
+    }
+
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ error: 'Failed to update product' });
@@ -317,8 +364,14 @@ app.get('/settings-history', (req, res) => {
 });
 
 // Products history endpoints
-app.get('/products-history', (req, res) => {
-  res.json(productsHistory);
+app.get('/products-history', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    res.json(data.productsHistory || []);
+  } catch (error) {
+    console.error('Error fetching products history:', error);
+    res.status(500).json({ error: 'Failed to fetch products history' });
+  }
 });
 
 app.post('/products-history', (req, res) => {

@@ -6,10 +6,13 @@
       "price": "45",
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
       "category": "رز",
-      "stock": 2,
+      "stock": 9,
       "minStock": 2,
-      "costPrice": 0,
-      "adjustmentDate": "2025-01-21T19:30:21.071Z"
+      "costPrice": 1,
+      "adjustmentDate": "2025-01-21T19:30:21.071Z",
+      "lastUpdated": "2025-01-22T03:05:21.653Z",
+      "employeeName": "s",
+      "employeeNumber": "2"
     },
     {
       "id": "124",
@@ -17,10 +20,13 @@
       "price": "100",
       "image": "https://b.zmtcdn.com/data/pictures/6/21364596/4ffc072adaf0517abb75a02585acc629_o2_featured_v2.jpg",
       "category": "مشويات",
-      "stock": 0,
-      "minStock": 0,
-      "costPrice": 0,
-      "adjustmentDate": ""
+      "stock": 5,
+      "minStock": 1,
+      "costPrice": 2,
+      "adjustmentDate": "",
+      "lastUpdated": "2025-01-22T03:05:47.093Z",
+      "employeeName": "s",
+      "employeeNumber": "2"
     },
     {
       "id": "125",
@@ -28,10 +34,13 @@
       "price": "10",
       "image": "https://media.zid.store/thumbs/97000df6-db1b-4087-92c8-f0f844ed0c7b/40c062d2-7fbd-46c2-9706-8416270c1e6e-thumbnail-1000x1000-70.webp",
       "category": "مشروبات",
-      "stock": 0,
-      "minStock": 0,
-      "costPrice": 0,
-      "adjustmentDate": ""
+      "stock": 6,
+      "minStock": 1,
+      "costPrice": 1,
+      "adjustmentDate": "",
+      "lastUpdated": "2025-01-22T03:07:54.141Z",
+      "employeeName": "s",
+      "employeeNumber": "2"
     },
     {
       "id": "126",
@@ -131,6 +140,26 @@
   ],
   "confirmed-orders": [
     {
+      "date": "2025-01-22T03:09:40.717Z",
+      "items": [
+        {
+          "id": "123",
+          "name": "مندي لحم",
+          "quantity": 2,
+          "price": "45",
+          "totalAmount": 90
+        }
+      ],
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "orderNumber": "000028",
+      "subtotal": 90,
+      "tax": 13.5,
+      "total": 103.5,
+      "id": "1737515380722",
+      "confirmedAt": "2025-01-22T03:09:40.722Z"
+    },
+    {
       "date": "2025-01-22T02:32:37.346Z",
       "items": [
         {
@@ -155,6 +184,134 @@
         "name": "s",
         "number": "2"
       }
+    }
+  ],
+  "settings": {
+    "taxRate": 15,
+    "printCopies": 1,
+    "requireManagerApproval": false,
+    "history": []
+  },
+  "productsHistory": [
+    {
+      "id": 1737515274154,
+      "timestamp": "2025-01-22T03:07:54.154Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "كينزا",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 0,
+              "newValue": 6
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 0,
+              "newValue": 1
+            },
+            {
+              "field": "سعر التكلفة",
+              "oldValue": 0,
+              "newValue": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1737515147106,
+      "timestamp": "2025-01-22T03:05:47.106Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مشويات مشكل",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 0,
+              "newValue": 5
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 0,
+              "newValue": 1
+            },
+            {
+              "field": "سعر التكلفة",
+              "oldValue": 0,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1737515121658,
+      "timestamp": "2025-01-22T03:05:21.658Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 12,
+              "newValue": 11
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 3,
+              "newValue": 2
+            },
+            {
+              "field": "سعر التكلفة",
+              "oldValue": 2,
+              "newValue": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1737514934266,
+      "timestamp": "2025-01-22T03:02:14.266Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 10,
+              "newValue": 12
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 1,
+              "newValue": 3
+            },
+            {
+              "field": "سعر التكلفة",
+              "oldValue": 1,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
     }
   ]
 }

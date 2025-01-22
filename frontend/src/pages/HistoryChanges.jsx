@@ -164,8 +164,9 @@ const translations = {
     BILL_REFUND: 'استرجاع فاتورة',
     BILL_REPRINT: 'إعادة طباعة فاتورة',
     BILL_DELETE: 'حذف فاتورة',
-    INVENTORY_UPDATE: 'تحديث المخزون',
-    REPORT_EXPORT: 'تصدير تقرير المخزون'
+    INVENTORY_UPDATE: 'تحديث المخزون', // This is the key one we need
+    REPORT_EXPORT: 'تصدير تقرير',
+    UNKNOWN: 'نوع غير معروف'
   },
   filterLabels: {
     all: 'جميع التغييرات',
@@ -213,20 +214,12 @@ export const HistoryChanges = ({ onRefresh }) => {
       ]);
 
       const allChanges = [
-        ...(Array.isArray(settings.data) ? settings.data : []).map(change => ({
-          ...change,
-          type: change.type || 'SETTINGS'
-        })),
-        ...(Array.isArray(products.data) ? products.data : []).map(change => ({
-          ...change,
-          type: change.action ? change.action.toUpperCase() : 'UNKNOWN'
-        })),
-        ...(Array.isArray(bills.data) ? bills.data : []).map(change => ({
-          ...change,
-          type: change.action ? change.action.toUpperCase() : 'UNKNOWN'
-        }))
+        ...(Array.isArray(settings.data) ? settings.data : []),
+        ...(Array.isArray(products.data) ? products.data : []),
+        ...(Array.isArray(bills.data) ? bills.data : [])
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+      // Remove the map operations that were overwriting the type
       setChanges(allChanges);
       if (onRefresh) {
         onRefresh(allChanges);
@@ -277,18 +270,12 @@ export const HistoryChanges = ({ onRefresh }) => {
         ));
       
       case 'INVENTORY_UPDATE':
-        if (!change.changes || !Array.isArray(change.changes)) return 'تحديث في المخزون';
+        if (!change.changes || !Array.isArray(change.changes)) return 'تحديث المخزون';
         return (
           <div>
             {change.changes.map((c, i) => {
-              if (!c || !c.detailedChanges || !Array.isArray(c.detailedChanges)) {
-                return (
-                  <div key={i}>
-                    تم تحديث المنتج "{c?.productName || 'غير معروف'}"
-                  </div>
-                );
-              }
-
+              if (!c || !c.detailedChanges) return null;
+              
               return (
                 <div key={i}>
                   تم تحديث المنتج "{c.productName}":
@@ -410,7 +397,7 @@ export const HistoryChanges = ({ onRefresh }) => {
               >
                 <div>
                   <ChangeTypeBadge className={getChangeTypeBadgeClass(change.type)}>
-                    {translations.changeTypes[change.type] || 'نوع غير معروف'}
+                    {translations.changeTypes[change.type] || translations.changeTypes.UNKNOWN}
                   </ChangeTypeBadge>
                   <TimeStamp>
                     {change.timestamp ? 
