@@ -207,19 +207,23 @@ export const HistoryChanges = ({ onRefresh }) => {
 
   const fetchAllChanges = async () => {
     try {
-      const [settings, products, bills] = await Promise.all([
-        axios.get('http://localhost:5000/settings-history'),
-        axios.get('http://localhost:5000/products-history'),
-        axios.get('http://localhost:5000/bills-history')
+      // Fetch all types of history records
+      const [settingsHistory, productsHistory, billsHistory, inventoryHistory] = await Promise.all([
+        axios.get('http://localhost:5000/settings-history').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/productsHistory').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/bills-history').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/inventory-history').catch(() => ({ data: [] }))
       ]);
 
+      // Combine all histories and ensure each entry has a type
       const allChanges = [
-        ...(Array.isArray(settings.data) ? settings.data : []),
-        ...(Array.isArray(products.data) ? products.data : []),
-        ...(Array.isArray(bills.data) ? bills.data : [])
+        ...(Array.isArray(settingsHistory.data) ? settingsHistory.data.map(entry => ({...entry, type: entry.type || 'SETTINGS'})) : []),
+        ...(Array.isArray(productsHistory.data) ? productsHistory.data : []),
+        ...(Array.isArray(billsHistory.data) ? billsHistory.data.map(entry => ({...entry, type: entry.action || 'BILL_ACTION'})) : []),
+        ...(Array.isArray(inventoryHistory.data) ? inventoryHistory.data : [])
       ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      // Remove the map operations that were overwriting the type
+      console.log('Combined history entries:', allChanges.length);
       setChanges(allChanges);
       if (onRefresh) {
         onRefresh(allChanges);
@@ -261,14 +265,6 @@ export const HistoryChanges = ({ onRefresh }) => {
     if (!change || !change.type) return 'تغيير غير معروف';
 
     switch (change.type) {
-      case 'SETTINGS':
-        if (!change.changes || !Array.isArray(change.changes)) return 'تغيير في الإعدادات';
-        return change.changes.map((c, i) => (
-          <div key={i}>
-            تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
-          </div>
-        ));
-      
       case 'INVENTORY_UPDATE':
         if (!change.changes || !Array.isArray(change.changes)) return 'تحديث المخزون';
         return (
@@ -292,12 +288,32 @@ export const HistoryChanges = ({ onRefresh }) => {
             })}
           </div>
         );
+
+      case 'SETTINGS':
+        if (!change.changes || !Array.isArray(change.changes)) return 'تغيير في الإعدادات';
+        return change.changes.map((c, i) => (
+          <div key={i}>
+            تم تغيير {getSettingName(c.setting)} من "{c.oldValue}" إلى "{c.newValue}"
+          </div>
+        ));
       
       case 'PRODUCT_ADD':
         return `تمت إضافة منتج "${change.product?.name || 'غير معروف'}"`;
       
       case 'PRODUCT_EDIT':
-        return `تم تعديل منتج "${change.product?.name || 'غير معروف'}"`;
+        if (!change.changes || !change.changes[0]) return 'تم تعديل منتج';
+        return (
+            <div>
+                تم تعديل المنتج "{change.changes[0].productName}":
+                <ul style={{ margin: '0.5rem 0', paddingRight: '1.5rem' }}>
+                    {change.changes[0].detailedChanges.map((detail, index) => (
+                        <li key={index}>
+                            {detail.field}: من {detail.oldValue} إلى {detail.newValue}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
       
       case 'PRODUCT_DELETE':
         return `تم حذف منتج "${change.product?.name || 'غير معروف'}"`;

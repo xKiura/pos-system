@@ -106,6 +106,28 @@ const validateStock = async (product, quantity) => {
   }
 };
 
+// Add this utility function near the other animation utilities
+const animateAndClearBill = (items, finalCallback) => {
+  if (items.length === 0) {
+    finalCallback();
+    return;
+  }
+
+  // Add animation class to all items with staggered delays
+  items.forEach((item, index) => {
+    const element = document.querySelector(`[data-bill-item-id="${item.id}"]`);
+    if (element) {
+      setTimeout(() => {
+        element.classList.add('remove-item-animation');
+        // If this is the last item, wait for its animation to complete before the callback
+        if (index === items.length - 1) {
+          setTimeout(finalCallback, 300); // Match animation duration
+        }
+      }, index * 50); // Stagger the animations
+    }
+  });
+};
+
 function POSPage() {
   const { currentUser } = useAuth();
   const { settings, setSettings } = useSettings();
@@ -406,11 +428,13 @@ function POSPage() {
         // Update products with new stock levels
         setProducts(response.data.updatedProducts);
         
-        // Clear the bill
-        setBill([]);
-        
-        // Increment order number
-        incrementOrderNumber();
+        // Animate and clear the bill
+        const currentBillItems = [...bill];
+        animateAndClearBill(currentBillItems, () => {
+          setBill([]);
+          // Increment order number after clearing
+          incrementOrderNumber();
+        });
         
         toast.success('تم تأكيد الطلب وتحديث المخزون بنجاح');
         return true;

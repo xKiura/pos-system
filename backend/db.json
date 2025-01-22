@@ -7,10 +7,10 @@
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
       "category": "رز",
       "stock": 9,
-      "minStock": 2,
-      "costPrice": 1,
+      "minStock": 1,
+      "costPrice": 2,
       "adjustmentDate": "2025-01-21T19:30:21.071Z",
-      "lastUpdated": "2025-01-22T03:05:21.653Z",
+      "lastUpdated": "2025-01-22T03:46:26.502Z",
       "employeeName": "s",
       "employeeNumber": "2"
     },
@@ -48,10 +48,13 @@
       "price": "15",
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHOe-qXUPduZqi-bMx913X5GF39cK3Hdiyzg&s",
       "category": "وجبات",
-      "stock": 0,
-      "minStock": 0,
-      "costPrice": 0,
-      "adjustmentDate": ""
+      "stock": 5,
+      "minStock": 1,
+      "costPrice": 1,
+      "adjustmentDate": "",
+      "lastUpdated": "2025-01-22T03:34:18.922Z",
+      "employeeName": "s",
+      "employeeNumber": "2"
     },
     {
       "id": "127",
@@ -89,13 +92,13 @@
     {
       "id": "130",
       "name": "Product 8",
-      "price": "38",
+      "price": "35",
       "image": "'https://placehold.co/150x150'",
       "category": "غير مصنف",
       "stock": 0,
       "minStock": 0,
       "costPrice": 0,
-      "adjustmentDate": ""
+      "adjustmentDate": "2025-01-22T03:44:34.364Z"
     },
     {
       "id": "132",
@@ -129,6 +132,17 @@
       "minStock": 0,
       "costPrice": 0,
       "adjustmentDate": ""
+    },
+    {
+      "id": "1737517243795",
+      "name": "12",
+      "price": "3",
+      "image": "4",
+      "category": "مشويات",
+      "stock": 0,
+      "minStock": 0,
+      "costPrice": 0,
+      "adjustmentDate": "2025-01-22T03:43:55.108Z"
     }
   ],
   "users": [
@@ -139,6 +153,26 @@
     }
   ],
   "confirmed-orders": [
+    {
+      "date": "2025-01-22T03:46:33.888Z",
+      "items": [
+        {
+          "id": "123",
+          "name": "مندي لحم",
+          "quantity": 1,
+          "price": "45",
+          "totalAmount": 45
+        }
+      ],
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "orderNumber": "000031",
+      "subtotal": 45,
+      "tax": 7,
+      "total": 52,
+      "id": "1737517593892",
+      "confirmedAt": "2025-01-22T03:46:33.892Z"
+    },
     {
       "date": "2025-01-22T03:09:40.717Z",
       "items": [
@@ -157,7 +191,13 @@
       "tax": 13.5,
       "total": 103.5,
       "id": "1737515380722",
-      "confirmedAt": "2025-01-22T03:09:40.722Z"
+      "confirmedAt": "2025-01-22T03:09:40.722Z",
+      "isRefunded": true,
+      "refundedAt": "2025-01-22T03:34:03.981Z",
+      "refundedBy": {
+        "name": "s",
+        "number": "2"
+      }
     },
     {
       "date": "2025-01-22T02:32:37.346Z",
@@ -193,6 +233,86 @@
     "history": []
   },
   "productsHistory": [
+    {
+      "id": 1737517586507,
+      "timestamp": "2025-01-22T03:46:26.507Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 11,
+              "newValue": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1737517264069,
+      "timestamp": "2025-01-22T03:41:04.069Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 9,
+              "newValue": 11
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 2,
+              "newValue": 1
+            },
+            {
+              "field": "سعر التكلفة",
+              "oldValue": 1,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1737516858926,
+      "timestamp": "2025-01-22T03:34:18.926Z",
+      "employeeName": "s",
+      "employeeNumber": "2",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "وجبة مندي ومشوي",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 0,
+              "newValue": 5
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 0,
+              "newValue": 1
+            },
+            {
+              "field": "سعر التكلفة",
+              "oldValue": 0,
+              "newValue": 1
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": 1737515274154,
       "timestamp": "2025-01-22T03:07:54.154Z",

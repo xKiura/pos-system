@@ -11,6 +11,14 @@ const dbPath = path.join(__dirname, 'db.json'); // Use __dirname to ensure corre
 const storage = new LocalStorage(dbPath);
 const PORT = 5000; // Change port to 5000
 
+// Add these near the top with other constants
+const historyDir = path.join(__dirname, 'history');
+const historyFiles = {
+  products: path.join(historyDir, 'products-history.json'),
+  settings: path.join(historyDir, 'settings-history.json'),
+  bills: path.join(historyDir, 'bills-history.json')
+};
+
 // Initialize server function
 const initializeServer = async () => {
   try {
@@ -59,6 +67,39 @@ const initializeServer = async () => {
   } catch (error) {
     console.error('Error initializing server:', error);
     process.exit(1);
+  }
+};
+
+// Add this after the existing initialization code
+if (!fs.existsSync(historyDir)) {
+  fs.mkdirSync(historyDir);
+}
+
+// Initialize history files if they don't exist
+Object.values(historyFiles).forEach(file => {
+  if (!fs.existsSync(file)) {
+    fs.writeFileSync(file, JSON.stringify([], null, 2));
+  }
+});
+
+// Add these helper functions
+const readHistory = async (type) => {
+  try {
+    const data = await fsPromises.readFile(historyFiles[type], 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error(`Error reading ${type} history:`, error);
+    return [];
+  }
+};
+
+const writeHistory = async (type, data) => {
+  try {
+    await fsPromises.writeFile(historyFiles[type], JSON.stringify(data, null, 2));
+    return true;
+  } catch (error) {
+    console.error(`Error writing ${type} history:`, error);
+    return false;
   }
 };
 
@@ -366,37 +407,62 @@ app.get('/settings-history', (req, res) => {
 // Products history endpoints
 app.get('/products-history', async (req, res) => {
   try {
-    const data = await readFromDb();
-    res.json(data.productsHistory || []);
+    const history = await readHistory('products');
+    res.json(history);
   } catch (error) {
     console.error('Error fetching products history:', error);
     res.status(500).json({ error: 'Failed to fetch products history' });
   }
 });
 
-app.post('/products-history', (req, res) => {
+app.post('/products-history', async (req, res) => {
   try {
+    const history = await readHistory('products');
     const historyEntry = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
       employeeName: req.body.employeeName,
       employeeNumber: req.body.employeeNumber,
-      type: req.body.type || 'UNKNOWN',
+      type: req.body.type || 'INVENTORY_UPDATE',
       origin: req.body.origin || 'صفحة المخزون',
       changes: req.body.changes || []
     };
 
-    const data = readFromDb();
+    history.unshift(historyEntry);
+    history.splice(100); // Keep only last 100 entries
+    
+    await writeHistory('products', history);
+    res.json(historyEntry);
+  } catch (error) {
+    console.error('Error saving product history:', error);
+    res.status(500).json({ error: 'Failed to save history' });
+  }
+});
+
+app.post('/products-history', async (req, res) => {
+  try {
+    const data = await readFromDb();
     if (!data.productsHistory) {
       data.productsHistory = [];
     }
+
+    const historyEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      type: req.body.type || 'INVENTORY_UPDATE',
+      origin: req.body.origin || 'صفحة المخزون',
+      changes: req.body.changes || []
+    };
+
     data.productsHistory.unshift(historyEntry);
     data.productsHistory = data.productsHistory.slice(0, 100);
     
-    writeToDb(data);
+    await writeToDb(data);
     res.json(historyEntry);
   } catch (error) {
-    console.error('Error saving history:', error);
+    console.error('Error saving product history:', error);
     res.status(500).json({ error: 'Failed to save history' });
   }
 });
@@ -864,39 +930,40 @@ app.get('/settings-history', (req, res) => {
 });
 
 // Products history endpoints
-app.post('/products-history', (req, res) => {
+app.post('/products-history', async (req, res) => {
   try {
+    const data = await readFromDb();
+    if (!data.productsHistory) {
+      data.productsHistory = [];
+    }
+
     const historyEntry = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
       employeeName: req.body.employeeName,
       employeeNumber: req.body.employeeNumber,
-      type: req.body.type || 'UNKNOWN',
+      type: req.body.type || 'INVENTORY_UPDATE',
       origin: req.body.origin || 'صفحة المخزون',
       changes: req.body.changes || []
     };
 
-    const data = readFromDb();
-    if (!data.productsHistory) {
-      data.productsHistory = [];
-    }
     data.productsHistory.unshift(historyEntry);
     data.productsHistory = data.productsHistory.slice(0, 100);
     
-    writeToDb(data);
+    await writeToDb(data);
     res.json(historyEntry);
   } catch (error) {
-    console.error('Error saving history:', error);
+    console.error('Error saving product history:', error);
     res.status(500).json({ error: 'Failed to save history' });
   }
 });
 
-app.get('/products-history', (req, res) => {
+app.get('/products-history', async (req, res) => {
   try {
-    const data = readFromDb();
+    const data = await readFromDb();
     res.json(data.productsHistory || []);
   } catch (error) {
-    console.error('Error fetching history:', error);
+    console.error('Error fetching product history:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });

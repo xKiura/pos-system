@@ -546,41 +546,91 @@ const InventoryReports = () => {
       const employeeName = localStorage.getItem('employeeName');
       const employeeNumber = localStorage.getItem('employeeNumber');
   
-      // Include employee info in the update request
-      const response = await axios.patch(
-        `http://localhost:5000/products/${selectedProduct.id}`, 
-        {
-          ...selectedProduct,
-          stock: stockLevel,
-          costPrice: costPrice,
-          minStock: minStock,
-          lastUpdated: new Date().toISOString(),
-          employeeName,
-          employeeNumber
-        }
-      );
+      // Create history entry
+      const historyEntry = {
+        timestamp: new Date().toISOString(),
+        employeeName,
+        employeeNumber,
+        type: 'INVENTORY_UPDATE',
+        origin: 'صفحة المخزون',
+        changes: [{
+          productName: selectedProduct.name,
+          detailedChanges: []
+        }]
+      };
   
-      if (response.data) {
-        setInventory(prev => 
-          prev.map(item => 
-            item.id === selectedProduct.id ? response.data : item
-          )
+      // Add changes that actually changed
+      if (stockLevel !== selectedProduct.stock) {
+        historyEntry.changes[0].detailedChanges.push({
+          field: 'المخزون',
+          oldValue: selectedProduct.stock,
+          newValue: stockLevel
+        });
+      }
+  
+      if (minStock !== selectedProduct.minStock) {
+        historyEntry.changes[0].detailedChanges.push({
+          field: 'الحد الأدنى',
+          oldValue: selectedProduct.minStock,
+          newValue: minStock
+        });
+      }
+  
+      if (costPrice !== selectedProduct.costPrice) {
+        historyEntry.changes[0].detailedChanges.push({
+          field: 'سعر التكلفة',
+          oldValue: selectedProduct.costPrice,
+          newValue: costPrice
+        });
+      }
+  
+      // Only proceed if there are actual changes
+      if (historyEntry.changes[0].detailedChanges.length > 0) {
+        // First update the product
+        const response = await axios.patch(
+          `http://localhost:5000/products/${selectedProduct.id}`,
+          {
+            ...selectedProduct,
+            stock: stockLevel,
+            costPrice: costPrice,
+            minStock: minStock,
+            lastUpdated: new Date().toISOString(),
+            employeeName,
+            employeeNumber
+          }
         );
   
+        // Then log to history
+        await axios.post('http://localhost:5000/settings-history', historyEntry);
+  
+        if (response.data) {
+          setInventory(prev =>
+            prev.map(item =>
+              item.id === selectedProduct.id ? response.data : item
+            )
+          );
+  
+          setSnackbar({
+            open: true,
+            message: 'تم تحديث المخزون بنجاح',
+            severity: 'success'
+          });
+  
+          setStockDialog(false);
+          setSelectedProduct(null);
+          setNewStockLevel('');
+          setNewCostPrice('');
+          setNewMinStock('');
+  
+          // Refresh inventory data
+          fetchInventory();
+        }
+      } else {
         setSnackbar({
           open: true,
-          message: 'تم تحديث المخزون بنجاح',
-          severity: 'success'
+          message: 'لم يتم إجراء أي تغييرات',
+          severity: 'info'
         });
-  
-        setStockDialog(false);
-        setSelectedProduct(null);
-        setNewStockLevel('');
-        setNewCostPrice('');
-        setNewMinStock('');
-        
-        // Refresh inventory data
-        fetchInventory();
       }
     } catch (error) {
       console.error('Error updating stock:', error);
@@ -591,6 +641,7 @@ const InventoryReports = () => {
       });
     }
   };
+  
 
   // Remove polling and use regular fetch
   useEffect(() => {

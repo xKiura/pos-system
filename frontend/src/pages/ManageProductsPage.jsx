@@ -395,7 +395,6 @@ function ManageProductsPage() {
         try {
             setError(null);
             
-            // Validate form data
             if (!product.name || !product.price || !product.category) {
                 setError('Please fill in all required fields');
                 return;
@@ -410,8 +409,26 @@ function ManageProductsPage() {
             });
 
             if (response.data) {
+                // Add product to state
                 setProducts([...products, response.data]);
-                await logProductChange('PRODUCT_ADD', response.data);
+
+                // Create history entry
+                const historyEntry = {
+                    timestamp: new Date().toISOString(),
+                    employeeName: localStorage.getItem('employeeName'),
+                    employeeNumber: localStorage.getItem('employeeNumber'),
+                    type: 'PRODUCT_ADD',
+                    origin: 'صفحة المنتجات',
+                    changes: [{
+                        action: 'إضافة منتج',
+                        productName: response.data.name,
+                        details: `تمت إضافة منتج جديد: ${response.data.name} (${response.data.category})`
+                    }]
+                };
+
+                // Log to history
+                await axios.post('http://localhost:5000/settings-history', historyEntry);
+
                 setProduct({ name: '', price: '', image: '', category: '' });
                 setShowAddModal(false);
             }
@@ -425,8 +442,52 @@ function ManageProductsPage() {
         try {
             setError(null);
             const result = await axios.put(`${endpoints.products}/${productToEdit.id}`, product);
+
+            // Create history entry for edit with proper format
+            const historyEntry = {
+                timestamp: new Date().toISOString(),
+                employeeName: localStorage.getItem('employeeName'),
+                employeeNumber: localStorage.getItem('employeeNumber'),
+                type: 'PRODUCT_EDIT',
+                origin: 'صفحة المنتجات',
+                changes: [{
+                    productName: result.data.name,
+                    detailedChanges: []
+                }]
+            };
+
+            // Add changes that actually changed
+            if (productToEdit.name !== result.data.name) {
+                historyEntry.changes[0].detailedChanges.push({
+                    field: 'الاسم',
+                    oldValue: productToEdit.name,
+                    newValue: result.data.name
+                });
+            }
+
+            if (productToEdit.price !== result.data.price) {
+                historyEntry.changes[0].detailedChanges.push({
+                    field: 'السعر',
+                    oldValue: `${productToEdit.price} ر.س`,
+                    newValue: `${result.data.price} ر.س`
+                });
+            }
+
+            if (productToEdit.category !== result.data.category) {
+                historyEntry.changes[0].detailedChanges.push({
+                    field: 'الفئة',
+                    oldValue: productToEdit.category,
+                    newValue: result.data.category
+                });
+            }
+
+            // Only log if there were actual changes
+            if (historyEntry.changes[0].detailedChanges.length > 0) {
+                // Log to history
+                await axios.post('http://localhost:5000/settings-history', historyEntry);
+            }
+
             setProducts(products.map(prod => (prod.id === productToEdit.id ? result.data : prod)));
-            await logProductChange('PRODUCT_EDIT', result.data);
             setProduct({ name: '', price: '', image: '', category: '' });
             setShowEditModal(false);
         } catch (error) {
@@ -439,8 +500,27 @@ function ManageProductsPage() {
         try {
             setError(null);
             const productToLog = products.find(p => p.id === productToRemove);
+            
+            // Delete the product
             await axios.delete(`${endpoints.products}/${productToRemove}`);
-            await logProductChange('PRODUCT_DELETE', productToLog);
+
+            // Create history entry for deletion
+            const historyEntry = {
+                timestamp: new Date().toISOString(),
+                employeeName: localStorage.getItem('employeeName'),
+                employeeNumber: localStorage.getItem('employeeNumber'),
+                type: 'PRODUCT_DELETE',
+                origin: 'صفحة المنتجات',
+                changes: [{
+                    action: 'حذف منتج',
+                    productName: productToLog.name,
+                    details: `تم حذف المنتج: ${productToLog.name} (${productToLog.category})`
+                }]
+            };
+
+            // Log to history
+            await axios.post('http://localhost:5000/settings-history', historyEntry);
+
             setProducts(products.filter(product => product.id !== productToRemove));
             setShowRemoveModal(false);
         } catch (error) {
