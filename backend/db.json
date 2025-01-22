@@ -20,7 +20,7 @@
       "price": "100",
       "image": "https://b.zmtcdn.com/data/pictures/6/21364596/4ffc072adaf0517abb75a02585acc629_o2_featured_v2.jpg",
       "category": "مشويات",
-      "stock": 5,
+      "stock": 0,
       "minStock": 1,
       "costPrice": 2,
       "adjustmentDate": "",
@@ -34,13 +34,13 @@
       "price": "10",
       "image": "https://media.zid.store/thumbs/97000df6-db1b-4087-92c8-f0f844ed0c7b/40c062d2-7fbd-46c2-9706-8416270c1e6e-thumbnail-1000x1000-70.webp",
       "category": "مشروبات",
-      "stock": 6,
+      "stock": 17,
       "minStock": 1,
       "costPrice": 1,
       "adjustmentDate": "",
-      "lastUpdated": "2025-01-22T03:07:54.141Z",
-      "employeeName": "s",
-      "employeeNumber": "2"
+      "lastUpdated": "2025-01-22T04:09:49.789Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1"
     },
     {
       "id": "126",
@@ -150,9 +150,126 @@
       "name": "s",
       "employeeNumber": "2",
       "pin": "0000"
+    },
+    {
+      "name": "عبدالله حسن",
+      "employeeNumber": "1",
+      "pin": "0505"
     }
   ],
   "confirmed-orders": [
+    {
+      "date": "2025-01-22T04:10:00.549Z",
+      "items": [
+        {
+          "id": "125",
+          "name": "كينزا",
+          "quantity": 3,
+          "price": "10",
+          "totalAmount": 30
+        }
+      ],
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "orderNumber": "000036",
+      "subtotal": 30,
+      "tax": 4.5,
+      "total": 34.5,
+      "id": "1737519000552",
+      "confirmedAt": "2025-01-22T04:10:00.552Z"
+    },
+    {
+      "date": "2025-01-22T04:09:31.469Z",
+      "items": [
+        {
+          "id": "124",
+          "name": "مشويات مشكل",
+          "quantity": 2,
+          "price": "100",
+          "totalAmount": 200
+        }
+      ],
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "orderNumber": "000035",
+      "subtotal": 200,
+      "tax": 30,
+      "total": 230,
+      "id": "1737518971472",
+      "confirmedAt": "2025-01-22T04:09:31.472Z"
+    },
+    {
+      "date": "2025-01-22T04:09:03.404Z",
+      "items": [
+        {
+          "id": "124",
+          "name": "مشويات مشكل",
+          "quantity": 3,
+          "price": "100",
+          "totalAmount": 300
+        }
+      ],
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "orderNumber": "000034",
+      "subtotal": 300,
+      "tax": 45,
+      "total": 345,
+      "id": "1737518943408",
+      "confirmedAt": "2025-01-22T04:09:03.408Z"
+    },
+    {
+      "date": "2025-01-22T04:04:08.525Z",
+      "items": [
+        {
+          "id": "125",
+          "name": "كينزا",
+          "quantity": 1,
+          "price": "10",
+          "totalAmount": 10
+        }
+      ],
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "orderNumber": "000033",
+      "subtotal": 10,
+      "tax": 1.5,
+      "total": 11.5,
+      "id": "1737518648530",
+      "confirmedAt": "2025-01-22T04:04:08.530Z",
+      "isRefunded": true,
+      "refundedAt": "2025-01-22T04:05:03.113Z",
+      "refundedBy": {
+        "name": "عبدالله حسن",
+        "number": "1"
+      }
+    },
+    {
+      "date": "2025-01-22T04:03:58.382Z",
+      "items": [
+        {
+          "id": "125",
+          "name": "كينزا",
+          "quantity": 5,
+          "price": "10",
+          "totalAmount": 50
+        }
+      ],
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "orderNumber": "000032",
+      "subtotal": 50,
+      "tax": 7.5,
+      "total": 57.5,
+      "id": "1737518638386",
+      "confirmedAt": "2025-01-22T04:03:58.386Z",
+      "isRefunded": true,
+      "refundedAt": "2025-01-22T04:05:09.304Z",
+      "refundedBy": {
+        "name": "عبدالله حسن",
+        "number": "1"
+      }
+    },
     {
       "date": "2025-01-22T03:46:33.888Z",
       "items": [
@@ -233,6 +350,26 @@
     "history": []
   },
   "productsHistory": [
+    {
+      "id": 1737518989792,
+      "timestamp": "2025-01-22T04:09:49.792Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "كينزا",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 0,
+              "newValue": 20
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": 1737518189058,
       "timestamp": "2025-01-22T03:56:29.058Z",
