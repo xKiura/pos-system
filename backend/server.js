@@ -1007,80 +1007,37 @@ app.post('/refund-order/:orderNumber', (req, res) => {
 // Reports endpoints
 app.post('/reports', async (req, res) => {
   try {
-    const reportData = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      employeeName: req.body.employeeName,
-      employeeNumber: req.body.employeeNumber,
-      reportPeriod: {
-        from: req.body.dateFilter || 'All dates',
-        to: req.body.dateFilter || 'All dates',
-        category: req.body.categoryFilter || 'All categories'
-      },
-      summary: {
-        totalBills: req.body.bills.length,
-        completedBills: req.body.bills.filter(b => !b.isRefunded).length,
-        refundedBills: req.body.bills.filter(b => b.isRefunded).length,
-        totalAmount: req.body.totalAmount,
-        totalTax: req.body.totalTax,
-        totalWithTax: req.body.totalWithTax,
-        dateGenerated: new Date().toISOString()
-      },
-      bills: req.body.bills.map(bill => ({
-        orderNumber: bill.orderNumber,
-        date: new Date(bill.date || bill.confirmedAt).toISOString(),
-        time: new Date(bill.date || bill.confirmedAt).toTimeString(),
-        employeeName: bill.employeeName,
-        employeeNumber: bill.employeeNumber,
-        items: bill.items.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: parseFloat(item.price),
-          total: parseFloat(item.price) * item.quantity,
-          category: item.category
-        })),
-        subtotal: bill.items.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0),
-        tax: Math.round(bill.items.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0) * 0.15),
-        status: bill.isRefunded ? 'Refunded' : 'Completed',
-        refundInfo: bill.isRefunded ? {
-          refundedAt: new Date(bill.refundedAt).toISOString(),
-          refundedBy: bill.refundedBy
-        } : null
-      }))
-    };
-
     const data = await readFromDb();
     if (!data.reports) {
       data.reports = [];
     }
-    data.reports.unshift(reportData);
-    await writeToDb(data);
 
-    // Log the report generation in history
-    const historyEntry = {
+    const newReport = {
+      id: Date.now(),
       timestamp: new Date().toISOString(),
-      type: 'REPORT_EXPORT',
       employeeName: req.body.employeeName,
       employeeNumber: req.body.employeeNumber,
-      origin: 'صفحة الفواتير',
-      changes: [{
-        details: `تم تصدير تقرير للفواتير - الإجمالي: ${req.body.totalWithTax} ريال`
-      }]
+      reportPeriod: req.body.reportPeriod || {},
+      summary: req.body.summary || {},
+      bills: req.body.bills || []
     };
 
-    if (!data.settingsHistory) {
-      data.settingsHistory = [];
-    }
-    data.settingsHistory.unshift(historyEntry);
+    data.reports.unshift(newReport);
+    // Keep only last 100 reports
+    data.reports = data.reports.slice(0, 100);
+    
     await writeToDb(data);
-
     res.json({
       success: true,
-      report: reportData
+      report: newReport
     });
+
   } catch (error) {
     console.error('Error saving report:', error);
-    res.status(500).json({ error: 'Failed to save report' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save report' 
+    });
   }
 });
 
