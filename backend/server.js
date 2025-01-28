@@ -1004,6 +1004,121 @@ app.post('/refund-order/:orderNumber', (req, res) => {
     }
 });
 
+// Reports endpoints
+app.post('/reports', async (req, res) => {
+  try {
+    const reportData = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      reportPeriod: {
+        from: req.body.dateFilter || 'All dates',
+        to: req.body.dateFilter || 'All dates',
+        category: req.body.categoryFilter || 'All categories'
+      },
+      summary: {
+        totalBills: req.body.bills.length,
+        completedBills: req.body.bills.filter(b => !b.isRefunded).length,
+        refundedBills: req.body.bills.filter(b => b.isRefunded).length,
+        totalAmount: req.body.totalAmount,
+        totalTax: req.body.totalTax,
+        totalWithTax: req.body.totalWithTax,
+        dateGenerated: new Date().toISOString()
+      },
+      bills: req.body.bills.map(bill => ({
+        orderNumber: bill.orderNumber,
+        date: new Date(bill.date || bill.confirmedAt).toISOString(),
+        time: new Date(bill.date || bill.confirmedAt).toTimeString(),
+        employeeName: bill.employeeName,
+        employeeNumber: bill.employeeNumber,
+        items: bill.items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: parseFloat(item.price),
+          total: parseFloat(item.price) * item.quantity,
+          category: item.category
+        })),
+        subtotal: bill.items.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0),
+        tax: Math.round(bill.items.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0) * 0.15),
+        status: bill.isRefunded ? 'Refunded' : 'Completed',
+        refundInfo: bill.isRefunded ? {
+          refundedAt: new Date(bill.refundedAt).toISOString(),
+          refundedBy: bill.refundedBy
+        } : null
+      }))
+    };
+
+    const data = await readFromDb();
+    if (!data.reports) {
+      data.reports = [];
+    }
+    data.reports.unshift(reportData);
+    await writeToDb(data);
+
+    // Log the report generation in history
+    const historyEntry = {
+      timestamp: new Date().toISOString(),
+      type: 'REPORT_EXPORT',
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      origin: 'صفحة الفواتير',
+      changes: [{
+        details: `تم تصدير تقرير للفواتير - الإجمالي: ${req.body.totalWithTax} ريال`
+      }]
+    };
+
+    if (!data.settingsHistory) {
+      data.settingsHistory = [];
+    }
+    data.settingsHistory.unshift(historyEntry);
+    await writeToDb(data);
+
+    res.json({
+      success: true,
+      report: reportData
+    });
+  } catch (error) {
+    console.error('Error saving report:', error);
+    res.status(500).json({ error: 'Failed to save report' });
+  }
+});
+
+app.get('/reports', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    res.json(data.reports || []);
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
+// Add this with other report endpoints
+app.delete('/reports/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await readFromDb();
+    
+    if (!data.reports) {
+      return res.status(404).json({ error: 'No reports found' });
+    }
+
+    const reportIndex = data.reports.findIndex(r => r.id.toString() === id);
+    if (reportIndex === -1) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    data.reports.splice(reportIndex, 1);
+    await writeToDb(data);
+
+    res.json({ success: true, message: 'Report deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting report:', error);
+    res.status(500).json({ error: 'Failed to delete report' });
+  }
+});
+
 // Start server
 initializeServer().then(() => {
   app.listen(PORT, () => {

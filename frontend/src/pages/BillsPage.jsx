@@ -505,6 +505,21 @@ const translations = {
   withTax: 'شامل الضريبة',
   more: 'المزيد',
   billsManagement: 'إدارة الفواتير',
+  searchBill: 'بحث عن فاتورة',
+  searchPlaceholder: 'بحث عن الفاتورة',
+  saveReport: 'حفظ تقرير الفواتير',
+  viewReports: 'عرض التقارير السابقة',
+  reportsModal: {
+    title: 'تقارير الفواتير',
+    date: 'التاريخ',
+    employee: 'الموظف',
+    totalBills: 'عدد الفواتير',
+    totalAmount: 'المجموع',
+    totalTax: 'الضريبة',
+    totalWithTax: 'الإجمالي مع الضريبة',
+    close: 'إغلاق',
+    print: 'طباعة التقرير',
+  },
 };
 
 const categories = ['الكل', 'رز', 'مشويات', 'مشروبات', 'وجبات'];
@@ -513,6 +528,52 @@ const roundToNearestHalf = (num) => {
   const decimal = num - Math.floor(num);
   if (decimal === 0.5) return num;
   return decimal > 0.5 ? Math.ceil(num) : Math.floor(num);
+};
+
+// Add new styled component after other styled components
+const SearchInput = styled.input`
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 200px;
+  direction: rtl;
+  &:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  }
+`;
+
+// Add this styled component after other styled components
+const ReportButton = styled(Button)`
+  &.save-report {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+    &:hover {
+      background-color: #218838;
+      border-color: #1e7e34;
+    }
+  }
+  
+  &.view-reports {
+    background-color: #f8b73f;
+    border-color: #f8b73f;
+    color: #000;
+    &:hover {
+      background-color: #f6a912;
+      border-color: #f6a912;
+    }
+  }
+`;
+
+// Add this helper function near the top with other utility functions
+const formatDateTime = (isoString) => {
+  const date = new Date(isoString);
+  return {
+    date: date.toLocaleDateString('en-GB'),
+    time: date.toLocaleTimeString('en-GB')
+  };
 };
 
 function BillsPage() {
@@ -534,6 +595,9 @@ function BillsPage() {
     const [refundedOrders, setRefundedOrders] = useState(new Set());
     const [showRefundModal, setShowRefundModal] = useState(false);
     const [orderToRefund, setOrderToRefund] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showReportsModal, setShowReportsModal] = useState(false);
+    const [reports, setReports] = useState([]);
 
     useEffect(() => {
         const savedEmployeeName = localStorage.getItem('employeeName');
@@ -561,7 +625,7 @@ function BillsPage() {
 
     useEffect(() => {
         filterOrders();
-    }, [confirmedOrders, dateFilter, categoryFilter]);
+    }, [confirmedOrders, dateFilter, categoryFilter, searchQuery]);
 
     const fetchConfirmedOrders = async () => {
         try {
@@ -605,6 +669,13 @@ function BillsPage() {
 
     const filterOrders = () => {
         let filtered = [...confirmedOrders];
+        
+        // Apply search filter
+        if (searchQuery) {
+            filtered = filtered.filter(order => 
+                order.orderNumber.toString().includes(searchQuery)
+            );
+        }
         
         if (dateFilter) {
             filtered = filtered.filter(order => order.date === dateFilter);
@@ -842,6 +913,186 @@ function BillsPage() {
         }
     };
 
+    // Add the handleSaveReport function
+    const handleSaveReport = async () => {
+        try {
+          const totalAmount = filteredOrders.reduce((sum, order) => {
+            if (!order.isRefunded) {
+              return sum + order.items.reduce((itemSum, item) => 
+                itemSum + (parseFloat(item.price) * item.quantity), 0);
+            }
+            return sum;
+          }, 0);
+      
+          const totalTax = roundToNearestHalf(totalAmount * 0.15);
+          const totalWithTax = totalAmount + totalTax;
+      
+          const reportData = {
+            employeeName: localStorage.getItem('employeeName'),
+            employeeNumber: localStorage.getItem('employeeNumber'),
+            bills: filteredOrders,
+            totalAmount,
+            totalTax,
+            totalWithTax,
+          };
+      
+          const response = await axios.post('http://localhost:5000/reports', reportData);
+          
+          if (response.data.success) {
+            toast.success('تم حفظ التقرير بنجاح');
+            printReport(reportData);
+          }
+        } catch (error) {
+          console.error('Error saving report:', error);
+          toast.error('فشل في حفظ التقرير');
+        }
+      };
+      
+      const fetchReports = async () => {
+        try {
+          const response = await axios.get('http://localhost:5000/reports');
+          setReports(response.data);
+          setShowReportsModal(true);
+        } catch (error) {
+          console.error('Error fetching reports:', error);
+          toast.error('فشل في تحميل التقارير');
+        }
+      };
+      
+      const printReport = (reportData) => {
+        const { date, time } = formatDateTime(reportData.timestamp);
+        
+        const printContent = `
+          <div style="font-family: Arial, sans-serif; direction: rtl; padding: 20px;">
+            <h2 style="text-align: center;">تقرير الفواتير</h2>
+            <div style="margin-bottom: 20px;">
+              <p>تاريخ التقرير: ${date}</p>
+              <p>وقت التقرير: ${time}</p>
+              <p>الموظف: ${reportData.employeeName} (#${reportData.employeeNumber})</p>
+              <p>الفترة: ${reportData.reportPeriod?.from} إلى ${reportData.reportPeriod?.to}</p>
+              <p>التصنيف: ${reportData.reportPeriod?.category}</p>
+            </div>
+      
+            <div style="margin-bottom: 30px;">
+              <h3>ملخص التقرير</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td>إجمالي عدد الفواتير:</td>
+                  <td>${reportData.summary.totalBills}</td>
+                  <td>الفواتير المكتملة:</td>
+                  <td>${reportData.summary.completedBills}</td>
+                  <td>الفواتير المسترجعة:</td>
+                  <td>${reportData.summary.refundedBills}</td>
+                </tr>
+              </table>
+            </div>
+      
+            <div style="margin-bottom: 30px;">
+              <h3>تفاصيل الفواتير</h3>
+              ${reportData.bills.map(bill => {
+                const { date, time } = formatDateTime(bill.date);
+                return `
+                  <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                      <div>
+                        <strong>رقم الفاتورة:</strong> ${bill.orderNumber}<br>
+                        <strong>التاريخ:</strong> ${date}<br>
+                        <strong>الوقت:</strong> ${time}
+                      </div>
+                      <div>
+                        <strong>الموظف:</strong> ${bill.employeeName} (#${bill.employeeNumber})<br>
+                        <strong>الحالة:</strong> <span style="color: ${bill.status === 'Refunded' ? 'red' : 'green'}">
+                          ${bill.status === 'Refunded' ? 'مسترجع' : 'مكتمل'}
+                        </span>
+                      </div>
+                    </div>
+      
+                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                      <tr style="background-color: #f3f4f6;">
+                        <th style="padding: 8px; border: 1px solid #ddd;">الصنف</th>
+                        <th style="padding: 8px; border: 1px solid #ddd;">التصنيف</th>
+                        <th style="padding: 8px; border: 1px solid #ddd;">الكمية</th>
+                        <th style="padding: 8px; border: 1px solid #ddd;">السعر</th>
+                        <th style="padding: 8px; border: 1px solid #ddd;">المجموع</th>
+                      </tr>
+                      ${bill.items.map(item => `
+                        <tr>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${item.name}</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${item.category}</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${item.quantity}</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${item.price.toFixed(2)}</td>
+                          <td style="padding: 8px; border: 1px solid #ddd;">${item.total.toFixed(2)}</td>
+                        </tr>
+                      `).join('')}
+                    </table>
+      
+                    <div style="text-align: left; margin-top: 10px;">
+                      <p>المجموع: ${bill.subtotal.toFixed(2)} ريال</p>
+                      <p>الضريبة: ${bill.tax.toFixed(2)} ريال</p>
+                      <p style="font-weight: bold;">الإجمالي مع الضريبة: ${(bill.subtotal + bill.tax).toFixed(2)} ريال</p>
+                      ${bill.refundInfo ? `
+                        <p style="color: red;">
+                          تم الاسترجاع في: ${formatDateTime(bill.refundInfo.refundedAt).date} ${formatDateTime(bill.refundInfo.refundedAt).time}<br>
+                          بواسطة: ${bill.refundInfo.refundedBy.name} (#${bill.refundInfo.refundedBy.number})
+                        </p>
+                      ` : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+      
+            <div style="margin-top: 30px; text-align: left;">
+              <h3>الإجمالي</h3>
+              <p>إجمالي المبيعات: ${reportData.summary.totalAmount.toFixed(2)} ريال</p>
+              <p>إجمالي الضريبة: ${reportData.summary.totalTax.toFixed(2)} ريال</p>
+              <p style="font-weight: bold;">الإجمالي النهائي: ${reportData.summary.totalWithTax.toFixed(2)} ريال</p>
+            </div>
+          </div>
+        `;
+      
+        const printWindow = window.open('', '', 'width=800,height=600');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>تقرير الفواتير</title>
+              <meta charset="UTF-8">
+              <style>
+                @media print {
+                  body { padding: 20px; }
+                  @page { margin: 1cm; }
+                }
+              </style>
+            </head>
+            <body>
+              ${printContent}
+              <script>
+                window.onload = function() {
+                  window.print();
+                  window.onafterprint = function() {
+                    window.close();
+                  }
+                }
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      };
+
+    // Add the handleDeleteReport function
+    const handleDeleteReport = async (reportId) => {
+        try {
+          await axios.delete(`http://localhost:5000/reports/${reportId}`);
+          // Update the reports list by filtering out the deleted report
+          setReports(prevReports => prevReports.filter(report => report.id !== reportId));
+          toast.success('تم حذف التقرير بنجاح');
+        } catch (error) {
+          console.error('Error deleting report:', error);
+          toast.error('فشل في حذف التقرير');
+        }
+      };
+
     // Update the BillCardComponent
     const BillCardComponent = ({ order, onToggle, isExpanded }) => {
         // Helper function to safely format numbers
@@ -1002,12 +1253,32 @@ function BillsPage() {
                         <Link to="/pos" className="back-button">
                          <FaArrowLeft /> {translations.backToSales}
                         </Link>
+                        <ReportButton 
+                            className="save-report"
+                            onClick={handleSaveReport}
+                        >
+                            {translations.saveReport}
+                        </ReportButton>
+                        <ReportButton 
+                            className="view-reports"
+                            onClick={fetchReports}
+                        >
+                            {translations.viewReports}
+                        </ReportButton>
                     </ActionBar>
                     <PageTitle>{translations.billsManagement}</PageTitle>
                 </TopBar>
 
                 <div className="filters-section">
                     <FilterCard>
+                        <div className="filter-group">
+                            <SearchInput
+                                type="text"
+                                placeholder={translations.searchPlaceholder}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                         <div className="filter-group">
                             <FaCalendar className="filter-icon" />
                             <input
@@ -1090,6 +1361,78 @@ function BillsPage() {
                         </Button>
                         <Button variant="warning" onClick={confirmRefund}>
                             تأكيد الاسترجاع
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
+
+                {/* Add the reports modal */}
+                <Modal show={showReportsModal} onHide={() => setShowReportsModal(false)} size="lg">
+                    <Modal.Header closeButton>
+                        <Modal.Title>{translations.reportsModal.title}</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                            {reports.map((report) => {
+                                const { date, time } = formatDateTime(report.timestamp);
+                                return (
+                                    <div
+                                        key={report.id}
+                                        style={{
+                                            padding: '1rem',
+                                            margin: '0.5rem 0',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '8px',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{translations.reportsModal.date}:</strong> {date} {time}
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{translations.reportsModal.employee}:</strong> {report.employeeName} (#{report.employeeNumber})
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{translations.reportsModal.totalBills}:</strong> {report.bills?.length || 0}
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{translations.reportsModal.totalAmount}:</strong> {(report.totalAmount || 0).toFixed(2)} ريال
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{translations.reportsModal.totalTax}:</strong> {(report.totalTax || 0).toFixed(2)} ريال
+                                        </div>
+                                        <div style={{ marginBottom: '0.5rem' }}>
+                                            <strong>{translations.reportsModal.totalWithTax}:</strong> {(report.totalWithTax || 0).toFixed(2)} ريال
+                                        </div>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            gap: '0.5rem', 
+                                            marginTop: '1rem',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                onClick={() => printReport(report)}
+                                            >
+                                                {translations.reportsModal.print}
+                                            </Button>
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                onClick={() => handleDeleteReport(report.id)}
+                                            >
+                                                حذف التقرير
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowReportsModal(false)}>
+                            {translations.reportsModal.close}
                         </Button>
                     </Modal.Footer>
                 </Modal>

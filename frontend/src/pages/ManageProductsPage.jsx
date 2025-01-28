@@ -300,11 +300,12 @@ const GlobalStyles = styled.div`
     border-radius: 8px;
     text-decoration: none;
     transition: all 0.2s;
-    font-family: inherit;
+    font-size: 0.875rem;
+    white-space: nowrap;
     
     &:hover {
       background: #e2e8f0;
-      transform: translateX(-2px)
+      transform: translateX(-2px);
     }
   }
 `;
