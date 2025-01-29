@@ -620,8 +620,8 @@
   ],
   "reports": [
     {
-      "id": 1738025647380,
-      "timestamp": "2025-01-28T00:54:07.380Z",
+      "id": 1738142376500,
+      "timestamp": "2025-01-29T09:19:36.500Z",
       "employeeName": "عبدالله حسن",
       "employeeNumber": "1",
       "reportPeriod": {
@@ -634,246 +634,32 @@
         "completedBills": 5,
         "refundedBills": 4,
         "grossAmount": 620,
-        "refundedAmount": 240,
+        "refundedAmount": -240,
         "netAmount": 380,
-        "grossTax": 94,
-        "refundedTax": 38,
-        "netTax": 56,
-        "totalWithTax": 436
+        "grossTax": 93.5,
+        "refundedTax": -36,
+        "netTax": 57.5,
+        "totalWithTax": 437.5
       },
       "bills": [
         {
-          "orderNumber": "000001",
-          "date": "28/01/2025",
-          "time": "02:29:46",
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "items": [
-            {
-              "name": "كينزا",
-              "category": "غير محدد",
-              "price": 10,
-              "quantity": 3,
-              "total": 30
-            },
-            {
-              "name": "وجبة مندي ومشوي",
-              "category": "غير محدد",
-              "price": 15,
-              "quantity": 1,
-              "total": 15
-            }
-          ],
-          "subtotal": 45,
-          "tax": 7,
-          "totalWithTax": 52,
-          "status": "مكتمل"
-        },
-        {
-          "orderNumber": "000036",
-          "date": "22/01/2025",
-          "time": "07:10:00",
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "items": [
-            {
-              "name": "كينزا",
-              "category": "غير محدد",
-              "price": 10,
-              "quantity": 3,
-              "total": 30
-            }
-          ],
-          "subtotal": 30,
-          "tax": 5,
-          "totalWithTax": 35,
-          "status": "مكتمل"
-        },
-        {
-          "orderNumber": "000035",
-          "date": "22/01/2025",
-          "time": "07:09:31",
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "items": [
-            {
-              "name": "مشويات مشكل",
-              "category": "غير محدد",
-              "price": 100,
-              "quantity": 2,
-              "total": 200
-            }
-          ],
-          "subtotal": 200,
-          "tax": 30,
-          "totalWithTax": 230,
-          "status": "مكتمل"
-        },
-        {
-          "orderNumber": "000034",
-          "date": "22/01/2025",
-          "time": "07:09:03",
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "items": [
-            {
-              "name": "مشويات مشكل",
-              "category": "غير محدد",
-              "price": 100,
-              "quantity": 3,
-              "total": 300
-            }
-          ],
-          "subtotal": 300,
-          "tax": 45,
-          "totalWithTax": 345,
-          "status": "مكتمل"
-        },
-        {
-          "orderNumber": "000033",
-          "date": "22/01/2025",
-          "time": "07:04:08",
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "items": [
-            {
-              "name": "كينزا",
-              "category": "غير محدد",
-              "price": 10,
-              "quantity": 1,
-              "total": 10
-            }
-          ],
-          "subtotal": 10,
-          "tax": 2,
-          "totalWithTax": 12,
-          "status": "مسترجع"
-        },
-        {
-          "orderNumber": "000032",
-          "date": "22/01/2025",
-          "time": "07:03:58",
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "items": [
-            {
-              "name": "كينزا",
-              "category": "غير محدد",
-              "price": 10,
-              "quantity": 5,
-              "total": 50
-            }
-          ],
-          "subtotal": 50,
-          "tax": 8,
-          "totalWithTax": 58,
-          "status": "مسترجع"
-        },
-        {
-          "orderNumber": "000031",
-          "date": "22/01/2025",
-          "time": "06:46:33",
-          "employeeName": "s",
-          "employeeNumber": "2",
-          "items": [
-            {
-              "name": "مندي لحم",
-              "category": "غير محدد",
-              "price": 45,
-              "quantity": 1,
-              "total": 45
-            }
-          ],
-          "subtotal": 45,
-          "tax": 7,
-          "totalWithTax": 52,
-          "status": "مكتمل"
-        },
-        {
-          "orderNumber": "000028",
-          "date": "22/01/2025",
-          "time": "06:09:40",
-          "employeeName": "s",
-          "employeeNumber": "2",
-          "items": [
-            {
-              "name": "مندي لحم",
-              "category": "غير محدد",
-              "price": 45,
-              "quantity": 2,
-              "total": 90
-            }
-          ],
-          "subtotal": 90,
-          "tax": 14,
-          "totalWithTax": 104,
-          "status": "مسترجع"
-        },
-        {
-          "orderNumber": "000027",
-          "date": "22/01/2025",
-          "time": "05:32:37",
-          "employeeName": "s",
-          "employeeNumber": "2",
-          "items": [
-            {
-              "name": "مندي لحم",
-              "category": "غير محدد",
-              "price": 45,
-              "quantity": 2,
-              "total": 90
-            }
-          ],
-          "subtotal": 90,
-          "tax": 14,
-          "totalWithTax": 104,
-          "status": "مسترجع"
-        }
-      ]
-    },
-    {
-      "id": 1738025458224,
-      "timestamp": "2025-01-28T00:50:58.224Z",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "reportPeriod": {
-        "from": "Invalid Date",
-        "to": "Invalid Date",
-        "category": "الكل"
-      },
-      "summary": {
-        "totalBills": 9,
-        "completedBills": 5,
-        "refundedBills": 4,
-        "grossAmount": 620,
-        "refundedAmount": 240,
-        "netAmount": 380,
-        "grossTax": 94,
-        "refundedTax": 38,
-        "netTax": 56,
-        "totalWithTax": 436
-      },
-      "bills": [
-        {
-          "date": "28/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "125",
               "name": "كينزا",
               "quantity": 3,
-              "price": 10,
+              "price": "10",
               "totalAmount": 30,
-              "category": "غير محدد",
-              "total": 30
+              "category": "رز"
             },
             {
               "id": "126",
               "name": "وجبة مندي ومشوي",
               "quantity": 1,
-              "price": 15,
+              "price": "15",
               "totalAmount": 15,
-              "category": "غير محدد",
-              "total": 15
+              "category": "رز"
             }
           ],
           "employeeName": "عبدالله حسن",
@@ -884,46 +670,40 @@
           "total": 52,
           "id": "1738020586699",
           "confirmedAt": "2025-01-27T23:29:46.699Z",
-          "time": "02:29:46",
-          "totalWithTax": 52,
-          "status": "مكتمل"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "125",
               "name": "كينزا",
               "quantity": 3,
-              "price": 10,
+              "price": "10",
               "totalAmount": 30,
-              "category": "غير محدد",
-              "total": 30
+              "category": "رز"
             }
           ],
           "employeeName": "عبدالله حسن",
           "employeeNumber": "1",
           "orderNumber": "000036",
           "subtotal": 30,
-          "tax": 5,
+          "tax": 4.5,
           "total": 34.5,
           "id": "1737519000552",
           "confirmedAt": "2025-01-22T04:10:00.552Z",
-          "time": "07:10:00",
-          "totalWithTax": 35,
-          "status": "مكتمل"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "124",
               "name": "مشويات مشكل",
               "quantity": 2,
-              "price": 100,
+              "price": "100",
               "totalAmount": 200,
-              "category": "غير محدد",
-              "total": 200
+              "category": "رز"
             }
           ],
           "employeeName": "عبدالله حسن",
@@ -934,21 +714,18 @@
           "total": 230,
           "id": "1737518971472",
           "confirmedAt": "2025-01-22T04:09:31.472Z",
-          "time": "07:09:31",
-          "totalWithTax": 230,
-          "status": "مكتمل"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "124",
               "name": "مشويات مشكل",
               "quantity": 3,
-              "price": 100,
+              "price": "100",
               "totalAmount": 300,
-              "category": "غير محدد",
-              "total": 300
+              "category": "رز"
             }
           ],
           "employeeName": "عبدالله حسن",
@@ -959,28 +736,25 @@
           "total": 345,
           "id": "1737518943408",
           "confirmedAt": "2025-01-22T04:09:03.408Z",
-          "time": "07:09:03",
-          "totalWithTax": 345,
-          "status": "مكتمل"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "125",
               "name": "كينزا",
               "quantity": 1,
-              "price": 10,
+              "price": "10",
               "totalAmount": 10,
-              "category": "غير محدد",
-              "total": 10
+              "category": "رز"
             }
           ],
           "employeeName": "عبدالله حسن",
           "employeeNumber": "1",
           "orderNumber": "000033",
           "subtotal": 10,
-          "tax": 2,
+          "tax": 1.5,
           "total": 11.5,
           "id": "1737518648530",
           "confirmedAt": "2025-01-22T04:04:08.530Z",
@@ -990,28 +764,25 @@
             "name": "عبدالله حسن",
             "number": "1"
           },
-          "time": "07:04:08",
-          "totalWithTax": 12,
-          "status": "مسترجع"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "125",
               "name": "كينزا",
               "quantity": 5,
-              "price": 10,
+              "price": "10",
               "totalAmount": 50,
-              "category": "غير محدد",
-              "total": 50
+              "category": "رز"
             }
           ],
           "employeeName": "عبدالله حسن",
           "employeeNumber": "1",
           "orderNumber": "000032",
           "subtotal": 50,
-          "tax": 8,
+          "tax": 7.5,
           "total": 57.5,
           "id": "1737518638386",
           "confirmedAt": "2025-01-22T04:03:58.386Z",
@@ -1021,21 +792,18 @@
             "name": "عبدالله حسن",
             "number": "1"
           },
-          "time": "07:03:58",
-          "totalWithTax": 58,
-          "status": "مسترجع"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "123",
               "name": "مندي لحم",
               "quantity": 1,
-              "price": 45,
+              "price": "45",
               "totalAmount": 45,
-              "category": "غير محدد",
-              "total": 45
+              "category": "رز"
             }
           ],
           "employeeName": "s",
@@ -1046,28 +814,25 @@
           "total": 52,
           "id": "1737517593892",
           "confirmedAt": "2025-01-22T03:46:33.892Z",
-          "time": "06:46:33",
-          "totalWithTax": 52,
-          "status": "مكتمل"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "123",
               "name": "مندي لحم",
               "quantity": 2,
-              "price": 45,
+              "price": "45",
               "totalAmount": 90,
-              "category": "غير محدد",
-              "total": 90
+              "category": "رز"
             }
           ],
           "employeeName": "s",
           "employeeNumber": "2",
           "orderNumber": "000028",
           "subtotal": 90,
-          "tax": 14,
+          "tax": 13.5,
           "total": 103.5,
           "id": "1737515380722",
           "confirmedAt": "2025-01-22T03:09:40.722Z",
@@ -1077,28 +842,25 @@
             "name": "s",
             "number": "2"
           },
-          "time": "06:09:40",
-          "totalWithTax": 104,
-          "status": "مسترجع"
+          "time": "Invalid Date"
         },
         {
-          "date": "22/01/2025",
+          "date": "Invalid Date",
           "items": [
             {
               "id": "123",
               "name": "مندي لحم",
               "quantity": 2,
-              "price": 45,
+              "price": "45",
               "totalAmount": 90,
-              "category": "غير محدد",
-              "total": 90
+              "category": "رز"
             }
           ],
           "employeeName": "s",
           "employeeNumber": "2",
           "orderNumber": "000027",
           "subtotal": 90,
-          "tax": 14,
+          "tax": 13.5,
           "total": 103.5,
           "id": "1737513157350",
           "confirmedAt": "2025-01-22T02:32:37.350Z",
@@ -1108,281 +870,7 @@
             "name": "s",
             "number": "2"
           },
-          "time": "05:32:37",
-          "totalWithTax": 104,
-          "status": "مسترجع"
-        }
-      ]
-    },
-    {
-      "id": 1738025072205,
-      "timestamp": "2025-01-28T00:44:32.205Z",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "reportPeriod": {
-        "from": "All dates",
-        "to": "All dates",
-        "category": "الكل"
-      },
-      "summary": {
-        "totalBills": 5,
-        "completedBills": 5,
-        "refundedBills": 4,
-        "totalAmount": 620,
-        "totalTax": 94,
-        "totalWithTax": 714
-      },
-      "bills": [
-        {
-          "date": "28/01/2025",
-          "items": [
-            {
-              "id": "125",
-              "name": "كينزا",
-              "quantity": 3,
-              "price": 10,
-              "totalAmount": 30,
-              "total": 30
-            },
-            {
-              "id": "126",
-              "name": "وجبة مندي ومشوي",
-              "quantity": 1,
-              "price": 15,
-              "totalAmount": 15,
-              "total": 15
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000001",
-          "subtotal": 45,
-          "tax": 7,
-          "total": 52,
-          "id": "1738020586699",
-          "confirmedAt": "2025-01-27T23:29:46.699Z",
-          "time": "02:29:46"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "125",
-              "name": "كينزا",
-              "quantity": 3,
-              "price": 10,
-              "totalAmount": 30,
-              "total": 30
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000036",
-          "subtotal": 30,
-          "tax": 5,
-          "total": 34.5,
-          "id": "1737519000552",
-          "confirmedAt": "2025-01-22T04:10:00.552Z",
-          "time": "07:10:00"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "124",
-              "name": "مشويات مشكل",
-              "quantity": 2,
-              "price": 100,
-              "totalAmount": 200,
-              "total": 200
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000035",
-          "subtotal": 200,
-          "tax": 30,
-          "total": 230,
-          "id": "1737518971472",
-          "confirmedAt": "2025-01-22T04:09:31.472Z",
-          "time": "07:09:31"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "124",
-              "name": "مشويات مشكل",
-              "quantity": 3,
-              "price": 100,
-              "totalAmount": 300,
-              "total": 300
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000034",
-          "subtotal": 300,
-          "tax": 45,
-          "total": 345,
-          "id": "1737518943408",
-          "confirmedAt": "2025-01-22T04:09:03.408Z",
-          "time": "07:09:03"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "123",
-              "name": "مندي لحم",
-              "quantity": 1,
-              "price": 45,
-              "totalAmount": 45,
-              "total": 45
-            }
-          ],
-          "employeeName": "s",
-          "employeeNumber": "2",
-          "orderNumber": "000031",
-          "subtotal": 45,
-          "tax": 7,
-          "total": 52,
-          "id": "1737517593892",
-          "confirmedAt": "2025-01-22T03:46:33.892Z",
-          "time": "06:46:33"
-        }
-      ]
-    },
-    {
-      "id": 1738024951377,
-      "timestamp": "2025-01-28T00:42:31.377Z",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "reportPeriod": {
-        "from": "All dates",
-        "to": "All dates",
-        "category": "الكل"
-      },
-      "summary": {
-        "totalBills": 5,
-        "completedBills": 5,
-        "refundedBills": 4,
-        "totalAmount": 620,
-        "totalTax": 94,
-        "totalWithTax": 714
-      },
-      "bills": [
-        {
-          "date": "28/01/2025",
-          "items": [
-            {
-              "id": "125",
-              "name": "كينزا",
-              "quantity": 3,
-              "price": "10",
-              "totalAmount": 30
-            },
-            {
-              "id": "126",
-              "name": "وجبة مندي ومشوي",
-              "quantity": 1,
-              "price": "15",
-              "totalAmount": 15
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000001",
-          "subtotal": 45,
-          "tax": 7,
-          "total": 52,
-          "id": "1738020586699",
-          "confirmedAt": "2025-01-27T23:29:46.699Z",
-          "time": "02:29:46"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "125",
-              "name": "كينزا",
-              "quantity": 3,
-              "price": "10",
-              "totalAmount": 30
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000036",
-          "subtotal": 30,
-          "tax": 5,
-          "total": 34.5,
-          "id": "1737519000552",
-          "confirmedAt": "2025-01-22T04:10:00.552Z",
-          "time": "07:10:00"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "124",
-              "name": "مشويات مشكل",
-              "quantity": 2,
-              "price": "100",
-              "totalAmount": 200
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000035",
-          "subtotal": 200,
-          "tax": 30,
-          "total": 230,
-          "id": "1737518971472",
-          "confirmedAt": "2025-01-22T04:09:31.472Z",
-          "time": "07:09:31"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "124",
-              "name": "مشويات مشكل",
-              "quantity": 3,
-              "price": "100",
-              "totalAmount": 300
-            }
-          ],
-          "employeeName": "عبدالله حسن",
-          "employeeNumber": "1",
-          "orderNumber": "000034",
-          "subtotal": 300,
-          "tax": 45,
-          "total": 345,
-          "id": "1737518943408",
-          "confirmedAt": "2025-01-22T04:09:03.408Z",
-          "time": "07:09:03"
-        },
-        {
-          "date": "22/01/2025",
-          "items": [
-            {
-              "id": "123",
-              "name": "مندي لحم",
-              "quantity": 1,
-              "price": "45",
-              "totalAmount": 45
-            }
-          ],
-          "employeeName": "s",
-          "employeeNumber": "2",
-          "orderNumber": "000031",
-          "subtotal": 45,
-          "tax": 7,
-          "total": 52,
-          "id": "1737517593892",
-          "confirmedAt": "2025-01-22T03:46:33.892Z",
-          "time": "06:46:33"
+          "time": "Invalid Date"
         }
       ]
     }

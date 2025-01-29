@@ -1076,6 +1076,113 @@ app.delete('/reports/:id', async (req, res) => {
   }
 });
 
+// Add revert refund endpoint
+app.post('/revert-refund/:orderNumber', async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const data = await readFromDb();
+    
+    const orderIndex = data['confirmed-orders'].findIndex(
+      o => o.orderNumber === orderNumber && o.isRefunded
+    );
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found or not refunded' 
+      });
+    }
+
+    // Remove refund information
+    const order = data['confirmed-orders'][orderIndex];
+    const updatedOrder = {
+      ...order,
+      isRefunded: false,
+      refundedAt: null,
+      refundedBy: null
+    };
+
+    data['confirmed-orders'][orderIndex] = updatedOrder;
+    await writeToDb(data);
+
+    // Log the revert refund action
+    const logEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      type: 'BILL_REVERT_REFUND',
+      origin: 'صفحة الفواتير',
+      changes: [
+        {
+          details: `تم إلغاء استرجاع الفاتورة رقم ${orderNumber}`
+        }
+      ]
+    };
+
+    const settings = await storage.get('settings');
+    if (!settings.history) {
+      settings.history = [];
+    }
+    settings.history.unshift(logEntry);
+    settings.history = settings.history.slice(0, 100);
+    await storage.set('settings', settings);
+
+    res.json({
+      success: true,
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error('Error reverting refund:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to revert refund' 
+    });
+  }
+});
+
+// Update the order creation endpoint to ensure unique order numbers
+app.post('/confirmed-orders', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    const orders = data['confirmed-orders'] || [];
+    
+    // Find the highest order number and increment by 1
+    let maxOrderNumber = 0;
+    orders.forEach(order => {
+      const num = parseInt(order.orderNumber, 10);
+      if (!isNaN(num) && num > maxOrderNumber) {
+        maxOrderNumber = num;
+      }
+    });
+    
+    const newOrderNumber = (maxOrderNumber + 1).toString().padStart(6, '0');
+    
+    const newOrder = {
+      ...req.body,
+      orderNumber: newOrderNumber,
+      id: Date.now().toString(),
+      confirmedAt: new Date().toISOString()
+    };
+
+    data['confirmed-orders'].unshift(newOrder);
+    await writeToDb(data);
+
+    res.json({
+      success: true,
+      order: newOrder
+    });
+    
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to create order' 
+    });
+  }
+});
+
 // Start server
 initializeServer().then(() => {
   app.listen(PORT, () => {

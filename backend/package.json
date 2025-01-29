@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "concurrently \"node jsonServer.js\" \"node server.js\"",
+    "start": "node server.js",
     "dev": "nodemon server.js",
     "json-server": "node jsonServer.js",
     "backend": "node server.js"
