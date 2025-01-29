@@ -507,14 +507,22 @@ const FilterCard = styled.div`
   }
 `;
 
+// Update the single SummaryCard styled component
 const SummaryCard = styled.div`
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
   flex: 1;
+
+  .summary-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    width: 100%;
+  }
 
   .summary-item {
     text-align: center;
@@ -530,6 +538,22 @@ const SummaryCard = styled.div`
     font-size: 1.5rem;
     font-weight: 600;
     color: #1e293b;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 1rem 0;
+  }
+
+  .refunded {
+    color: #dc3545;
+  }
+
+  .net-total {
+    font-size: 1.25rem;
+    color: #2563eb;
   }
 `;
 
@@ -643,6 +667,19 @@ const formatDateTime = (isoString) => {
   }
 };
 
+// Add this helper function before the BillsPage component
+const calculateOrderTotals = (items) => {
+  const subtotal = items.reduce((sum, item) => 
+    sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
+  );
+  const tax = roundToNearestHalf(subtotal * 0.15); // 15% VAT
+  return { 
+    subtotal,    // Net amount without tax
+    tax,         // Tax amount
+    total: subtotal + tax  // Gross amount with tax
+  };
+};
+
 function BillsPage() {
     const { settings } = useSettings();
     const [dateFilter, setDateFilter] = useState('');
@@ -668,6 +705,8 @@ function BillsPage() {
     const [totalRefunded, setTotalRefunded] = useState(0);
     const [showRevertModal, setShowRevertModal] = useState(false);
     const [billToRevert, setBillToRevert] = useState(null);
+    const [totalTax, setTotalTax] = useState(0);
+    const [totalRefundedTax, setTotalRefundedTax] = useState(0);
 
     useEffect(() => {
         const savedEmployeeName = localStorage.getItem('employeeName');
@@ -763,39 +802,40 @@ function BillsPage() {
 
     const calculateProfits = (orders) => {
         let totalGross = 0;
+        let totalTaxAmount = 0;
         let totalRefunded = 0;
+        let totalRefundedTax = 0;
         let productSales = {};
       
         orders.forEach(order => {
-          const orderSubtotal = order.items.reduce((sum, item) => 
-            sum + (parseFloat(item.price) * item.quantity), 0
-          );
-          const orderTax = roundToNearestHalf(orderSubtotal * 0.15);
-          const orderTotal = orderSubtotal + orderTax;
-      
+          const { subtotal, tax, total } = calculateOrderTotals(order.items);
+          
           if (order.isRefunded) {
-            totalRefunded += orderTotal;
+              totalRefunded += subtotal;
+              totalRefundedTax += tax;
           } else {
-            totalGross += orderTotal;
-            
-            // Only count non-refunded orders for product sales
-            order.items.forEach(item => {
-              if (categoryFilter !== 'الكل' && item.category !== categoryFilter) {
-                return;
-              }
-              if (!productSales[item.name]) {
-                productSales[item.name] = { quantity: 0, total: 0 };
-              }
-              productSales[item.name].quantity += item.quantity;
-              productSales[item.name].total += item.price * item.quantity;
-            });
+              totalGross += subtotal;
+              totalTaxAmount += tax;
+              
+              order.items.forEach(item => {
+                  if (categoryFilter !== 'الكل' && item.category !== categoryFilter) {
+                      return;
+                  }
+                  if (!productSales[item.name]) {
+                      productSales[item.name] = { quantity: 0, total: 0 };
+                  }
+                  productSales[item.name].quantity += item.quantity;
+                  productSales[item.name].total += item.price * item.quantity;
+              });
           }
-        });
+      });
       
         setTotalProfit(totalGross);
+        setTotalTax(totalTaxAmount);
         setTotalRefunded(totalRefunded);
-        setProductSales(productSales);
+        setTotalRefundedTax(totalRefundedTax);
         setTotalWithTax(totalGross - totalRefunded);
+        setProductSales(productSales);
       };
 
     const toggleOrderDetails = (orderNumber) => {
@@ -1435,25 +1475,29 @@ function BillsPage() {
                                 ))}
                                 <div className="total-row" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                        <strong>الإجمالي:</strong>
+                                        <strong>الصافي:</strong>
                                         <strong>
                                             ${formatPrice(order.items.reduce((sum, item) => 
-                                                sum + (parseFloat(item.price) * item.quantity), 0
+                                                sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
                                             ))}
                                         </strong>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', color: '#666' }}>
-                                        <strong>شامل الضريبة:</strong>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                        <strong>اجمالي الضريبة (15%):</strong>
                                         <strong>
                                             ${formatPrice(
-                                                (() => {
-                                                    const subtotal = order.items.reduce((sum, item) => 
-                                                        sum + (parseFloat(item.price) * item.quantity), 0
-                                                    );
-                                                    const tax = roundToNearestHalf(subtotal * 0.15);
-                                                    return subtotal + tax;
-                                                })()
+                                                roundToNearestHalf(
+                                                    order.items.reduce((sum, item) => 
+                                                        sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
+                                                    ) * 0.15
+                                                )
                                             )}
+                                        </strong>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '0.5rem', borderTop: '2px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                                        <strong>الإجمالي شامل الضريبة:</strong>
+                                        <strong>
+                                            ${formatPrice(calculateTotalWithTax(order.items))}
                                         </strong>
                                     </div>
                                 </div>
@@ -1527,20 +1571,35 @@ function BillsPage() {
                     </FilterCard>
 
                     <SummaryCard>
-                        <div className="summary-item">
-                            <div className="summary-label">إجمالي المبيعات</div>
-                            <div className="summary-value">{totalProfit.toFixed(2)} ر.س</div>
-                        </div>
-                        <div className="summary-item">
-                            <div className="summary-label">المبلغ المسترجع</div>
-                            <div className="summary-value" style={{ color: '#dc3545' }}>
-                              -{totalRefunded.toFixed(2)} ر.س
+                        <div className="summary-details">
+                            <div className="summary-item">
+                                <div className="summary-label">الصافي</div>
+                                <div className="summary-value">{totalProfit.toFixed(2)} ر.س</div>
                             </div>
-                          </div>
-                          <div className="summary-item">
-                            <div className="summary-label">الصافي</div>
-                            <div className="summary-value">{totalWithTax.toFixed(2)} ر.س</div>
-                          </div>
+                            <div className="summary-item">
+                                <div className="summary-label">اجمالي الضريبة</div>
+                                <div className="summary-value">{totalTax.toFixed(2)} ر.س</div>
+                            </div>
+                            <div className="summary-item">
+                                <div className="summary-label">صافي المسترجع</div>
+                                <div className="summary-value refunded">
+                                    {totalRefunded.toFixed(2)} ر.س
+                                </div>
+                            </div>
+                            <div className="summary-item">
+                                <div className="summary-label">ضريبة المسترجع</div>
+                                <div className="summary-value refunded">
+                                    {totalRefundedTax.toFixed(2)} ر.س
+                                </div>
+                            </div>
+                        </div>
+                        <div className="divider" />
+                        <div className="summary-item">
+                            <div className="summary-label">الإجمالي شامل الضريبة</div>
+                            <div className="summary-value net-total">
+                                {(totalWithTax + totalTax - totalRefundedTax).toFixed(2)} ر.س
+                            </div>
+                        </div>
                     </SummaryCard>
                 </div>
 
@@ -1725,164 +1784,3 @@ function BillsPage() {
 }
 
 export default BillsPage;
-
-const printReport = (reportData) => {
-  try {
-    if (!reportData || !reportData.summary) {
-      throw new Error('Invalid report data');
-    }
-
-    const { date, time } = formatDateTime(reportData.timestamp || new Date().toISOString());
-    
-    const printContent = `
-      <div style="font-family: Arial, sans-serif; direction: rtl; padding: 20px;">
-        <h2 style="text-align: center; color: #4a5568;">تقرير الفواتير</h2>
-        <div style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-          <p>تاريخ التقرير: ${date || 'غير محدد'}</p>
-          <p>وقت التقرير: ${time || 'غير محدد'}</p>
-          <p>الموظف: ${reportData.employeeName} (#${reportData.employeeNumber})</p>
-          <p>الفترة: ${reportData.reportPeriod.from} إلى ${reportData.reportPeriod.to}</p>
-          <p>التصنيف: ${reportData.reportPeriod.category}</p>
-        </div>
-
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #4a5568;">ملخص التقرير</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <tr style="background-color: #f8f9fa;">
-              <th style="padding: 8px; border: 1px solid #ddd;">البيان</th>
-              <th style="padding: 8px; border: 1px solid #ddd;">المبيعات</th>
-              <th style="padding: 8px; border: 1px solid #ddd;">المسترجع</th>
-              <th style="padding: 8px; border: 1px solid #ddd;">الصافي</th>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;">المبلغ</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedAmount || 0).toFixed(2)} ريال</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netAmount || 0).toFixed(2)} ريال</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;">الضريبة</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossTax || 0).toFixed(2)} ريال</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedTax || 0).toFixed(2)} ريال</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netTax || 0).toFixed(2)} ريال</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;">الإجمالي مع الضريبة</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.grossAmount || 0) + (reportData.summary.grossTax || 0)).toFixed(2)} ريال</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.refundedAmount || 0) + (reportData.summary.refundedTax || 0)).toFixed(2)} ريال</td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</td>
-            </tr>
-          </table>
-        </div>
-
-        <div style="margin-bottom: 30px;">
-          <h3 style="color: #4a5568;">تفاصيل الفواتير</h3>
-          ${reportData.bills.map(bill => {
-            const { date, time } = formatDateTime(bill.confirmedAt);
-            const totals = bill.items ? calculateOrderTotals(bill.items) : { subtotal: 0, tax: 0, total: 0 };
-            
-            return `
-              <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                  <div>
-                    <strong>رقم الفاتورة:</strong> ${bill.orderNumber}<br>
-                    <strong>التاريخ:</strong> ${date}<br>
-                    <strong>الوقت:</strong> ${time}
-                  </div>
-                  <div>
-                    <strong>الموظف:</strong> ${bill.employeeName} (#${bill.employeeNumber})<br>
-                    <strong>الحالة:</strong> <span style="color: ${bill.isRefunded ? 'red' : 'green'}">
-                      ${bill.isRefunded ? 'مسترجع' : 'مكتمل'}
-                    </span>
-                  </div>
-                </div>
-
-                <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                  <tr style="background-color: #f3f4f6;">
-                    <th style="padding: 8px; border: 1px solid #ddd;">الصنف</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">التصنيف</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">الكمية</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">السعر</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">المجموع</th>
-                  </tr>
-                  ${bill.items.map(item => `
-                    <tr>
-                      <td style="padding: 8px; border: 1px solid #ddd;">${item.name}</td>
-                      <td style="padding: 8px; border: 1px solid #ddd;">${item.category}</td>
-                      <td style="padding: 8px; border: 1px solid #ddd;">${item.quantity}</td>
-                      <td style="padding: 8px; border: 1px solid #ddd;">${parseFloat(item.price || 0).toFixed(2)}</td>
-                      <td style="padding: 8px; border: 1px solid #ddd;">${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</td>
-                    </tr>
-                  `).join('')}
-                </table>
-
-                <div style="text-align: left; margin-top: 10px;">
-                  <p>المجموع: ${totals.subtotal.toFixed(2)} ريال</p>
-                  <p>الضريبة: ${totals.tax.toFixed(2)} ريال</p>
-                  <p style="font-weight: bold;">الإجمالي مع الضريبة: ${totals.total.toFixed(2)} ريال</p>
-                  ${bill.refundInfo ? `
-                    <p style="color: red;">
-                      تم الاسترجاع في: ${formatDateTime(bill.refundInfo.refundedAt).date} ${formatDateTime(bill.refundInfo.refundedAt).time}<br>
-                      بواسطة: ${bill.refundInfo.refundedBy.name} (#${bill.refundInfo.refundedBy.number})
-                    </p>
-                  ` : ''}
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-
-        <div style="margin-top: 30px; text-align: left;">
-          <h3 style="color: #4a5568;">الإجمالي</h3>
-          <p>إجمالي المبيعات: ${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</p>
-          <p>إجمالي الضريبة: ${(reportData.summary.grossTax || 0).toFixed(2)} ريال</p>
-          <p style="font-weight: bold;">الإجمالي النهائي: ${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</p>
-        </div>
-      </div>
-    `;
-
-    const printWindow = window.open('', '', 'width=800,height=600');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>تقرير الفواتير</title>
-          <meta charset="UTF-8">
-          <style>
-            @media print {
-              body { padding: 20px; }
-              @page { margin: 1cm; }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContent}
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() {
-                window.close();
-              }
-            }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  } catch (error) {
-    console.error('Error printing report:', error);
-    toast.error('فشل في طباعة التقرير');
-  }
-};
-
-// Make sure calculateOrderTotals is available globally in the file
-const calculateOrderTotals = (items) => {
-  const subtotal = items.reduce((sum, item) => 
-      sum + (parseFloat(item.price) * item.quantity), 0
-  );
-  const tax = roundToNearestHalf(subtotal * 0.15);
-  return {
-      subtotal: subtotal,
-      tax: tax,
-      total: subtotal + tax
-  };
-};
