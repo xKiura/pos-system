@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import styled from 'styled-components';
-import { FaHistory, FaCog, FaBox, FaFileInvoice, FaFilter, FaCalendar } from 'react-icons/fa';
+import { FaHistory, FaCog, FaBox, FaFileInvoice, FaFilter, FaCalendar, FaTrash } from 'react-icons/fa';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion'; // Add this import
+import { Modal, Button } from 'react-bootstrap';
+import { toast } from 'react-toastify';
 
 // Update the HistoryContainer styling
 const HistoryContainer = styled.div`
@@ -156,6 +158,79 @@ const ChangeDetails = styled.div`
   color: #1e293b;
 `;
 
+const DeleteButton = styled.button`
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #fecaca;
+    transform: translateY(-1px);
+  }
+`;
+
+const StyledModal = styled(Modal)`
+  .modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  }
+
+  .modal-header {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1.5rem;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    text-align: center;
+    
+    .warning-icon {
+      color: #dc2626;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  .modal-footer {
+    border-top: 1px solid #f1f5f9;
+    padding: 1rem 1.5rem;
+    
+    button {
+      padding: 0.5rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
+      
+      &.btn-secondary {
+        background: #f1f5f9;
+        border: none;
+        color: #475569;
+        
+        &:hover {
+          background: #e2e8f0;
+        }
+      }
+      
+      &.btn-danger {
+        background: #dc2626;
+        border: none;
+        
+        &:hover {
+          background: #b91c1c;
+        }
+      }
+    }
+  }
+`;
+
 const translations = {
   changeTypes: {
     SETTINGS: 'إعدادات النظام',
@@ -201,6 +276,7 @@ export const HistoryChanges = ({ onRefresh }) => {
     dateFrom: '',
     dateTo: ''
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     fetchAllChanges();
@@ -212,23 +288,9 @@ export const HistoryChanges = ({ onRefresh }) => {
 
   const fetchAllChanges = async () => {
     try {
-      // Fetch all types of history records
-      const [settingsHistory, productsHistory, billsHistory, inventoryHistory] = await Promise.all([
-        axios.get('http://localhost:5000/settings-history').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/productsHistory').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/bills-history').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/inventory-history').catch(() => ({ data: [] }))
-      ]);
-
-      // Combine all histories and ensure each entry has a type
-      const allChanges = [
-        ...(Array.isArray(settingsHistory.data) ? settingsHistory.data.map(entry => ({...entry, type: entry.type || 'SETTINGS'})) : []),
-        ...(Array.isArray(productsHistory.data) ? productsHistory.data : []),
-        ...(Array.isArray(billsHistory.data) ? billsHistory.data.map(entry => ({...entry, type: entry.action || 'BILL_ACTION'})) : []),
-        ...(Array.isArray(inventoryHistory.data) ? inventoryHistory.data : [])
-      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-      console.log('Combined history entries:', allChanges.length);
+      const response = await axios.get('http://localhost:5000/history');
+      const allChanges = response.data;
+      
       setChanges(allChanges);
       if (onRefresh) {
         onRefresh(allChanges);
@@ -236,6 +298,7 @@ export const HistoryChanges = ({ onRefresh }) => {
     } catch (error) {
       console.error('Error fetching history:', error);
       setChanges([]);
+      toast.error('فشل في تحميل سجل التغييرات');
     }
   };
 
@@ -424,6 +487,34 @@ export const HistoryChanges = ({ onRefresh }) => {
     }
   };
 
+  const handleDeleteHistory = async () => {
+    try {
+      setShowDeleteModal(false); // Close modal first
+      
+      const response = await axios.delete('http://localhost:5000/history');
+      
+      if (response.data.success) {
+        // Clear all local state
+        setChanges([]);
+        setFilteredChanges([]);
+        
+        // Refresh the data from server
+        await fetchAllChanges();
+        
+        if (onRefresh) {
+          onRefresh([]);
+        }
+        
+        toast.success('تم مسح سجل التغييرات بنجاح');
+      } else {
+        throw new Error(response.data.message || 'Failed to clear history');
+      }
+    } catch (error) {
+      console.error('Error deleting history:', error);
+      toast.error(error.response?.data?.message || 'فشل في مسح سجل التغييرات');
+    }
+  };
+
   useEffect(() => {
     fetchAllChanges();
   }, []); // This will now be triggered when the component gets a new key
@@ -431,7 +522,14 @@ export const HistoryChanges = ({ onRefresh }) => {
   return (
     <HistoryContainer>
       <HistoryHeader>
-        <h3><FaHistory /> سجل التغييرات</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3><FaHistory /> سجل التغييرات</h3>
+          {filteredChanges.length > 0 && (
+            <DeleteButton onClick={() => setShowDeleteModal(true)}>
+              <FaTrash /> مسح السجل
+            </DeleteButton>
+          )}
+        </div>
         
         <FilterSection>
           <FilterGroup>
@@ -517,6 +615,29 @@ export const HistoryChanges = ({ onRefresh }) => {
           </motion.div>
         )}
       </ScrollableContent>
+
+      <StyledModal 
+        show={showDeleteModal} 
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>تأكيد مسح السجل</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <FaTrash className="warning-icon" />
+          <h4>هل أنت متأكد من مسح سجل التغييرات؟</h4>
+          <p style={{ color: '#64748b' }}>لا يمكن التراجع عن هذا الإجراء</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            إلغاء
+          </Button>
+          <Button variant="danger" onClick={handleDeleteHistory}>
+            مسح السجل
+          </Button>
+        </Modal.Footer>
+      </StyledModal>
     </HistoryContainer>
   );
 };

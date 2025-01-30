@@ -6,13 +6,13 @@
       "price": "45",
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
       "category": "رز",
-      "stock": 9,
+      "stock": 10,
       "minStock": 1,
       "costPrice": 2,
       "adjustmentDate": "2025-01-21T19:30:21.071Z",
-      "lastUpdated": "2025-01-22T03:46:26.502Z",
-      "employeeName": "s",
-      "employeeNumber": "2"
+      "lastUpdated": "2025-01-30T08:18:36.043Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1"
     },
     {
       "id": "124",
@@ -20,13 +20,13 @@
       "price": "100",
       "image": "https://b.zmtcdn.com/data/pictures/6/21364596/4ffc072adaf0517abb75a02585acc629_o2_featured_v2.jpg",
       "category": "مشويات",
-      "stock": 0,
+      "stock": 3,
       "minStock": 1,
       "costPrice": 2,
       "adjustmentDate": "",
-      "lastUpdated": "2025-01-22T03:05:47.093Z",
-      "employeeName": "s",
-      "employeeNumber": "2"
+      "lastUpdated": "2025-01-30T08:21:01.002Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1"
     },
     {
       "id": "125",
@@ -374,304 +374,880 @@
     "taxRate": 15,
     "printCopies": 1,
     "requireManagerApproval": false,
-    "history": [
-      {
-        "id": 1738224256786,
-        "timestamp": "2025-01-30T08:04:16.786Z",
-        "employeeName": "عبدالله حسن",
-        "employeeNumber": "1",
-        "type": "BILL_REVERT_REFUND",
-        "origin": "صفحة الفواتير",
-        "changes": [
-          {
-            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
-          }
-        ]
-      },
-      {
-        "id": 1738224123012,
-        "timestamp": "2025-01-30T08:02:03.012Z",
-        "employeeName": "عبدالله حسن",
-        "employeeNumber": "1",
-        "type": "BILL_REVERT_REFUND",
-        "origin": "صفحة الفواتير",
-        "changes": [
-          {
-            "details": "تم إلغاء استرجاع الفاتورة رقم 000036"
-          }
-        ]
-      },
-      {
-        "id": 1738223877907,
-        "timestamp": "2025-01-30T07:57:57.907Z",
-        "employeeName": "عبدالله حسن",
-        "employeeNumber": "1",
-        "type": "BILL_REVERT_REFUND",
-        "origin": "صفحة الفواتير",
-        "changes": [
-          {
-            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
-          }
-        ]
-      },
-      {
-        "id": 1738223607701,
-        "timestamp": "2025-01-30T07:53:27.701Z",
-        "employeeName": "عبدالله حسن",
-        "employeeNumber": "1",
-        "type": "BILL_REVERT_REFUND",
-        "origin": "صفحة الفواتير",
-        "changes": [
-          {
-            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
-          }
-        ]
-      }
-    ]
+    "history": []
   },
-  "productsHistory": [
+  "productsHistory": [],
+  "reports": [
     {
-      "id": 1737518989792,
-      "timestamp": "2025-01-22T04:09:49.792Z",
+      "id": 1738225191533,
+      "timestamp": "2025-01-30T08:19:51.533Z",
       "employeeName": "عبدالله حسن",
       "employeeNumber": "1",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
+      "reportPeriod": {
+        "from": "all",
+        "to": "all",
+        "category": "الكل"
+      },
+      "summary": {
+        "totalBills": 9,
+        "completedBills": 5,
+        "refundedBills": 4,
+        "grossAmount": 620,
+        "refundedAmount": -240,
+        "netAmount": 380,
+        "grossTax": 93,
+        "refundedTax": -36,
+        "netTax": 57,
+        "totalWithTax": 437
+      },
+      "bills": [
         {
-          "productName": "كينزا",
-          "detailedChanges": [
+          "date": "28/01/2025",
+          "items": [
             {
-              "field": "المخزون",
-              "oldValue": 0,
-              "newValue": 20
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 3,
+              "price": "10",
+              "totalAmount": 30
+            },
+            {
+              "id": "126",
+              "name": "وجبة مندي ومشوي",
+              "quantity": 1,
+              "price": "15",
+              "totalAmount": 15
             }
-          ]
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000001",
+          "subtotal": 45,
+          "tax": 7,
+          "total": 52,
+          "id": "1738020586699",
+          "confirmedAt": "2025-01-27T23:29:46.699Z",
+          "time": "02:29:46",
+          "calculatedTotals": {
+            "subtotal": 45,
+            "tax": 6.75,
+            "total": 51.75
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 3,
+              "price": "10",
+              "totalAmount": 30
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000036",
+          "subtotal": 30,
+          "tax": 4.5,
+          "total": 34.5,
+          "id": "1737519000552",
+          "confirmedAt": "2025-01-22T04:10:00.552Z",
+          "time": "07:10:00",
+          "calculatedTotals": {
+            "subtotal": 30,
+            "tax": 4.5,
+            "total": 34.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "124",
+              "name": "مشويات مشكل",
+              "quantity": 2,
+              "price": "100",
+              "totalAmount": 200
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000035",
+          "subtotal": 200,
+          "tax": 30,
+          "total": 230,
+          "id": "1737518971472",
+          "confirmedAt": "2025-01-22T04:09:31.472Z",
+          "time": "07:09:31",
+          "calculatedTotals": {
+            "subtotal": 200,
+            "tax": 30,
+            "total": 230
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "124",
+              "name": "مشويات مشكل",
+              "quantity": 3,
+              "price": "100",
+              "totalAmount": 300
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000034",
+          "subtotal": 300,
+          "tax": 45,
+          "total": 345,
+          "id": "1737518943408",
+          "confirmedAt": "2025-01-22T04:09:03.408Z",
+          "time": "07:09:03",
+          "calculatedTotals": {
+            "subtotal": 300,
+            "tax": 45,
+            "total": 345
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 1,
+              "price": "10",
+              "totalAmount": 10
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000033",
+          "subtotal": 10,
+          "tax": 1.5,
+          "total": 11.5,
+          "id": "1737518648530",
+          "confirmedAt": "2025-01-22T04:04:08.530Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T04:05:03.113Z",
+          "refundedBy": {
+            "name": "عبدالله حسن",
+            "number": "1"
+          },
+          "time": "07:04:08",
+          "calculatedTotals": {
+            "subtotal": 10,
+            "tax": 1.5,
+            "total": 11.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 5,
+              "price": "10",
+              "totalAmount": 50
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000032",
+          "subtotal": 50,
+          "tax": 7.5,
+          "total": 57.5,
+          "id": "1737518638386",
+          "confirmedAt": "2025-01-22T04:03:58.386Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T04:05:09.304Z",
+          "refundedBy": {
+            "name": "عبدالله حسن",
+            "number": "1"
+          },
+          "time": "07:03:58",
+          "calculatedTotals": {
+            "subtotal": 50,
+            "tax": 7.5,
+            "total": 57.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 1,
+              "price": "45",
+              "totalAmount": 45
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000031",
+          "subtotal": 45,
+          "tax": 7,
+          "total": 52,
+          "id": "1737517593892",
+          "confirmedAt": "2025-01-22T03:46:33.892Z",
+          "time": "06:46:33",
+          "calculatedTotals": {
+            "subtotal": 45,
+            "tax": 6.75,
+            "total": 51.75
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 2,
+              "price": "45",
+              "totalAmount": 90
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000028",
+          "subtotal": 90,
+          "tax": 13.5,
+          "total": 103.5,
+          "id": "1737515380722",
+          "confirmedAt": "2025-01-22T03:09:40.722Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T03:34:03.981Z",
+          "refundedBy": {
+            "name": "s",
+            "number": "2"
+          },
+          "time": "06:09:40",
+          "calculatedTotals": {
+            "subtotal": 90,
+            "tax": 13.5,
+            "total": 103.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 2,
+              "price": "45",
+              "totalAmount": 90
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000027",
+          "subtotal": 90,
+          "tax": 13.5,
+          "total": 103.5,
+          "id": "1737513157350",
+          "confirmedAt": "2025-01-22T02:32:37.350Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T02:32:43.572Z",
+          "refundedBy": {
+            "name": "s",
+            "number": "2"
+          },
+          "time": "05:32:37",
+          "calculatedTotals": {
+            "subtotal": 90,
+            "tax": 13.5,
+            "total": 103.5
+          }
         }
       ]
     },
     {
-      "id": 1737518189058,
-      "timestamp": "2025-01-22T03:56:29.058Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
+      "id": 1738225129101,
+      "timestamp": "2025-01-30T08:18:49.101Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "reportPeriod": {
+        "from": "all",
+        "to": "all",
+        "category": "الكل"
+      },
+      "summary": {
+        "totalBills": 9,
+        "completedBills": 5,
+        "refundedBills": 4,
+        "grossAmount": 620,
+        "refundedAmount": -240,
+        "netAmount": 380,
+        "grossTax": 93,
+        "refundedTax": -36,
+        "netTax": 57,
+        "totalWithTax": 437
+      },
+      "bills": [
         {
-          "productName": "وجبة مندي ومشوي",
-          "detailedChanges": [
+          "date": "28/01/2025",
+          "items": [
             {
-              "field": "الحد الأدنى",
-              "oldValue": 1,
-              "newValue": 5
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 3,
+              "price": "10",
+              "totalAmount": 30
+            },
+            {
+              "id": "126",
+              "name": "وجبة مندي ومشوي",
+              "quantity": 1,
+              "price": "15",
+              "totalAmount": 15
             }
-          ]
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000001",
+          "subtotal": 45,
+          "tax": 7,
+          "total": 52,
+          "id": "1738020586699",
+          "confirmedAt": "2025-01-27T23:29:46.699Z",
+          "time": "02:29:46",
+          "calculatedTotals": {
+            "subtotal": 45,
+            "tax": 6.75,
+            "total": 51.75
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 3,
+              "price": "10",
+              "totalAmount": 30
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000036",
+          "subtotal": 30,
+          "tax": 4.5,
+          "total": 34.5,
+          "id": "1737519000552",
+          "confirmedAt": "2025-01-22T04:10:00.552Z",
+          "time": "07:10:00",
+          "calculatedTotals": {
+            "subtotal": 30,
+            "tax": 4.5,
+            "total": 34.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "124",
+              "name": "مشويات مشكل",
+              "quantity": 2,
+              "price": "100",
+              "totalAmount": 200
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000035",
+          "subtotal": 200,
+          "tax": 30,
+          "total": 230,
+          "id": "1737518971472",
+          "confirmedAt": "2025-01-22T04:09:31.472Z",
+          "time": "07:09:31",
+          "calculatedTotals": {
+            "subtotal": 200,
+            "tax": 30,
+            "total": 230
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "124",
+              "name": "مشويات مشكل",
+              "quantity": 3,
+              "price": "100",
+              "totalAmount": 300
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000034",
+          "subtotal": 300,
+          "tax": 45,
+          "total": 345,
+          "id": "1737518943408",
+          "confirmedAt": "2025-01-22T04:09:03.408Z",
+          "time": "07:09:03",
+          "calculatedTotals": {
+            "subtotal": 300,
+            "tax": 45,
+            "total": 345
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 1,
+              "price": "10",
+              "totalAmount": 10
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000033",
+          "subtotal": 10,
+          "tax": 1.5,
+          "total": 11.5,
+          "id": "1737518648530",
+          "confirmedAt": "2025-01-22T04:04:08.530Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T04:05:03.113Z",
+          "refundedBy": {
+            "name": "عبدالله حسن",
+            "number": "1"
+          },
+          "time": "07:04:08",
+          "calculatedTotals": {
+            "subtotal": 10,
+            "tax": 1.5,
+            "total": 11.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 5,
+              "price": "10",
+              "totalAmount": 50
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000032",
+          "subtotal": 50,
+          "tax": 7.5,
+          "total": 57.5,
+          "id": "1737518638386",
+          "confirmedAt": "2025-01-22T04:03:58.386Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T04:05:09.304Z",
+          "refundedBy": {
+            "name": "عبدالله حسن",
+            "number": "1"
+          },
+          "time": "07:03:58",
+          "calculatedTotals": {
+            "subtotal": 50,
+            "tax": 7.5,
+            "total": 57.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 1,
+              "price": "45",
+              "totalAmount": 45
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000031",
+          "subtotal": 45,
+          "tax": 7,
+          "total": 52,
+          "id": "1737517593892",
+          "confirmedAt": "2025-01-22T03:46:33.892Z",
+          "time": "06:46:33",
+          "calculatedTotals": {
+            "subtotal": 45,
+            "tax": 6.75,
+            "total": 51.75
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 2,
+              "price": "45",
+              "totalAmount": 90
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000028",
+          "subtotal": 90,
+          "tax": 13.5,
+          "total": 103.5,
+          "id": "1737515380722",
+          "confirmedAt": "2025-01-22T03:09:40.722Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T03:34:03.981Z",
+          "refundedBy": {
+            "name": "s",
+            "number": "2"
+          },
+          "time": "06:09:40",
+          "calculatedTotals": {
+            "subtotal": 90,
+            "tax": 13.5,
+            "total": 103.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 2,
+              "price": "45",
+              "totalAmount": 90
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000027",
+          "subtotal": 90,
+          "tax": 13.5,
+          "total": 103.5,
+          "id": "1737513157350",
+          "confirmedAt": "2025-01-22T02:32:37.350Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T02:32:43.572Z",
+          "refundedBy": {
+            "name": "s",
+            "number": "2"
+          },
+          "time": "05:32:37",
+          "calculatedTotals": {
+            "subtotal": 90,
+            "tax": 13.5,
+            "total": 103.5
+          }
         }
       ]
     },
     {
-      "id": 1737517586507,
-      "timestamp": "2025-01-22T03:46:26.507Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
+      "id": 1738224933216,
+      "timestamp": "2025-01-30T08:15:33.216Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "reportPeriod": {
+        "from": "all",
+        "to": "all",
+        "category": "الكل"
+      },
+      "summary": {
+        "totalBills": 9,
+        "completedBills": 5,
+        "refundedBills": 4,
+        "grossAmount": 620,
+        "refundedAmount": -240,
+        "netAmount": 380,
+        "grossTax": 93,
+        "refundedTax": -36,
+        "netTax": 57,
+        "totalWithTax": 437
+      },
+      "bills": [
         {
-          "productName": "مندي لحم",
-          "detailedChanges": [
+          "date": "28/01/2025",
+          "items": [
             {
-              "field": "المخزون",
-              "oldValue": 11,
-              "newValue": 10
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 3,
+              "price": "10",
+              "totalAmount": 30
+            },
+            {
+              "id": "126",
+              "name": "وجبة مندي ومشوي",
+              "quantity": 1,
+              "price": "15",
+              "totalAmount": 15
             }
-          ]
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000001",
+          "subtotal": 45,
+          "tax": 7,
+          "total": 52,
+          "id": "1738020586699",
+          "confirmedAt": "2025-01-27T23:29:46.699Z",
+          "time": "02:29:46",
+          "calculatedTotals": {
+            "subtotal": 45,
+            "tax": 6.75,
+            "total": 51.75
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 3,
+              "price": "10",
+              "totalAmount": 30
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000036",
+          "subtotal": 30,
+          "tax": 4.5,
+          "total": 34.5,
+          "id": "1737519000552",
+          "confirmedAt": "2025-01-22T04:10:00.552Z",
+          "time": "07:10:00",
+          "calculatedTotals": {
+            "subtotal": 30,
+            "tax": 4.5,
+            "total": 34.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "124",
+              "name": "مشويات مشكل",
+              "quantity": 2,
+              "price": "100",
+              "totalAmount": 200
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000035",
+          "subtotal": 200,
+          "tax": 30,
+          "total": 230,
+          "id": "1737518971472",
+          "confirmedAt": "2025-01-22T04:09:31.472Z",
+          "time": "07:09:31",
+          "calculatedTotals": {
+            "subtotal": 200,
+            "tax": 30,
+            "total": 230
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "124",
+              "name": "مشويات مشكل",
+              "quantity": 3,
+              "price": "100",
+              "totalAmount": 300
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000034",
+          "subtotal": 300,
+          "tax": 45,
+          "total": 345,
+          "id": "1737518943408",
+          "confirmedAt": "2025-01-22T04:09:03.408Z",
+          "time": "07:09:03",
+          "calculatedTotals": {
+            "subtotal": 300,
+            "tax": 45,
+            "total": 345
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 1,
+              "price": "10",
+              "totalAmount": 10
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000033",
+          "subtotal": 10,
+          "tax": 1.5,
+          "total": 11.5,
+          "id": "1737518648530",
+          "confirmedAt": "2025-01-22T04:04:08.530Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T04:05:03.113Z",
+          "refundedBy": {
+            "name": "عبدالله حسن",
+            "number": "1"
+          },
+          "time": "07:04:08",
+          "calculatedTotals": {
+            "subtotal": 10,
+            "tax": 1.5,
+            "total": 11.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "125",
+              "name": "كينزا",
+              "quantity": 5,
+              "price": "10",
+              "totalAmount": 50
+            }
+          ],
+          "employeeName": "عبدالله حسن",
+          "employeeNumber": "1",
+          "orderNumber": "000032",
+          "subtotal": 50,
+          "tax": 7.5,
+          "total": 57.5,
+          "id": "1737518638386",
+          "confirmedAt": "2025-01-22T04:03:58.386Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T04:05:09.304Z",
+          "refundedBy": {
+            "name": "عبدالله حسن",
+            "number": "1"
+          },
+          "time": "07:03:58",
+          "calculatedTotals": {
+            "subtotal": 50,
+            "tax": 7.5,
+            "total": 57.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 1,
+              "price": "45",
+              "totalAmount": 45
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000031",
+          "subtotal": 45,
+          "tax": 7,
+          "total": 52,
+          "id": "1737517593892",
+          "confirmedAt": "2025-01-22T03:46:33.892Z",
+          "time": "06:46:33",
+          "calculatedTotals": {
+            "subtotal": 45,
+            "tax": 6.75,
+            "total": 51.75
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 2,
+              "price": "45",
+              "totalAmount": 90
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000028",
+          "subtotal": 90,
+          "tax": 13.5,
+          "total": 103.5,
+          "id": "1737515380722",
+          "confirmedAt": "2025-01-22T03:09:40.722Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T03:34:03.981Z",
+          "refundedBy": {
+            "name": "s",
+            "number": "2"
+          },
+          "time": "06:09:40",
+          "calculatedTotals": {
+            "subtotal": 90,
+            "tax": 13.5,
+            "total": 103.5
+          }
+        },
+        {
+          "date": "22/01/2025",
+          "items": [
+            {
+              "id": "123",
+              "name": "مندي لحم",
+              "quantity": 2,
+              "price": "45",
+              "totalAmount": 90
+            }
+          ],
+          "employeeName": "s",
+          "employeeNumber": "2",
+          "orderNumber": "000027",
+          "subtotal": 90,
+          "tax": 13.5,
+          "total": 103.5,
+          "id": "1737513157350",
+          "confirmedAt": "2025-01-22T02:32:37.350Z",
+          "isRefunded": true,
+          "refundedAt": "2025-01-22T02:32:43.572Z",
+          "refundedBy": {
+            "name": "s",
+            "number": "2"
+          },
+          "time": "05:32:37",
+          "calculatedTotals": {
+            "subtotal": 90,
+            "tax": 13.5,
+            "total": 103.5
+          }
         }
       ]
     },
-    {
-      "id": 1737517264069,
-      "timestamp": "2025-01-22T03:41:04.069Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
-        {
-          "productName": "مندي لحم",
-          "detailedChanges": [
-            {
-              "field": "المخزون",
-              "oldValue": 9,
-              "newValue": 11
-            },
-            {
-              "field": "الحد الأدنى",
-              "oldValue": 2,
-              "newValue": 1
-            },
-            {
-              "field": "سعر التكلفة",
-              "oldValue": 1,
-              "newValue": 2
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 1737516858926,
-      "timestamp": "2025-01-22T03:34:18.926Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
-        {
-          "productName": "وجبة مندي ومشوي",
-          "detailedChanges": [
-            {
-              "field": "المخزون",
-              "oldValue": 0,
-              "newValue": 5
-            },
-            {
-              "field": "الحد الأدنى",
-              "oldValue": 0,
-              "newValue": 1
-            },
-            {
-              "field": "سعر التكلفة",
-              "oldValue": 0,
-              "newValue": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 1737515274154,
-      "timestamp": "2025-01-22T03:07:54.154Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
-        {
-          "productName": "كينزا",
-          "detailedChanges": [
-            {
-              "field": "المخزون",
-              "oldValue": 0,
-              "newValue": 6
-            },
-            {
-              "field": "الحد الأدنى",
-              "oldValue": 0,
-              "newValue": 1
-            },
-            {
-              "field": "سعر التكلفة",
-              "oldValue": 0,
-              "newValue": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 1737515147106,
-      "timestamp": "2025-01-22T03:05:47.106Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
-        {
-          "productName": "مشويات مشكل",
-          "detailedChanges": [
-            {
-              "field": "المخزون",
-              "oldValue": 0,
-              "newValue": 5
-            },
-            {
-              "field": "الحد الأدنى",
-              "oldValue": 0,
-              "newValue": 1
-            },
-            {
-              "field": "سعر التكلفة",
-              "oldValue": 0,
-              "newValue": 2
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 1737515121658,
-      "timestamp": "2025-01-22T03:05:21.658Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
-        {
-          "productName": "مندي لحم",
-          "detailedChanges": [
-            {
-              "field": "المخزون",
-              "oldValue": 12,
-              "newValue": 11
-            },
-            {
-              "field": "الحد الأدنى",
-              "oldValue": 3,
-              "newValue": 2
-            },
-            {
-              "field": "سعر التكلفة",
-              "oldValue": 2,
-              "newValue": 1
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": 1737514934266,
-      "timestamp": "2025-01-22T03:02:14.266Z",
-      "employeeName": "s",
-      "employeeNumber": "2",
-      "type": "INVENTORY_UPDATE",
-      "origin": "صفحة المخزون",
-      "changes": [
-        {
-          "productName": "مندي لحم",
-          "detailedChanges": [
-            {
-              "field": "المخزون",
-              "oldValue": 10,
-              "newValue": 12
-            },
-            {
-              "field": "الحد الأدنى",
-              "oldValue": 1,
-              "newValue": 3
-            },
-            {
-              "field": "سعر التكلفة",
-              "oldValue": 1,
-              "newValue": 2
-            }
-          ]
-        }
-      ]
-    }
-  ],
-  "reports": [
     {
       "id": 1738217070687,
       "timestamp": "2025-01-30T06:04:30.687Z",
@@ -1218,54 +1794,6 @@
       ]
     }
   ],
-  "settingsHistory": [
-    {
-      "timestamp": "2025-01-28T00:09:58.837Z",
-      "type": "REPORT_EXPORT",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "origin": "صفحة الفواتير",
-      "changes": [
-        {
-          "details": "تم تصدير تقرير للفواتير - الإجمالي: 713 ريال"
-        }
-      ]
-    },
-    {
-      "timestamp": "2025-01-28T00:09:19.094Z",
-      "type": "REPORT_EXPORT",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "origin": "صفحة الفواتير",
-      "changes": [
-        {
-          "details": "تم تصدير تقرير للفواتير - الإجمالي: 713 ريال"
-        }
-      ]
-    },
-    {
-      "timestamp": "2025-01-28T00:04:35.733Z",
-      "type": "REPORT_EXPORT",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "origin": "صفحة الفواتير",
-      "changes": [
-        {
-          "details": "تم تصدير تقرير للفواتير - الإجمالي: 713 ريال"
-        }
-      ]
-    },
-    {
-      "timestamp": "2025-01-27T23:58:46.703Z",
-      "type": "REPORT_EXPORT",
-      "employeeName": "عبدالله حسن",
-      "employeeNumber": "1",
-      "origin": "صفحة الفواتير",
-      "changes": [
-        {
-          "details": "تم تصدير تقرير للفواتير - الإجمالي: 713 ريال"
-        }
-      ]
-    }
-  ]
+  "settingsHistory": [],
+  "billsHistory": []
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaArrowLeft, FaHistory, FaSave, FaPercent, FaPrint, FaUserShield, FaStore, FaImage } from 'react-icons/fa';
+import { FaArrowLeft, FaHistory, FaSave, FaPercent, FaStore, FaImage } from 'react-icons/fa';
 import { Modal, Button, Form } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
@@ -159,8 +159,6 @@ const getSettingName = (key) => {
     restaurantName: 'اسم المطعم',
     restaurantLogo: 'شعار المطعم',
     taxRate: 'نسبة الضريبة',
-    printCopies: 'عدد النسخ',
-    requireManagerApproval: 'موافقة المدير'
   };
   return names[key] || key;
 };
@@ -169,8 +167,6 @@ function ManagementPage() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState({
     taxRate: 15,
-    printCopies: 1,
-    requireManagerApproval: false,
     restaurantName: 'مطعمي',
     restaurantLogo: '',
   });
@@ -526,29 +522,6 @@ function ManagementPage() {
               max="100"
             />
           </Form.Group>
-        </SettingCard>
-
-        <SettingCard>
-          <h3><FaPrint /> عدد نسخ الطباعة</h3>
-          <Form.Group>
-            <Form.Control
-              type="number"
-              value={tempSettings.printCopies ?? settings.printCopies}
-              onChange={(e) => handleSettingChange('printCopies', parseInt(e.target.value))}
-              min="1"
-              max="5"
-            />
-          </Form.Group>
-        </SettingCard>
-
-        <SettingCard>
-          <h3><FaUserShield /> موافقة المدير</h3>
-          <Form.Check
-            type="switch"
-            label="تتطلب موافقة المدير للاسترجاع"
-            checked={tempSettings.requireManagerApproval ?? settings.requireManagerApproval}
-            onChange={(e) => handleSettingChange('requireManagerApproval', e.target.checked)}
-          />
         </SettingCard>
       </SettingsGrid>
 

@@ -780,17 +780,16 @@ let productsHistory = [];
 let billsHistory = [];
 
 // Clear history data on server start
-const clearHistoryData = () => {
+/*const clearHistoryData = () => {
   settingsHistory = [];
   productsHistory = [];
   billsHistory = [];
-};
+};*/
 
 // Initialize storage and clear history
 storage.init()
   .then(async () => {
     console.log('Local storage initialized');
-    clearHistoryData(); // Clear history on server start
     
     // Initialize settings if they don't exist
     await storage.get('settings') || await storage.set('settings', {
@@ -1253,6 +1252,76 @@ app.get('/reports', async (req, res) => {
   } catch (error) {
     console.error('Error fetching reports:', error);
     res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
+// Add this endpoint to delete history
+app.delete('/history', async (req, res) => {
+  try {
+    // Read current data
+    const data = await readFromDb();
+    
+    // Initialize arrays if they don't exist
+    data.settingsHistory = [];
+    data.productsHistory = [];
+    data.billsHistory = [];
+    if (data.settings) {
+      data.settings.history = [];
+    }
+
+    // Clear any specific history properties that might exist
+    if (data.history) {
+      data.history = [];
+    }
+    
+    // Save the cleared data back to database
+    const success = await writeToDb(data);
+    if (!success) {
+      throw new Error('Failed to write to database');
+    }
+    
+    // Clear history files
+    await Promise.all([
+      writeData(dataFiles.settingsHistory, []),
+      writeData(dataFiles.productsHistory, []),
+      writeData(dataFiles.billsHistory, []),
+      writeData(dataFiles.history, [])
+    ]);
+
+    // Clear in-memory history
+    settingsHistory = [];
+    productsHistory = [];
+    billsHistory = [];
+    
+    res.json({ 
+      success: true, 
+      message: 'تم مسح سجل التغييرات بنجاح'
+    });
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear history',
+      details: error.message
+    });
+  }
+});
+
+// Add or modify the history endpoints
+app.get('/history', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    const combinedHistory = [
+      ...(data.settingsHistory || []),
+      ...(data.productsHistory || []),
+      ...(data.billsHistory || []),
+      ...(data.settings?.history || [])
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    res.json(combinedHistory);
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch history' });
   }
 });
 
