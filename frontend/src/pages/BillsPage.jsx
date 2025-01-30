@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaTimes, FaPrint, FaUndo } from 'react-icons/fa';
+import { FaArrowLeft, FaTimes, FaPrint, FaUndo, FaFileDownload, FaHistory, FaSearch } from 'react-icons/fa';
 import axios from 'axios';
 import { Modal, Button } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,7 @@ import { useSettings } from '../context/SettingsContext';
 import { endpoints } from '../config/api'; // Add this import
 import { readFromDb } from '../services/api';
 import { toast } from 'react-toastify';
+import { debounce } from 'lodash'; // Add this import
 import 'react-toastify/dist/ReactToastify.css';
 
 // Update TopBar styled component
@@ -672,1115 +673,1311 @@ const calculateOrderTotals = (items) => {
   const subtotal = items.reduce((sum, item) => 
     sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
   );
-  const tax = roundToNearestHalf(subtotal * 0.15); // 15% VAT
+  const tax = Math.round((subtotal * 0.15) * 100) / 100; // 15% VAT, rounded to 2 decimal places
   return { 
-    subtotal,    // Net amount without tax
-    tax,         // Tax amount
-    total: subtotal + tax  // Gross amount with tax
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    tax: parseFloat(tax.toFixed(2)),
+    total: parseFloat((subtotal + tax).toFixed(2))
   };
 };
 
+// Update FilterSection styled component
+const FilterSection = styled.div`
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FilterCardBox = styled.div`
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 1.5rem;
+
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .filter-group {
+    position: relative;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #4b5563;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .icon {
+      position: absolute;
+      right: 1rem;
+      color: #9ca3af;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.625rem 2.5rem 0.625rem 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f9fafb;
+      color: #1f2937;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+
+      &:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+      }
+    }
+  }
+`;
+
+const SummaryBox = styled.div`
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex: 1;
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-item {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+
+    .label {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0f172a;
+      
+      &.positive { color: #047857; }
+      &.negative { color: #dc2626; }
+    }
+  }
+
+  .total-section {
+    padding-top: 1.5rem;
+    border-top: 2px dashed #e2e8f0;
+    text-align: left;
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+
+      .label {
+        color: #64748b;
+        font-size: 0.875rem;
+      }
+
+      .value {
+        font-size: 1.125rem;
+        font-weight: 500;
+        color: #0f172a;
+      }
+
+      &.final {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+
+        .label {
+          font-weight: 600;
+          color: #0f172a;
+          font-size: 1rem;
+        }
+
+        .value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+      }
+    }
+  }
+`;
+
+// Add ReportActionButton styled component
+const ReportActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+
+  &.save {
+    background: #047857;
+    color: white;
+    &:hover { background: #065f46; }
+  }
+
+  &.view {
+    background: #f59e0b;
+    color: white;
+    &:hover { background: #d97706; }
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
+// ...rest of existing styled components...
+
 function BillsPage() {
-    const { settings } = useSettings();
-    const [dateFilter, setDateFilter] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('الكل');
-    const [totalProfit, setTotalProfit] = useState(0);
-    const [totalWithTax, setTotalWithTax] = useState(0);
-    const [productSales, setProductSales] = useState({});
-    const [confirmedOrders, setConfirmedOrders] = useState([]);
-    const [filteredOrders, setFilteredOrders] = useState([]);
-    const [employeeName, setEmployeeName] = useState('');
-    const [employeeNumber, setEmployeeNumber] = useState('');
-    const [expandedOrder, setExpandedOrder] = useState(null);
-    const [showModal, setShowModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [orderToDelete, setOrderToDelete] = useState(null);
-    const [orderNumber, setOrderNumber] = useState(1);
-    const [refundedOrders, setRefundedOrders] = useState(new Set());
-    const [showRefundModal, setShowRefundModal] = useState(false);
-    const [orderToRefund, setOrderToRefund] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showReportsModal, setShowReportsModal] = useState(false);
-    const [reports, setReports] = useState([]);
-    const [totalRefunded, setTotalRefunded] = useState(0);
-    const [showRevertModal, setShowRevertModal] = useState(false);
-    const [billToRevert, setBillToRevert] = useState(null);
-    const [totalTax, setTotalTax] = useState(0);
-    const [totalRefundedTax, setTotalRefundedTax] = useState(0);
+  const { settings } = useSettings();
+  const [dateFilter, setDateFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('الكل');
+  const [totalProfit, setTotalProfit] = useState(0);
+  const [totalWithTax, setTotalWithTax] = useState(0);
+  const [productSales, setProductSales] = useState({});
+  const [confirmedOrders, setConfirmedOrders] = useState([]);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  const [employeeName, setEmployeeName] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [orderNumber, setOrderNumber] = useState(1);
+  const [refundedOrders, setRefundedOrders] = useState(new Set());
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [orderToRefund, setOrderToRefund] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showReportsModal, setShowReportsModal] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [totalRefunded, setTotalRefunded] = useState(0);
+  const [showRevertModal, setShowRevertModal] = useState(false);
+  const [billToRevert, setBillToRevert] = useState(null);
+  const [totalTax, setTotalTax] = useState(0);
+  const [totalRefundedTax, setTotalRefundedTax] = useState(0);
 
-    useEffect(() => {
-        const savedEmployeeName = localStorage.getItem('employeeName');
-        const savedEmployeeNumber = localStorage.getItem('employeeNumber');
-        if (savedEmployeeName && savedEmployeeNumber) {
-            setEmployeeName(savedEmployeeName);
-            setEmployeeNumber(savedEmployeeNumber);
-        }
-        fetchConfirmedOrders();
-    }, []);
+  useEffect(() => {
+    const savedEmployeeName = localStorage.getItem('employeeName');
+    const savedEmployeeNumber = localStorage.getItem('employeeNumber');
+    if (savedEmployeeName && savedEmployeeNumber) {
+      setEmployeeName(savedEmployeeName);
+      setEmployeeNumber(savedEmployeeNumber);
+    }
+    fetchConfirmedOrders();
+  }, []);
 
-    useEffect(() => {
-        const savedOrderNumber = localStorage.getItem('orderNumber');
-        const lastResetDate = localStorage.getItem('lastResetDate');
-        const today = new Date().toLocaleDateString();
+  useEffect(() => {
+    const savedOrderNumber = localStorage.getItem('orderNumber');
+    const lastResetDate = localStorage.getItem('lastResetDate');
+    const today = new Date().toLocaleDateString();
 
-        if (savedOrderNumber && lastResetDate === today) {
-            setOrderNumber(parseInt(savedOrderNumber, 10));
-        } else {
-            localStorage.setItem('orderNumber', '1');
-            localStorage.setItem('lastResetDate', today);
-            setOrderNumber(1);
-        }
-    }, []);
+    if (savedOrderNumber && lastResetDate === today) {
+      setOrderNumber(parseInt(savedOrderNumber, 10));
+    } else {
+      localStorage.setItem('orderNumber', '1');
+      localStorage.setItem('lastResetDate', today);
+      setOrderNumber(1);
+    }
+  }, []);
 
-    useEffect(() => {
-        filterOrders();
-    }, [confirmedOrders, dateFilter, categoryFilter, searchQuery]);
+  useEffect(() => {
+    filterOrders();
+  }, [confirmedOrders, dateFilter, categoryFilter, searchQuery]);
 
-    const fetchConfirmedOrders = async () => {
-        try {
-            const response = await axios.get('http://localhost:5000/confirmed-orders');
-            
-            if (response.data && Array.isArray(response.data)) {
-                const ordersWithDateTime = response.data.map(order => {
-                    const date = new Date(order.date || order.confirmedAt);
-                    return {
-                        ...order,
-                        date: date.toLocaleDateString('en-GB'),
-                        time: date.toLocaleTimeString('en-GB')
-                    };
-                });
-                console.log('Processed orders:', ordersWithDateTime.length, 'orders found'); // Modified debug log
-                setConfirmedOrders(ordersWithDateTime);
-                setFilteredOrders(ordersWithDateTime);
-            } else {
-                console.error('Invalid data format received:', response.data);
-                setConfirmedOrders([]);
-                setFilteredOrders([]);
-            }
-        } catch (error) {
-            console.error('Error fetching confirmed orders:', error);
-            setConfirmedOrders([]);
-            setFilteredOrders([]);
-        }
-    };
-
-    // Update useEffect to include error handling
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                await fetchConfirmedOrders();
-            } catch (error) {
-                console.error('Error in useEffect:', error);
-            }
-        };
-        fetchData();
-    }, []);
-
-    const filterOrders = () => {
-        let filtered = [...confirmedOrders];
-        
-        // Apply search filter
-        if (searchQuery) {
-            filtered = filtered.filter(order => 
-                order.orderNumber.toString().includes(searchQuery)
-            );
-        }
-        
-        if (dateFilter) {
-            filtered = filtered.filter(order => order.date === dateFilter);
-        }
-        
-        if (categoryFilter !== 'الكل') {
-            filtered = filtered.filter(order => 
-                order.items.some(item => item.category === categoryFilter)
-            );
-        }
-        
-        setFilteredOrders(filtered);
-        calculateProfits(filtered);
-    };
-
-    const calculateProfits = (orders) => {
-        let totalGross = 0;
-        let totalTaxAmount = 0;
-        let totalRefunded = 0;
-        let totalRefundedTax = 0;
-        let productSales = {};
+  const fetchConfirmedOrders = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/confirmed-orders');
       
-        orders.forEach(order => {
-          const { subtotal, tax, total } = calculateOrderTotals(order.items);
-          
-          if (order.isRefunded) {
-              totalRefunded += subtotal;
-              totalRefundedTax += tax;
-          } else {
-              totalGross += subtotal;
-              totalTaxAmount += tax;
-              
-              order.items.forEach(item => {
-                  if (categoryFilter !== 'الكل' && item.category !== categoryFilter) {
-                      return;
-                  }
-                  if (!productSales[item.name]) {
-                      productSales[item.name] = { quantity: 0, total: 0 };
-                  }
-                  productSales[item.name].quantity += item.quantity;
-                  productSales[item.name].total += item.price * item.quantity;
-              });
-          }
-      });
-      
-        setTotalProfit(totalGross);
-        setTotalTax(totalTaxAmount);
-        setTotalRefunded(totalRefunded);
-        setTotalRefundedTax(totalRefundedTax);
-        setTotalWithTax(totalGross - totalRefunded);
-        setProductSales(productSales);
-      };
-
-    const toggleOrderDetails = (orderNumber) => {
-        setExpandedOrder(expandedOrder === orderNumber ? null : orderNumber);
-    };
-
-    const handleDeleteAll = async () => {
-        try {
-            await axios.delete('http://localhost:5000/confirmed-orders');
-            setConfirmedOrders([]);
-            setFilteredOrders([]);
-            setShowModal(false);
-            localStorage.setItem('orderNumber', '1');
-            setOrderNumber(1);
-        } catch (error) {
-            console.error('Error deleting all confirmed orders:', error);
-        }
-    };
-
-    const handleDeleteOrder = async (orderNumber) => {
-        const orderExists = confirmedOrders.some(order => order.orderNumber === orderNumber);
-        if (!orderExists) {
-            alert('Order not found.');
-            return;
-        }
-
-        console.log(`Attempting to delete order number: ${orderNumber}`);
-
-        try {
-            const response = await axios.delete(`http://localhost:5000/confirmed-orders/${parseInt(orderNumber, 10)}`);
-            console.log('Delete response:', response);
-            setConfirmedOrders(confirmedOrders.filter(order => order.orderNumber !== orderNumber));
-            setFilteredOrders(filteredOrders.filter(order => order.orderNumber !== orderNumber));
-            localStorage.setItem('confirmedOrders', JSON.stringify(confirmedOrders.filter(order => order.orderNumber !== orderNumber)));
-            setShowDeleteModal(false);
-            await logBillChange('BILL_DELETE', orderNumber);
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                console.error('Order not found:', error);
-                alert('Order not found.');
-            } else {
-                console.error('Error deleting order:', error);
-            }
-        }
-    };
-
-    // Add print functionality
-    const handlePrint = async (order) => {
-        const totalAmount = order.items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
-        const tax = Math.round(totalAmount * 0.15);
-        const totalWithTax = totalAmount + tax;
-
-        const printContent = `
-            <div style="font-family: Arial, sans-serif; text-align: center; direction: rtl;">
-                <h2 style="margin: 0;">${settings?.restaurantName || 'مطعمي'}</h2>
-                <p style="margin: 5px 0;">رقم الفاتورة: ${order.orderNumber}</p>
-                <p style="margin: 5px 0;">${order.date} ${order.time}</p>
-                <p style="margin: 5px 0;">الموظف: ${order.employeeName} (#${order.employeeNumber})</p>
-                ${order.isRefunded ? '<p style="color: red; font-weight: bold;">تم الاسترجاع</p>' : ''}
-                
-                <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 10px 0; padding: 10px 0;">
-                    <table style="width: 100%; text-align: right;">
-                        <tr style="font-weight: bold;">
-                            <td>الصنف</td>
-                            <td>الكمية</td>
-                            <td>السعر</td>
-                            <td>المجموع</td>
-                        </tr>
-                        ${order.items.map(item => `
-                            <tr>
-                                <td>${item.name}</td>
-                                <td>${item.quantity}</td>
-                                <td>${parseFloat(item.price).toFixed(2)}</td>
-                                <td>${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                </div>
-
-                <div style="text-align: left; margin-top: 10px;">
-                    <p style="margin: 5px 0;">المجموع: ${totalAmount.toFixed(2)}</p>
-                    <p style="margin: 5px 0;">الضريبة (15%): ${tax.toFixed(2)}</p>
-                    <p style="font-weight: bold; margin: 5px 0;">الإجمالي مع الضريبة: ${totalWithTax.toFixed(2)}</p>
-                </div>
-
-                <p style="margin-top: 20px;">شكراً لزيارتكم</p>
-            </div>
-        `;
-
-        const printWindow = window.open('', '', 'width=600,height=600');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>فاتورة #${order.orderNumber}</title>
-                    <meta charset="UTF-8">
-                </head>
-                <body style="margin: 20px;">
-                    ${printContent}
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            window.onafterprint = function() {
-                                window.close();
-                            }
-                        }
-                    </script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        await logBillChange('BILL_REPRINT', order.orderNumber);
-    };
-
-    // Add refund functionality
-    const initiateRefund = (order) => {
-        setOrderToRefund(order);
-        setShowRefundModal(true);
-    };
-
-    const confirmRefund = async () => {
-        if (!orderToRefund) return;
-
-        try {
-            const currentEmployeeName = localStorage.getItem('employeeName');
-            const currentEmployeeNumber = localStorage.getItem('employeeNumber');
-        
-            if (!currentEmployeeName || !currentEmployeeNumber) {
-                toast.error('معلومات الموظف غير متوفرة');
-                setShowRefundModal(false);
-                return;
-            }
-        
-            const paddedOrderNumber = orderToRefund.orderNumber.toString().padStart(6, '0');
-            
-            const response = await axios.post(
-                `http://localhost:5000/refund-order/${paddedOrderNumber}`,
-                {
-                    employeeName: currentEmployeeName,
-                    employeeNumber: currentEmployeeNumber
-                }
-            );
-        
-            if (response.data.success) {
-                const updatedOrders = confirmedOrders.map(o => 
-                    o.orderNumber === orderToRefund.orderNumber 
-                        ? { ...o, isRefunded: true, refundedAt: new Date().toISOString() }
-                        : o
-                );
-                setConfirmedOrders(updatedOrders);
-                
-                const newFiltered = updatedOrders.filter(o => 
-                    (!dateFilter || o.date === dateFilter) && 
-                    (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
-                );
-                setFilteredOrders(newFiltered);
-                calculateProfits(newFiltered);
-                
-                setRefundedOrders(prev => new Set([...prev, orderToRefund.orderNumber]));
-                
-                await logBillChange('BILL_REFUND', orderToRefund.orderNumber);
-                toast.success('تم استرجاع الفاتورة بنجاح');
-            } else {
-                throw new Error(response.data.error || 'Failed to process refund');
-            }
-        } catch (error) {
-            console.error('Error processing refund:', error);
-            const errorMessage = error.response?.data?.error || 'فشل في استرجاع الفاتورة';
-            toast.error(`${errorMessage}. الرجاء المحاولة مرة أخرى.`);
-        }
-        setShowRefundModal(false);
-    };
-
-    const logBillChange = async (action, billNumber) => {
-        try {
-          const currentEmployeeName = localStorage.getItem('employeeName');
-          const currentEmployeeNumber = localStorage.getItem('employeeNumber');
-      
-          if (!currentEmployeeName || !currentEmployeeNumber) {
-            console.error('Employee information not found');
-            return;
-          }
-      
-          const logData = {
-            timestamp: new Date().toISOString(),
-            employeeName: currentEmployeeName,
-            employeeNumber: currentEmployeeNumber,
-            type: action, // Ensure the correct type is logged
-            origin: 'صفحة الفواتير',
-            changes: [
-              {
-                details: `تم ${action === 'BILL_REVERT_REFUND' ? 'إلغاء استرجاع' : 'تغيير'} الفاتورة رقم ${billNumber}`
-              }
-            ]
+      if (response.data && Array.isArray(response.data)) {
+        const ordersWithDateTime = response.data.map(order => {
+          const date = new Date(order.date || order.confirmedAt);
+          return {
+            ...order,
+            date: date.toLocaleDateString('en-GB'),
+            time: date.toLocaleTimeString('en-GB')
           };
-      
-          console.log('Sending bill change log:', logData);
-          await axios.post('http://localhost:5000/bills-history', logData);
-        } catch (error) {
-          console.error('Error logging bill change:', error);
-        }
-      };
-
-    // Add the handleSaveReport function
-    const handleSaveReport = async () => {
-        try {
-          const allOrders = filteredOrders || [];
-          
-          // Process orders with proper date formatting and categories
-          const processedBills = allOrders.map(order => {
-            const orderDate = new Date(order.date);
-            const formattedDate = orderDate.toLocaleDateString('en-GB');
-            const formattedTime = orderDate.toLocaleTimeString('en-GB');
-      
-            return {
-              ...order,
-              date: formattedDate,
-              time: formattedTime,
-              items: order.items.map(item => ({
-                ...item,
-                // Use item's actual category or lookup from products
-                category: item.category || categories.find(c => c !== 'الكل') || 'غير مصنف'
-              }))
-            };
-          });
-      
-          // Calculate totals
-          const activeOrders = processedBills.filter(order => !order.isRefunded);
-          const refundedOrders = processedBills.filter(order => order.isRefunded);
-      
-          const totals = {
-            grossAmount: activeOrders.reduce((sum, order) => sum + order.subtotal, 0),
-            refundedAmount: refundedOrders.reduce((sum, order) => sum + order.subtotal, 0),
-            grossTax: activeOrders.reduce((sum, order) => sum + order.tax, 0),
-            refundedTax: refundedOrders.reduce((sum, order) => sum + order.tax, 0)
-          };
-      
-          const reportData = {
-            id: Date.now(),
-            timestamp: new Date().toISOString(),
-            employeeName: localStorage.getItem('employeeName'),
-            employeeNumber: localStorage.getItem('employeeNumber'),
-            reportPeriod: {
-              from: dateFilter || processedBills[0]?.date || 'N/A',
-              to: dateFilter || processedBills[0]?.date || 'N/A',
-              category: categoryFilter
-            },
-            summary: {
-              totalBills: processedBills.length,
-              completedBills: activeOrders.length,
-              refundedBills: refundedOrders.length,
-              grossAmount: totals.grossAmount,
-              refundedAmount: -totals.refundedAmount,
-              netAmount: totals.grossAmount - totals.refundedAmount,
-              grossTax: totals.grossTax,
-              refundedTax: -totals.refundedTax,
-              netTax: totals.grossTax - totals.refundedTax,
-              totalWithTax: (totals.grossAmount + totals.grossTax) - (totals.refundedAmount + totals.refundedTax)
-            },
-            bills: processedBills
-          };
-      
-          const response = await axios.post('http://localhost:5000/reports', reportData);
-          if (response.data.success) {
-            toast.success('تم حفظ التقرير بنجاح');
-            printReport(reportData);
-          }
-        } catch (error) {
-          console.error('Error saving report:', error);
-          toast.error('فشل في حفظ التقرير');
-        }
-      };
-
-    // Add this helper function for date range
-    const getDateRange = (orders) => {
-        if (!orders.length) {
-          const today = format(new Date(), 'dd/MM/yyyy');
-          return { from: today, to: today };
-        }
-      
-        const dates = orders.map(order => {
-          const [day, month, year] = order.date.split('/');
-          return new Date(year, month - 1, day);
         });
-      
-        const minDate = format(Math.min(...dates), 'dd/MM/yyyy');
-        const maxDate = format(Math.max(...dates), 'dd/MM/yyyy');
-        
-        return { from: minDate, to: maxDate };
-      };
+        console.log('Processed orders:', ordersWithDateTime.length, 'orders found'); // Modified debug log
+        setConfirmedOrders(ordersWithDateTime);
+        setFilteredOrders(ordersWithDateTime);
+      } else {
+        console.error('Invalid data format received:', response.data);
+        setConfirmedOrders([]);
+        setFilteredOrders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching confirmed orders:', error);
+      setConfirmedOrders([]);
+      setFilteredOrders([]);
+    }
+  };
 
-    const fetchReports = async () => {
-        try {
-          const response = await axios.get('http://localhost:5000/reports');
-          setReports(response.data);
-          setShowReportsModal(true);
-        } catch (error) {
-          console.error('Error fetching reports:', error);
-          toast.error('فشل في تحميل التقارير');
-        }
-      };
+  // Update useEffect to include error handling
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await fetchConfirmedOrders();
+      } catch (error) {
+        console.error('Error in useEffect:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filterOrders = () => {
+    let filtered = [...confirmedOrders];
+    
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(order => 
+        order.orderNumber.toString().includes(searchQuery)
+      );
+    }
+    
+    if (dateFilter) {
+      filtered = filtered.filter(order => order.date === dateFilter);
+    }
+    
+    if (categoryFilter !== 'الكل') {
+      filtered = filtered.filter(order => 
+        order.items.some(item => item.category === categoryFilter)
+      );
+    }
+    
+    setFilteredOrders(filtered);
+    calculateProfits(filtered);
+  };
+
+  const calculateProfits = (orders) => {
+    let totalGross = 0;
+    let totalTaxAmount = 0;
+    let totalRefunded = 0;
+    let totalRefundedTax = 0;
+    let productSales = {};
+  
+    orders.forEach(order => {
+      const { subtotal, tax, total } = calculateOrderTotals(order.items);
       
-      const printReport = (reportData) => {
-        try {
-          if (!reportData || !reportData.summary) {
-            throw new Error('Invalid report data');
-          }
-      
-          const { date, time } = formatDateTime(reportData.timestamp || new Date().toISOString());
+      if (order.isRefunded) {
+          totalRefunded += subtotal;
+          totalRefundedTax += tax;
+      } else {
+          totalGross += subtotal;
+          totalTaxAmount += tax;
           
-          const printContent = `
-            <div style="font-family: Arial, sans-serif; direction: rtl; padding: 20px;">
-              <h2 style="text-align: center; color: #4a5568;">تقرير الفواتير</h2>
-              <div style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-                <p>تاريخ التقرير: ${date || 'غير محدد'}</p>
-                <p>وقت التقرير: ${time || 'غير محدد'}</p>
-                <p>الموظف: ${reportData.employeeName} (#${reportData.employeeNumber})</p>
-                <p>الفترة: ${reportData.reportPeriod.from} إلى ${reportData.reportPeriod.to}</p>
-                <p>التصنيف: ${reportData.reportPeriod.category}</p>
-              </div>
-        
-              <div style="margin-bottom: 30px;">
-                <h3 style="color: #4a5568;">ملخص التقرير</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                  <tr style="background-color: #f8f9fa;">
-                    <th style="padding: 8px; border: 1px solid #ddd;">البيان</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">المبيعات</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">المسترجع</th>
-                    <th style="padding: 8px; border: 1px solid #ddd;">الصافي</th>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;">المبلغ</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedAmount || 0).toFixed(2)} ريال</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netAmount || 0).toFixed(2)} ريال</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;">الضريبة</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossTax || 0).toFixed(2)} ريال</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedTax || 0).toFixed(2)} ريال</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netTax || 0).toFixed(2)} ريال</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 8px; border: 1px solid #ddd;">الإجمالي مع الضريبة</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.grossAmount || 0) + (reportData.summary.grossTax || 0)).toFixed(2)} ريال</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.refundedAmount || 0) + (reportData.summary.refundedTax || 0)).toFixed(2)} ريال</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</td>
-                  </tr>
-                </table>
-              </div>
-        
-              <div style="margin-bottom: 30px;">
-                <h3 style="color: #4a5568;">تفاصيل الفواتير</h3>
-                ${reportData.bills.map(bill => {
-                  const { date, time } = formatDateTime(bill.confirmedAt);
-                  const totals = bill.items ? calculateOrderTotals(bill.items) : { subtotal: 0, tax: 0, total: 0 };
-                  
-                  return `
-                    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 8px;">
-                      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <div>
-                          <strong>رقم الفاتورة:</strong> ${bill.orderNumber}<br>
-                          <strong>التاريخ:</strong> ${date}<br>
-                          <strong>الوقت:</strong> ${time}
-                        </div>
-                        <div>
-                          <strong>الموظف:</strong> ${bill.employeeName} (#${bill.employeeNumber})<br>
-                          <strong>الحالة:</strong> <span style="color: ${bill.isRefunded ? 'red' : 'green'}">
-                            ${bill.isRefunded ? 'مسترجع' : 'مكتمل'}
-                          </span>
-                        </div>
-                      </div>
-        
-                      <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                        <tr style="background-color: #f3f4f6;">
-                          <th style="padding: 8px; border: 1px solid #ddd;">الصنف</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">التصنيف</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">الكمية</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">السعر</th>
-                          <th style="padding: 8px; border: 1px solid #ddd;">المجموع</th>
+          order.items.forEach(item => {
+              if (categoryFilter !== 'الكل' && item.category !== categoryFilter) {
+                  return;
+              }
+              if (!productSales[item.name]) {
+                  productSales[item.name] = { quantity: 0, total: 0 };
+              }
+              productSales[item.name].quantity += item.quantity;
+              productSales[item.name].total += item.price * item.quantity;
+          });
+      }
+  });
+  
+    setTotalProfit(totalGross);
+    setTotalTax(totalTaxAmount);
+    setTotalRefunded(totalRefunded);
+    setTotalRefundedTax(totalRefundedTax);
+    setTotalWithTax(totalGross - totalRefunded);
+    setProductSales(productSales);
+  };
+
+  const toggleOrderDetails = (orderNumber) => {
+    setExpandedOrder(expandedOrder === orderNumber ? null : orderNumber);
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await axios.delete('http://localhost:5000/confirmed-orders');
+      setConfirmedOrders([]);
+      setFilteredOrders([]);
+      setShowModal(false);
+      localStorage.setItem('orderNumber', '1');
+      setOrderNumber(1);
+    } catch (error) {
+      console.error('Error deleting all confirmed orders:', error);
+    }
+  };
+
+  const handleDeleteOrder = async (orderNumber) => {
+    const orderExists = confirmedOrders.some(order => order.orderNumber === orderNumber);
+    if (!orderExists) {
+      alert('Order not found.');
+      return;
+    }
+
+    console.log(`Attempting to delete order number: ${orderNumber}`);
+
+    try {
+      const response = await axios.delete(`http://localhost:5000/confirmed-orders/${parseInt(orderNumber, 10)}`);
+      console.log('Delete response:', response);
+      setConfirmedOrders(confirmedOrders.filter(order => order.orderNumber !== orderNumber));
+      setFilteredOrders(filteredOrders.filter(order => order.orderNumber !== orderNumber));
+      localStorage.setItem('confirmedOrders', JSON.stringify(confirmedOrders.filter(order => order.orderNumber !== orderNumber)));
+      setShowDeleteModal(false);
+      await logBillChange('BILL_DELETE', orderNumber);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.error('Order not found:', error);
+        alert('Order not found.');
+      } else {
+        console.error('Error deleting order:', error);
+      }
+    }
+  };
+
+  // Add print functionality
+  const handlePrint = async (order) => {
+    const totalAmount = order.items.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+    const tax = Math.round(totalAmount * 0.15);
+    const totalWithTax = totalAmount + tax;
+
+    const printContent = `
+        <div style="font-family: Arial, sans-serif; text-align: center; direction: rtl;">
+            <h2 style="margin: 0;">${settings?.restaurantName || 'مطعمي'}</h2>
+            <p style="margin: 5px 0;">رقم الفاتورة: ${order.orderNumber}</p>
+            <p style="margin: 5px 0;">${order.date} ${order.time}</p>
+            <p style="margin: 5px 0;">الموظف: ${order.employeeName} (#${order.employeeNumber})</p>
+            ${order.isRefunded ? '<p style="color: red; font-weight: bold;">تم الاسترجاع</p>' : ''}
+            
+            <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin: 10px 0; padding: 10px 0;">
+                <table style="width: 100%; text-align: right;">
+                    <tr style="font-weight: bold;">
+                        <td>الصنف</td>
+                        <td>الكمية</td>
+                        <td>السعر</td>
+                        <td>المجموع</td>
+                    </tr>
+                    ${order.items.map(item => `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.quantity}</td>
+                            <td>${parseFloat(item.price).toFixed(2)}</td>
+                            <td>${(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
                         </tr>
-                        ${bill.items.map(item => `
-                          <tr>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${item.name}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${item.category}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${item.quantity}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${parseFloat(item.price || 0).toFixed(2)}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</td>
-                          </tr>
-                        `).join('')}
-                      </table>
-        
-                      <div style="text-align: left; margin-top: 10px;">
-                        <p>المجموع: ${totals.subtotal.toFixed(2)} ريال</p>
-                        <p>الضريبة: ${totals.tax.toFixed(2)} ريال</p>
-                        <p style="font-weight: bold;">الإجمالي مع الضريبة: ${totals.total.toFixed(2)} ريال</p>
-                        ${bill.refundInfo ? `
-                          <p style="color: red;">
-                            تم الاسترجاع في: ${formatDateTime(bill.refundInfo.refundedAt).date} ${formatDateTime(bill.refundInfo.refundedAt).time}<br>
-                            بواسطة: ${bill.refundInfo.refundedBy.name} (#${bill.refundInfo.refundedBy.number})
-                          </p>
-                        ` : ''}
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-        
-              <div style="margin-top: 30px; text-align: left;">
-                <h3 style="color: #4a5568;">الإجمالي</h3>
-                <p>إجمالي المبيعات: ${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</p>
-                <p>إجمالي الضريبة: ${(reportData.summary.grossTax || 0).toFixed(2)} ريال</p>
-                <p style="font-weight: bold;">الإجمالي النهائي: ${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</p>
-              </div>
+                    `).join('')}
+                </table>
             </div>
-          `;
-      
-          const printWindow = window.open('', '', 'width=800,height=600');
-          printWindow.document.write(`
-            <html>
-              <head>
-                <title>تقرير الفواتير</title>
+
+            <div style="text-align: left; margin-top: 10px;">
+                <p style="margin: 5px 0;">المجموع: ${totalAmount.toFixed(2)}</p>
+                <p style="margin: 5px 0;">الضريبة (15%): ${tax.toFixed(2)}</p>
+                <p style="font-weight: bold; margin: 5px 0;">الإجمالي مع الضريبة: ${totalWithTax.toFixed(2)}</p>
+            </div>
+
+            <p style="margin-top: 20px;">شكراً لزيارتكم</p>
+        </div>
+    `;
+
+    const printWindow = window.open('', '', 'width=600,height=600');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>فاتورة #${order.orderNumber}</title>
                 <meta charset="UTF-8">
-                <style>
-                  @media print {
-                    body { padding: 20px; }
-                    @page { margin: 1cm; }
-                  }
-                </style>
-              </head>
-              <body>
+            </head>
+            <body style="margin: 20px;">
                 ${printContent}
                 <script>
-                  window.onload = function() {
-                    window.print();
-                    window.onafterprint = function() {
-                      window.close();
+                    window.onload = function() {
+                        window.print();
+                        window.onafterprint = function() {
+                            window.close();
+                        }
                     }
-                  }
                 </script>
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-        } catch (error) {
-          console.error('Error printing report:', error);
-          toast.error('فشل في طباعة التقرير');
-        }
-      };
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+    await logBillChange('BILL_REPRINT', order.orderNumber);
+  };
 
-    // Add the handleDeleteReport function
-    const handleDeleteReport = async (reportId) => {
-        try {
-          await axios.delete(`http://localhost:5000/reports/${reportId}`);
-          // Update the reports list by filtering out the deleted report
-          setReports(prevReports => prevReports.filter(report => report.id !== reportId));
-          toast.success('تم حذف التقرير بنجاح');
-        } catch (error) {
-          console.error('Error deleting report:', error);
-          toast.error('فشل في حذف التقرير');
-        }
-      };
+  // Add refund functionality
+  const initiateRefund = (order) => {
+    setOrderToRefund(order);
+    setShowRefundModal(true);
+  };
 
-    // Add the handleRevertRefund function
-    const handleRevertRefund = async (bill) => {
-      try {
-        const response = await axios.post(
-          `http://localhost:5000/revert-refund/${bill.orderNumber}`,
-          {
-            employeeName: localStorage.getItem('employeeName'),
-            employeeNumber: localStorage.getItem('employeeNumber')
-          }
-        );
+  const confirmRefund = async () => {
+    if (!orderToRefund) return;
+
+    try {
+      const currentEmployeeName = localStorage.getItem('employeeName');
+      const currentEmployeeNumber = localStorage.getItem('employeeNumber');
   
-        if (response.data.success) {
-          // Update local state
-          const updatedOrders = confirmedOrders.map(o => 
-            o.orderNumber === bill.orderNumber
-              ? { ...o, isRefunded: false, refundedAt: null, refundedBy: null }
-              : o
-          );
-          
-          setConfirmedOrders(updatedOrders);
-          setFilteredOrders(updatedOrders.filter(o => 
-            (!dateFilter || o.date === dateFilter) && 
-            (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
-          ));
-          
-          setRefundedOrders(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(bill.orderNumber);
-            return newSet;
-          });
-          
-          await logBillChange('BILL_REVERT_REFUND', bill.orderNumber);
-          toast.success(translations.revertRefundSuccess);
-        }
-      } catch (error) {
-        console.error('Error reverting refund:', error);
-        toast.error(translations.revertRefundError);
+      if (!currentEmployeeName || !currentEmployeeNumber) {
+        toast.error('معلومات الموظف غير متوفرة');
+        setShowRefundModal(false);
+        return;
       }
-      setBillToRevert(null);
-      setShowRevertModal(false);
-    };
-
-    // Update the BillCardComponent
-    const BillCardComponent = ({ order, onToggle, isExpanded }) => {
-        // Helper function to safely format numbers
-        const formatPrice = (price) => {
-            const number = parseFloat(price);
-            return isNaN(number) ? '0.00' : number.toFixed(2);
-        };
-
-        const calculateTotalWithTax = (items) => {
-            const subtotal = items.reduce((sum, item) => 
-              sum + (parseFloat(item.price) * item.quantity), 0
-            );
-            const tax = roundToNearestHalf(subtotal * 0.15);
-            return subtotal + tax;
-          };
-
-        // Get a brief summary of items
-        const itemsSummary = order.items.slice(0, 3); // Show first 3 items
-        const remainingCount = order.items.length - 3;
-        const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
-
-        return (
-            <BillCard
-                $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-            >
-                <div className="p-4" onClick={() => onToggle(order.orderNumber)} style={{ cursor: 'pointer' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <span className="bill-number-badge">#{order.orderNumber}</span>
-                            <div>
-                                <div style={{ fontWeight: 'bold' }}>{order.date}</div>
-                                <div style={{ color: '#666' }}>{order.time}</div>
-                                <div style={{ 
-                                    fontSize: '0.9rem', 
-                                    color: '#4b5563', 
-                                    marginTop: '0.25rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}>
-                                    <span style={{ 
-                                        backgroundColor: '#e5e7eb', 
-                                        padding: '0.1rem 0.5rem', 
-                                        borderRadius: '4px',
-                                        fontSize: '0.8rem'
-                                    }}>
-                                        {order.employeeName} #{order.employeeNumber}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <ActionButton
-                                className="print"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePrint(order);
-                                }}
-                            >
-                                <FaPrint /> {translations.print}
-                            </ActionButton>
-                            {order.isRefunded ? (
-                              <ActionButton
-                                className="revert"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setBillToRevert(order);
-                                  setShowRevertModal(true);
-                                }}
-                              >
-                                <FaUndo /> {translations.revertRefund}
-                              </ActionButton>
-                            ) : (
-                              <ActionButton
-                                className="refund"
-                                $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  initiateRefund(order);
-                                }}
-                                disabled={order.isRefunded || refundedOrders.has(order.orderNumber)}
-                              >
-                                <FaUndo />
-                                {order.isRefunded || refundedOrders.has(order.orderNumber) ? translations.refunded : translations.refund}
-                              </ActionButton>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Add Brief Summary */}
-                <BriefSummary>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                        <strong>{totalItems} {translations.items}</strong> · {translations.total}: ${formatPrice(calculateTotalWithTax(order.items))}
-                    </div>
-                    <div className="items-preview">
-                        {itemsSummary.map((item, index) => (
-                            <span key={index} className="item-chip">
-                                {item.name} × {item.quantity}
-                            </span>
-                        ))}
-                        {remainingCount > 0 && (
-                            <span className="item-chip">+{remainingCount} {translations.more}</span>
-                        )}
-                    </div>
-                </BriefSummary>
-
-                <AnimatePresence>
-                    {isExpanded && (
-                        <OrderDetails
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                        >
-                            <h4 style={{ marginBottom: '1rem' }}>{translations.orderDetails}</h4>
-                            <div className="items-table">
-                                <ItemRow style={{ fontWeight: 'bold' }}>
-                                    <div>{translations.item}</div>
-                                    <div>{translations.quantity}</div>
-                                    <div>{translations.price}</div>
-                                    <div>{translations.total}</div>
-                                </ItemRow>
-                                {order.items.map((item, index) => (
-                                    <ItemRow key={index}>
-                                        <div>{item.name}</div>
-                                        <div>{item.quantity}</div>
-                                        <div>${formatPrice(item.price)}</div>
-                                        <div>${formatPrice(item.price * item.quantity)}</div>
-                                    </ItemRow>
-                                ))}
-                                <div className="total-row" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                        <strong>الصافي:</strong>
-                                        <strong>
-                                            ${formatPrice(order.items.reduce((sum, item) => 
-                                                sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
-                                            ))}
-                                        </strong>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                        <strong>اجمالي الضريبة (15%):</strong>
-                                        <strong>
-                                            ${formatPrice(
-                                                roundToNearestHalf(
-                                                    order.items.reduce((sum, item) => 
-                                                        sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
-                                                    ) * 0.15
-                                                )
-                                            )}
-                                        </strong>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '0.5rem', borderTop: '2px solid #e2e8f0', paddingTop: '0.5rem' }}>
-                                        <strong>الإجمالي شامل الضريبة:</strong>
-                                        <strong>
-                                            ${formatPrice(calculateTotalWithTax(order.items))}
-                                        </strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </OrderDetails>
-                    )}
-                </AnimatePresence>
-            </BillCard>
+  
+      const paddedOrderNumber = orderToRefund.orderNumber.toString().padStart(6, '0');
+      
+      const response = await axios.post(
+        `http://localhost:5000/refund-order/${paddedOrderNumber}`,
+        {
+          employeeName: currentEmployeeName,
+          employeeNumber: currentEmployeeNumber
+        }
+      );
+  
+      if (response.data.success) {
+        const updatedOrders = confirmedOrders.map(o => 
+          o.orderNumber === orderToRefund.orderNumber 
+            ? { ...o, isRefunded: true, refundedAt: new Date().toISOString() }
+            : o
         );
+        setConfirmedOrders(updatedOrders);
+        
+        const newFiltered = updatedOrders.filter(o => 
+          (!dateFilter || o.date === dateFilter) && 
+          (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
+        );
+        setFilteredOrders(newFiltered);
+        calculateProfits(newFiltered);
+        
+        setRefundedOrders(prev => new Set([...prev, orderToRefund.orderNumber]));
+        
+        await logBillChange('BILL_REFUND', orderToRefund.orderNumber);
+        toast.success('تم استرجاع الفاتورة بنجاح');
+      } else {
+        throw new Error(response.data.error || 'Failed to process refund');
+      }
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      const errorMessage = error.response?.data?.error || 'فشل في استرجاع الفاتورة';
+      toast.error(`${errorMessage}. الرجاء المحاولة مرة أخرى.`);
+    }
+    setShowRefundModal(false);
+  };
+
+  const logBillChange = async (action, billNumber) => {
+    try {
+      const currentEmployeeName = localStorage.getItem('employeeName');
+      const currentEmployeeNumber = localStorage.getItem('employeeNumber');
+  
+      if (!currentEmployeeName || !currentEmployeeNumber) {
+        console.error('Employee information not found');
+        return;
+      }
+  
+      const logData = {
+        timestamp: new Date().toISOString(),
+        employeeName: currentEmployeeName,
+        employeeNumber: currentEmployeeNumber,
+        type: action, // Ensure the correct type is logged
+        origin: 'صفحة الفواتير',
+        changes: [
+          {
+            details: `تم ${action === 'BILL_REVERT_REFUND' ? 'إلغاء استرجاع' : 'تغيير'} الفاتورة رقم ${billNumber}`
+          }
+        ]
+      };
+  
+      console.log('Sending bill change log:', logData);
+      await axios.post('http://localhost:5000/bills-history', logData);
+    } catch (error) {
+      console.error('Error logging bill change:', error);
+    }
+  };
+
+  // Enhanced save report functionality
+  const handleSaveReport = async () => {
+    try {
+      const currentDate = new Date().toISOString();
+      const reportSummary = {
+        timestamp: currentDate,
+        reportId: `RPT-${Date.now()}`,
+        employeeName: localStorage.getItem('employeeName'),
+        employeeNumber: localStorage.getItem('employeeNumber'),
+        filters: {
+          date: dateFilter || 'all',
+          category: categoryFilter,
+          searchQuery: searchQuery || 'none'
+        },
+        totals: {
+          grossSales: totalProfit,
+          totalTax,
+          refunds: totalRefunded,
+          refundedTax: totalRefundedTax,
+          netTotal: totalWithTax + totalTax - totalRefundedTax
+        },
+        bills: filteredOrders.map(order => ({
+          ...order,
+          calculatedTotals: calculateOrderTotals(order.items)
+        }))
+      };
+
+      const response = await axios.post(`${endpoints.reports}`, reportSummary);
+      
+      if (response.data.success) {
+        toast.success('تم حفظ التقرير بنجاح');
+        await printReport(reportSummary);
+      }
+    } catch (error) {
+      console.error('Error saving report:', error);
+      toast.error('فشل في حفظ التقرير');
+    }
+  };
+
+  // Enhanced fetch reports functionality
+  const fetchReports = useCallback(async () => {
+    try {
+      const response = await axios.get(`${endpoints.reports}`);
+      const sortedReports = response.data.sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      
+      setReports(sortedReports);
+      setShowReportsModal(true);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      toast.error('فشل في تحميل التقارير');
+    }
+  }, []);
+
+  // Add this helper function for date range
+  const getDateRange = (orders) => {
+    if (!orders.length) {
+      const today = format(new Date(), 'dd/MM/yyyy');
+      return { from: today, to: today };
+    }
+  
+    const dates = orders.map(order => {
+      const [day, month, year] = order.date.split('/');
+      return new Date(year, month - 1, day);
+    });
+  
+    const minDate = format(Math.min(...dates), 'dd/MM/yyyy');
+    const maxDate = format(Math.max(...dates), 'dd/MM/yyyy');
+    
+    return { from: minDate, to: maxDate };
+  };
+
+  const printReport = (reportData) => {
+    try {
+      if (!reportData || !reportData.summary) {
+        throw new Error('Invalid report data');
+      }
+  
+      const { date, time } = formatDateTime(reportData.timestamp || new Date().toISOString());
+      
+      const printContent = `
+        <div style="font-family: Arial, sans-serif; direction: rtl; padding: 20px;">
+          <h2 style="text-align: center; color: #4a5568;">تقرير الفواتير</h2>
+          <div style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+            <p>تاريخ التقرير: ${date || 'غير محدد'}</p>
+            <p>وقت التقرير: ${time || 'غير محدد'}</p>
+            <p>الموظف: ${reportData.employeeName} (#${reportData.employeeNumber})</p>
+            <p>الفترة: ${reportData.reportPeriod.from} إلى ${reportData.reportPeriod.to}</p>
+            <p>التصنيف: ${reportData.reportPeriod.category}</p>
+          </div>
+    
+          <div style="margin-bottom: 30px;">
+            <h3 style="color: #4a5568;">ملخص التقرير</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <tr style="background-color: #f8f9fa;">
+                <th style="padding: 8px; border: 1px solid #ddd;">البيان</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">المبيعات</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">المسترجع</th>
+                <th style="padding: 8px; border: 1px solid #ddd;">الصافي</th>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">المبلغ</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedAmount || 0).toFixed(2)} ريال</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netAmount || 0).toFixed(2)} ريال</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">الضريبة</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossTax || 0).toFixed(2)} ريال</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedTax || 0).toFixed(2)} ريال</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netTax || 0).toFixed(2)} ريال</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">الإجمالي مع الضريبة</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.grossAmount || 0) + (reportData.summary.grossTax || 0)).toFixed(2)} ريال</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.refundedAmount || 0) + (reportData.summary.refundedTax || 0)).toFixed(2)} ريال</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</td>
+              </tr>
+            </table>
+          </div>
+    
+          <div style="margin-bottom: 30px;">
+            <h3 style="color: #4a5568;">تفاصيل الفواتير</h3>
+            ${reportData.bills.map(bill => {
+              const { date, time } = formatDateTime(bill.confirmedAt);
+              const totals = bill.items ? calculateOrderTotals(bill.items) : { subtotal: 0, tax: 0, total: 0 };
+              
+              return `
+                <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <div>
+                      <strong>رقم الفاتورة:</strong> ${bill.orderNumber}<br>
+                      <strong>التاريخ:</strong> ${date}<br>
+                      <strong>الوقت:</strong> ${time}
+                    </div>
+                    <div>
+                      <strong>الموظف:</strong> ${bill.employeeName} (#${bill.employeeNumber})<br>
+                      <strong>الحالة:</strong> <span style="color: ${bill.isRefunded ? 'red' : 'green'}">
+                        ${bill.isRefunded ? 'مسترجع' : 'مكتمل'}
+                      </span>
+                    </div>
+                  </div>
+    
+                  <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                    <tr style="background-color: #f3f4f6;">
+                      <th style="padding: 8px; border: 1px solid #ddd;">الصنف</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">التصنيف</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">الكمية</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">السعر</th>
+                      <th style="padding: 8px; border: 1px solid #ddd;">المجموع</th>
+                    </tr>
+                    ${bill.items.map(item => `
+                      <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${item.name}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${item.category}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${item.quantity}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${parseFloat(item.price || 0).toFixed(2)}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</td>
+                      </tr>
+                    `).join('')}
+                  </table>
+    
+                  <div style="text-align: left; margin-top: 10px;">
+                    <p>المجموع: ${totals.subtotal.toFixed(2)} ريال</p>
+                    <p>الضريبة: ${totals.tax.toFixed(2)} ريال</p>
+                    <p style="font-weight: bold;">الإجمالي مع الضريبة: ${totals.total.toFixed(2)} ريال</p>
+                    ${bill.refundInfo ? `
+                      <p style="color: red;">
+                        تم الاسترجاع في: ${formatDateTime(bill.refundInfo.refundedAt).date} ${formatDateTime(bill.refundInfo.refundedAt).time}<br>
+                        بواسطة: ${bill.refundInfo.refundedBy.name} (#${bill.refundInfo.refundedBy.number})
+                      </p>
+                    ` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+    
+          <div style="margin-top: 30px; text-align: left;">
+            <h3 style="color: #4a5568;">الإجمالي</h3>
+            <p>إجمالي المبيعات: ${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</p>
+            <p>إجمالي الضريبة: ${(reportData.summary.grossTax || 0).toFixed(2)} ريال</p>
+            <p style="font-weight: bold;">الإجمالي النهائي: ${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</p>
+          </div>
+        </div>
+      `;
+  
+      const printWindow = window.open('', '', 'width=800,height=600');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>تقرير الفواتير</title>
+            <meta charset="UTF-8">
+            <style>
+              @media print {
+                body { padding: 20px; }
+                @page { margin: 1cm; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent}
+            <script>
+              window.onload = function() {
+                window.print();
+                window.onafterprint = function() {
+                  window.close();
+                }
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (error) {
+      console.error('Error printing report:', error);
+      toast.error('فشل في طباعة التقرير');
+    }
+  };
+
+  // Add the handleDeleteReport function
+  const handleDeleteReport = async (reportId) => {
+    try {
+      await axios.delete(`http://localhost:5000/reports/${reportId}`);
+      // Update the reports list by filtering out the deleted report
+      setReports(prevReports => prevReports.filter(report => report.id !== reportId));
+      toast.success('تم حذف التقرير بنجاح');
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast.error('فشل في حذف التقرير');
+    }
+  };
+
+  // Add the handleRevertRefund function
+  const handleRevertRefund = async (bill) => {
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/revert-refund/${bill.orderNumber}`,
+        {
+          employeeName: localStorage.getItem('employeeName'),
+          employeeNumber: localStorage.getItem('employeeNumber')
+        }
+      );
+
+      if (response.data.success) {
+        // Update local state
+        const updatedOrders = confirmedOrders.map(o => 
+          o.orderNumber === bill.orderNumber
+            ? { ...o, isRefunded: false, refundedAt: null, refundedBy: null }
+            : o
+        );
+        
+        setConfirmedOrders(updatedOrders);
+        setFilteredOrders(updatedOrders.filter(o => 
+          (!dateFilter || o.date === dateFilter) && 
+          (categoryFilter === 'الكل' || o.items.some(item => item.category === categoryFilter))
+        ));
+        
+        setRefundedOrders(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(bill.orderNumber);
+          return newSet;
+        });
+        
+        await logBillChange('BILL_REVERT_REFUND', bill.orderNumber);
+        toast.success(translations.revertRefundSuccess);
+      }
+    } catch (error) {
+      console.error('Error reverting refund:', error);
+      toast.error(translations.revertRefundError);
+    }
+    setBillToRevert(null);
+    setShowRevertModal(false);
+  };
+
+  // Update the BillCardComponent
+  const BillCardComponent = ({ order, onToggle, isExpanded }) => {
+    // Helper function to safely format numbers
+    const formatPrice = (price) => {
+      const number = parseFloat(price);
+      return isNaN(number) ? '0.00' : number.toFixed(2);
     };
+
+    const calculateTotalWithTax = (items) => {
+      const subtotal = items.reduce((sum, item) => 
+        sum + (parseFloat(item.price) * item.quantity), 0
+      );
+      const tax = roundToNearestHalf(subtotal * 0.15);
+      return subtotal + tax;
+    };
+
+    // Get a brief summary of items
+    const itemsSummary = order.items.slice(0, 3); // Show first 3 items
+    const remainingCount = order.items.length - 3;
+    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
     return (
-        <GlobalStyles>
-            <StyledContainer>
-                <TopBar>
-                    <ActionBar>
-                        <Link to="/pos" className="back-button">
-                         <FaArrowLeft /> {translations.backToSales}
-                        </Link>
-                    </ActionBar>
-                    <PageTitle>{translations.billsManagement}</PageTitle>
-                </TopBar>
-
-                <div className="filters-section">
-                    <FilterCard>
-                        <div className="buttons-group">
-                            <ReportButton 
-                                className="save-report"
-                                onClick={handleSaveReport} // Updated this line
-                            >
-                                {translations.saveReport}
-                            </ReportButton>
-                            <ReportButton 
-                                className="view-reports"
-                                onClick={fetchReports}
-                            >
-                                {translations.viewReports}
-                            </ReportButton>
-                        </div>
-                        <div className="filters-row">
-                            <div className="filter-group">
-                                <SearchInput
-                                    type="text"
-                                    placeholder={translations.searchPlaceholder}
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <div className="filter-group">
-                                <FaCalendar className="filter-icon" />
-                                <input
-                                    type="date"
-                                    className="date-filter"
-                                    value={dateFilter}
-                                    onChange={(e) => setDateFilter(e.target.value)}
-                                />
-                            </div>
-                            <div className="filter-group">
-                                <FaFilter className="filter-icon" />
-                                <select
-                                    className="category-filter"
-                                    value={categoryFilter}
-                                    onChange={(e) => setCategoryFilter(e.target.value)}
-                                >
-                                    {categories.map(category => (
-                                        <option key={category} value={category}>{category}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    </FilterCard>
-
-                    <SummaryCard>
-                        <div className="summary-details">
-                            <div className="summary-item">
-                                <div className="summary-label">الصافي</div>
-                                <div className="summary-value">{totalProfit.toFixed(2)} ر.س</div>
-                            </div>
-                            <div className="summary-item">
-                                <div className="summary-label">اجمالي الضريبة</div>
-                                <div className="summary-value">{totalTax.toFixed(2)} ر.س</div>
-                            </div>
-                            <div className="summary-item">
-                                <div className="summary-label">صافي المسترجع</div>
-                                <div className="summary-value refunded">
-                                    {totalRefunded.toFixed(2)} ر.س
-                                </div>
-                            </div>
-                            <div className="summary-item">
-                                <div className="summary-label">ضريبة المسترجع</div>
-                                <div className="summary-value refunded">
-                                    {totalRefundedTax.toFixed(2)} ر.س
-                                </div>
-                            </div>
-                        </div>
-                        <div className="divider" />
-                        <div className="summary-item">
-                            <div className="summary-label">الإجمالي شامل الضريبة</div>
-                            <div className="summary-value net-total">
-                                {(totalWithTax + totalTax - totalRefundedTax).toFixed(2)} ر.س
-                            </div>
-                        </div>
-                    </SummaryCard>
+      <BillCard
+        $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="p-4" onClick={() => onToggle(order.orderNumber)} style={{ cursor: 'pointer' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span className="bill-number-badge">#{order.orderNumber}</span>
+              <div>
+                <div style={{ fontWeight: 'bold' }}>{order.date}</div>
+                <div style={{ color: '#666' }}>{order.time}</div>
+                <div style={{ 
+                  fontSize: '0.9rem', 
+                  color: '#4b5563', 
+                  marginTop: '0.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span style={{ 
+                    backgroundColor: '#e5e7eb', 
+                    padding: '0.1rem 0.5rem', 
+                    borderRadius: '4px',
+                    fontSize: '0.8rem'
+                  }}>
+                    {order.employeeName} #{order.employeeNumber}
+                  </span>
                 </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <ActionButton
+                className="print"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrint(order);
+                }}
+              >
+                <FaPrint /> {translations.print}
+              </ActionButton>
+              {order.isRefunded ? (
+                <ActionButton
+                  className="revert"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setBillToRevert(order);
+                    setShowRevertModal(true);
+                  }}
+                >
+                  <FaUndo /> {translations.revertRefund}
+                </ActionButton>
+              ) : (
+                <ActionButton
+                  className="refund"
+                  $isRefunded={order.isRefunded || refundedOrders.has(order.orderNumber)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    initiateRefund(order);
+                  }}
+                  disabled={order.isRefunded || refundedOrders.has(order.orderNumber)}
+                >
+                  <FaUndo />
+                  {order.isRefunded || refundedOrders.has(order.orderNumber) ? translations.refunded : translations.refund}
+                </ActionButton>
+              )}
+            </div>
+          </div>
+        </div>
 
-                <div className="bills-container">
-                    {filteredOrders.map((order) => (
-                        <BillCardComponent
-                            key={order.orderNumber}
-                            order={order}
-                            onToggle={toggleOrderDetails}
-                            isExpanded={expandedOrder === order.orderNumber}
-                        />
-                    ))}
+        {/* Add Brief Summary */}
+        <BriefSummary>
+          <div style={{ marginBottom: '0.5rem' }}>
+            <strong>{totalItems} {translations.items}</strong> · {translations.total}: ${formatPrice(calculateTotalWithTax(order.items))}
+          </div>
+          <div className="items-preview">
+            {itemsSummary.map((item, index) => (
+              <span key={index} className="item-chip">
+                {item.name} × {item.quantity}
+              </span>
+            ))}
+            {remainingCount > 0 && (
+              <span className="item-chip">+{remainingCount} {translations.more}</span>
+            )}
+          </div>
+        </BriefSummary>
+
+        <AnimatePresence>
+          {isExpanded && (
+            <OrderDetails
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+            >
+              <h4 style={{ marginBottom: '1rem' }}>{translations.orderDetails}</h4>
+              <div className="items-table">
+                <ItemRow style={{ fontWeight: 'bold' }}>
+                  <div>{translations.item}</div>
+                  <div>{translations.quantity}</div>
+                  <div>{translations.price}</div>
+                  <div>{translations.total}</div>
+                </ItemRow>
+                {order.items.map((item, index) => (
+                  <ItemRow key={index}>
+                    <div>{item.name}</div>
+                    <div>{item.quantity}</div>
+                    <div>${formatPrice(item.price)}</div>
+                    <div>${formatPrice(item.price * item.quantity)}</div>
+                  </ItemRow>
+                ))}
+                <div className="total-row" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <strong>الصافي:</strong>
+                    <strong>
+                      ${formatPrice(order.items.reduce((sum, item) => 
+                        sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
+                      ))}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <strong>اجمالي الضريبة (15%):</strong>
+                    <strong>
+                      ${formatPrice(
+                        roundToNearestHalf(
+                          order.items.reduce((sum, item) => 
+                            sum + (parseFloat(item.price || 0) * (parseInt(item.quantity) || 0)), 0
+                          ) * 0.15
+                        )
+                      )}
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '0.5rem', borderTop: '2px solid #e2e8f0', paddingTop: '0.5rem' }}>
+                    <strong>الإجمالي شامل الضريبة:</strong>
+                    <strong>
+                      ${formatPrice(calculateTotalWithTax(order.items))}
+                    </strong>
+                  </div>
                 </div>
-
-                <Modal show={showModal} onHide={() => setShowModal(false)}>
-                    <Modal.Header closeButton>
-                        <Modal.Title>تأكيد المسح</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>هل أنت متأكد أنك تريد مسح جميع الفواتير؟</Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
-                        <Button variant="danger" onClick={handleDeleteAll}>مسح</Button>
-                    </Modal.Footer>
-                </Modal>
-
-                <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-                    <Modal.Header closeButton>
-                        <Modal.Title>تأكيد المسح</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>هل أنت متأكد أنك تريد مسح هذه الفاتورة؟</Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>إلغاء</Button>
-                        <Button variant="danger" onClick={() => handleDeleteOrder(orderToDelete)}>مسح</Button>
-                    </Modal.Footer>
-                </Modal>
-
-                {/* Add the refund confirmation modal */}
-                <Modal show={showRefundModal} onHide={() => setShowRefundModal(false)}>
-                    <Modal.Header closeButton>
-                        <Modal.Title>تأكيد الاسترجاع</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        هل أنت متأكد أنك تريد استرجاع الفاتورة رقم {orderToRefund?.orderNumber}؟
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowRefundModal(false)}>
-                            إلغاء
-                        </Button>
-                        <Button variant="warning" onClick={confirmRefund}>
-                            تأكيد الاسترجاع
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
-
-                {/* Add the reports modal */}
-                <Modal show={showReportsModal} onHide={() => setShowReportsModal(false)} size="lg">
-                    <Modal.Header closeButton>
-                        <Modal.Title>{translations.reportsModal.title}</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                            {reports.map((report) => {
-                                const { date, time } = formatDateTime(report.timestamp);
-                                const summary = report.summary || {};
-                                
-                                // Calculate the actual totals from the bills data
-                                const totals = report.bills.reduce((acc, bill) => {
-                                    if (!bill.items) return acc;
-                                    
-                                    const billTotals = calculateOrderTotals(bill.items);
-                                    if (bill.isRefunded) {
-                                        acc.refundedAmount += billTotals.subtotal;
-                                        acc.refundedTax += billTotals.tax;
-                                    } else {
-                                        acc.grossAmount += billTotals.subtotal;
-                                        acc.grossTax += billTotals.tax;
-                                    }
-                                    return acc;
-                                }, {
-                                    grossAmount: 0,
-                                    grossTax: 0,
-                                    refundedAmount: 0,
-                                    refundedTax: 0
-                                });
-                
-                                const netAmount = totals.grossAmount - totals.refundedAmount;
-                                const netTax = totals.grossTax - totals.refundedTax;
-                                const totalWithTax = netAmount + netTax;
-                
-                                return (
-                                    <div
-                                        key={report.id}
-                                        style={{
-                                            padding: '1rem',
-                                            margin: '0.5rem 0',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '8px',
-                                            position: 'relative'
-                                        }}
-                                    >
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.date}:</strong> {date}
-                                        </div>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.time}:</strong> {time}
-                                        </div>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.employee}:</strong> {report.employeeName} (#{report.employeeNumber})
-                                        </div>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.totalBills}:</strong> {summary.totalBills || 0}
-                                            {' ('}مكتمل: {summary.completedBills || 0}, 
-                                            مسترجع: {summary.refundedBills || 0}{')'}
-                                        </div>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.totalAmount}:</strong> {totals.grossAmount.toFixed(2)} ريال
-                                        </div>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.totalTax}:</strong> {totals.grossTax.toFixed(2)} ريال
-                                        </div>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <strong>{translations.reportsModal.totalWithTax}:</strong> {totalWithTax.toFixed(2)} ريال
-                                        </div>
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            gap: '0.5rem', 
-                                            marginTop: '1rem',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}>
-                                            <Button
-                                                variant="primary"
-                                                size="sm"
-                                                onClick={() => printReport(report)}
-                                            >
-                                                {translations.reportsModal.print}
-                                            </Button>
-                                            <Button
-                                                variant="danger"
-                                                size="sm"
-                                                onClick={() => handleDeleteReport(report.id)}
-                                            >
-                                                حذف التقرير
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowReportsModal(false)}>
-                            {translations.reportsModal.close}
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
-
-                {/* Add the revert refund modal */}
-                <Modal show={showRevertModal} onHide={() => setShowRevertModal(false)}>
-                  <Modal.Header closeButton>
-                    <Modal.Title>{translations.revertRefundConfirm}</Modal.Title>
-                  </Modal.Header>
-                  <Modal.Body>
-                    {translations.revertRefundMessage} {billToRevert?.orderNumber}؟
-                  </Modal.Body>
-                  <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowRevertModal(false)}>
-                      {translations.cancel}
-                    </Button>
-                    <Button 
-                      variant="primary" 
-                      onClick={() => handleRevertRefund(billToRevert)}
-                    >
-                      {translations.revertRefund}
-                    </Button>
-                  </Modal.Footer>
-                </Modal>
-
-            </StyledContainer>
-        </GlobalStyles>
+              </div>
+            </OrderDetails>
+          )}
+        </AnimatePresence>
+      </BillCard>
     );
+  };
+
+  // Update the filter section functionality
+  const handleFilterChange = useCallback(debounce((type, value) => {
+    switch(type) {
+      case 'search':
+        setSearchQuery(value);
+        break;
+      case 'date':
+        setDateFilter(value);
+        break;
+      case 'category':
+        setCategoryFilter(value);
+        break;
+      default:
+        break;
+    }
+  }, 300), []);
+
+  // Update the filter section JSX
+  const renderFilterSection = () => (
+    <FilterSection>
+      <FilterCardBox>
+        <div className="filter-header">
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <ReportActionButton className="save" onClick={handleSaveReport}>
+              <FaFileDownload /> {translations.saveReport}
+            </ReportActionButton>
+            <ReportActionButton className="view" onClick={fetchReports}>
+              <FaHistory /> {translations.viewReports}
+            </ReportActionButton>
+          </div>
+        </div>
+
+        <div className="filters-grid">
+          <div className="filter-group">
+            <label>بحث عن فاتورة</label>
+            <div className="input-wrapper">
+              <input
+                type="text"
+                placeholder="رقم الفاتورة..."
+                value={searchQuery}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+              />
+              <FaSearch className="icon" />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>التاريخ</label>
+            <div className="input-wrapper">
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => handleFilterChange('date', e.target.value)}
+              />
+              <FaCalendar className="icon" />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>التصنيف</label>
+            <div className="input-wrapper">
+              <select
+                value={categoryFilter}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
+              >
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              <FaFilter className="icon" />
+            </div>
+          </div>
+        </div>
+      </FilterCardBox>
+
+      <SummaryBox>
+        <div className="summary-grid">
+          <div className="summary-item">
+            <div className="label">إجمالي المبيعات</div>
+            <div className="value positive">
+              {totalProfit.toFixed(2)} ر.س
+            </div>
+          </div>
+          <div className="summary-item">
+            <div className="label">إجمالي المسترجع</div>
+            <div className="value negative">
+              {totalRefunded.toFixed(2)} ر.س
+            </div>
+          </div>
+        </div>
+
+        <div className="total-section">
+          <div className="total-row">
+            <div className="label">الصافي قبل الضريبة</div>
+            <div className="value">
+              {(totalProfit - totalRefunded).toFixed(2)} ر.س
+            </div>
+          </div>
+          <div className="total-row">
+            <div className="label">إجمالي الضريبة (15%)</div>
+            <div className="value">
+              {(totalTax - totalRefundedTax).toFixed(2)} ر.س
+            </div>
+          </div>
+          <div className="total-row final">
+            <div className="label">الإجمالي النهائي</div>
+            <div className="value">
+              {(totalProfit - totalRefunded + totalTax - totalRefundedTax).toFixed(2)} ر.س
+            </div>
+          </div>
+        </div>
+      </SummaryBox>
+    </FilterSection>
+  );
+
+  return (
+    <GlobalStyles>
+      <StyledContainer>
+        <TopBar>
+          <ActionBar>
+            <Link to="/pos" className="back-button">
+              <FaArrowLeft /> {translations.backToSales}
+            </Link>
+          </ActionBar>
+          <PageTitle>{translations.billsManagement}</PageTitle>
+        </TopBar>
+
+        {renderFilterSection()}
+
+        <div className="bills-container">
+          {filteredOrders.map((order) => (
+            <BillCardComponent
+              key={order.orderNumber}
+              order={order}
+              onToggle={toggleOrderDetails}
+              isExpanded={expandedOrder === order.orderNumber}
+            />
+          ))}
+        </div>
+
+        <Modal show={showModal} onHide={() => setShowModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>تأكيد المسح</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>هل أنت متأكد أنك تريد مسح جميع الفواتير؟</Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
+            <Button variant="danger" onClick={handleDeleteAll}>مسح</Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>تأكيد المسح</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>هل أنت متأكد أنك تريد مسح هذه الفاتورة؟</Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>إلغاء</Button>
+            <Button variant="danger" onClick={() => handleDeleteOrder(orderToDelete)}>مسح</Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Add the refund confirmation modal */}
+        <Modal show={showRefundModal} onHide={() => setShowRefundModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>تأكيد الاسترجاع</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            هل أنت متأكد أنك تريد استرجاع الفاتورة رقم {orderToRefund?.orderNumber}؟
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowRefundModal(false)}>
+              إلغاء
+            </Button>
+            <Button variant="warning" onClick={confirmRefund}>
+              تأكيد الاسترجاع
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Add the reports modal */}
+        <Modal show={showReportsModal} onHide={() => setShowReportsModal(false)} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>{translations.reportsModal.title}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {reports.map((report) => {
+                const { date, time } = formatDateTime(report.timestamp);
+                const summary = report.summary || {};
+                
+                // Calculate the actual totals from the bills data
+                const totals = report.bills.reduce((acc, bill) => {
+                  if (!bill.items) return acc;
+                  
+                  const billTotals = calculateOrderTotals(bill.items);
+                  if (bill.isRefunded) {
+                    acc.refundedAmount += billTotals.subtotal;
+                    acc.refundedTax += billTotals.tax;
+                  } else {
+                    acc.grossAmount += billTotals.subtotal;
+                    acc.grossTax += billTotals.tax;
+                  }
+                  return acc;
+                }, {
+                  grossAmount: 0,
+                  grossTax: 0,
+                  refundedAmount: 0,
+                  refundedTax: 0
+                });
+    
+                const netAmount = totals.grossAmount - totals.refundedAmount;
+                const netTax = totals.grossTax - totals.refundedTax;
+                const totalWithTax = netAmount + netTax;
+    
+                return (
+                  <div
+                    key={report.id}
+                    style={{
+                      padding: '1rem',
+                      margin: '0.5rem 0',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.date}:</strong> {date}
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.time}:</strong> {time}
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.employee}:</strong> {report.employeeName} (#{report.employeeNumber})
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.totalBills}:</strong> {summary.totalBills || 0}
+                      {' ('}مكتمل: {summary.completedBills || 0}, 
+                      مسترجع: {summary.refundedBills || 0}{')'}
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.totalAmount}:</strong> {totals.grossAmount.toFixed(2)} ريال
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.totalTax}:</strong> {totals.grossTax.toFixed(2)} ريال
+                    </div>
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      <strong>{translations.reportsModal.totalWithTax}:</strong> {totalWithTax.toFixed(2)} ريال
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '0.5rem', 
+                      marginTop: '1rem',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => printReport(report)}
+                      >
+                        {translations.reportsModal.print}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDeleteReport(report.id)}
+                      >
+                        حذف التقرير
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowReportsModal(false)}>
+              {translations.reportsModal.close}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Add the revert refund modal */}
+        <Modal show={showRevertModal} onHide={() => setShowRevertModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>{translations.revertRefundConfirm}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {translations.revertRefundMessage} {billToRevert?.orderNumber}؟
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowRevertModal(false)}>
+              {translations.cancel}
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => handleRevertRefund(billToRevert)}
+            >
+              {translations.revertRefund}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+      </StyledContainer>
+    </GlobalStyles>
+  );
 }
 
 export default BillsPage;
