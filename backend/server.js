@@ -1078,13 +1078,24 @@ app.post('/reports', async (req, res) => {
   }
 });
 
+// Update the reports GET endpoint to include proper error handling
 app.get('/reports', async (req, res) => {
   try {
     const data = await readFromDb();
-    res.json(data.reports || []);
+    if (!data.reports) {
+      return res.json([]);
+    }
+    // Sort reports by timestamp in descending order
+    const sortedReports = data.reports.sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    res.json(sortedReports);
   } catch (error) {
     console.error('Error fetching reports:', error);
-    res.status(500).json({ error: 'Failed to fetch reports' });
+    res.status(500).json({ 
+      error: 'Failed to fetch reports',
+      details: error.message 
+    });
   }
 });
 

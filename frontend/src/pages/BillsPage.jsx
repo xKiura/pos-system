@@ -866,6 +866,69 @@ const ReportActionButton = styled.button`
   }
 `;
 
+// Add these styled components after your existing styled components
+const ReportsModal = styled(Modal)`
+  .modal-dialog {
+    max-width: 80vw;
+  }
+
+  .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+`;
+
+const ReportCard = styled.div`
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .report-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .stat-item {
+    background: #f8fafc;
+    padding: 0.75rem;
+    border-radius: 6px;
+
+    .label {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .value {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #0f172a;
+      
+      &.positive { color: #047857; }
+      &.negative { color: #dc2626; }
+    }
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+`;
+
 // ...rest of existing styled components...
 
 function BillsPage() {
@@ -896,6 +959,8 @@ function BillsPage() {
   const [totalTax, setTotalTax] = useState(0);
   const [totalRefundedTax, setTotalRefundedTax] = useState(0);
   const [showSaveReportModal, setShowSaveReportModal] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState(null);
+  const [showDeleteReportModal, setShowDeleteReportModal] = useState(false);
 
   useEffect(() => {
     const savedEmployeeName = localStorage.getItem('employeeName');
@@ -1310,13 +1375,15 @@ function BillsPage() {
   // Enhanced fetch reports functionality
   const fetchReports = useCallback(async () => {
     try {
-      const response = await axios.get(`${endpoints.reports}`);
-      const sortedReports = response.data.sort((a, b) => 
-        new Date(b.timestamp) - new Date(a.timestamp)
-      );
-      
-      setReports(sortedReports);
-      setShowReportsModal(true);
+      const response = await axios.get('http://localhost:5000/reports');
+      if (response.data) {
+        // Sort reports by timestamp in descending order (newest first)
+        const sortedReports = response.data.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+        setReports(sortedReports);
+        setShowReportsModal(true);
+      }
     } catch (error) {
       console.error('Error fetching reports:', error);
       toast.error('فشل في تحميل التقارير');
@@ -1886,107 +1953,100 @@ function BillsPage() {
         </Modal>
 
         {/* Add the reports modal */}
-        <Modal show={showReportsModal} onHide={() => setShowReportsModal(false)} size="lg">
+        <ReportsModal 
+          show={showReportsModal} 
+          onHide={() => setShowReportsModal(false)} 
+          size="xl"
+          dialogClassName="rtl-modal"
+        >
           <Modal.Header closeButton>
-            <Modal.Title>{translations.reportsModal.title}</Modal.Title>
+            <Modal.Title>تقارير الفواتير السابقة</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              {reports.map((report) => {
-                const { date, time } = formatDateTime(report.timestamp);
-                const summary = report.summary || {};
-                
-                // Calculate the actual totals from the bills data
-                const totals = report.bills.reduce((acc, bill) => {
-                  if (!bill.items) return acc;
+            <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {reports.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  لا توجد تقارير متاحة
+                </div>
+              ) : (
+                reports.map((report) => {
+                  const { date, time } = formatDateTime(report.timestamp);
+                  const summary = report.summary || {};
                   
-                  const billTotals = calculateOrderTotals(bill.items);
-                  if (bill.isRefunded) {
-                    acc.refundedAmount += billTotals.subtotal;
-                    acc.refundedTax += billTotals.tax;
-                  } else {
-                    acc.grossAmount += billTotals.subtotal;
-                    acc.grossTax += billTotals.tax;
-                  }
-                  return acc;
-                }, {
-                  grossAmount: 0,
-                  grossTax: 0,
-                  refundedAmount: 0,
-                  refundedTax: 0
-                });
-    
-                const netAmount = totals.grossAmount - totals.refundedAmount;
-                const netTax = totals.grossTax - totals.refundedTax;
-                const totalWithTax = netAmount + netTax;
-    
-                return (
-                  <div
-                    key={report.id}
-                    style={{
-                      padding: '1rem',
-                      margin: '0.5rem 0',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      position: 'relative'
-                    }}
-                  >
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.date}:</strong> {date}
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.time}:</strong> {time}
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.employee}:</strong> {report.employeeName} (#{report.employeeNumber})
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.totalBills}:</strong> {summary.totalBills || 0}
-                      {' ('}مكتمل: {summary.completedBills || 0}, 
-                      مسترجع: {summary.refundedBills || 0}{')'}
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.totalAmount}:</strong> {totals.grossAmount.toFixed(2)} ريال
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.totalTax}:</strong> {totals.grossTax.toFixed(2)} ريال
-                    </div>
-                    <div style={{ marginBottom: '0.5rem' }}>
-                      <strong>{translations.reportsModal.totalWithTax}:</strong> {totalWithTax.toFixed(2)} ريال
-                    </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: '0.5rem', 
-                      marginTop: '1rem',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => printReport(report)}
-                      >
-                        {translations.reportsModal.print}
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteReport(report.id)}
-                      >
-                        حذف التقرير
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                  return (
+                    <ReportCard key={report.id}>
+                      <div className="report-header">
+                        <div>
+                          <h4 style={{ margin: 0 }}>تقرير {date}</h4>
+                          <small>{time}</small>
+                        </div>
+                        <div>
+                          <span>الموظف: {report.employeeName} (#{report.employeeNumber})</span>
+                        </div>
+                      </div>
+                      
+                      <div className="report-content">
+                        <div className="stat-item">
+                          <div className="label">إجمالي الفواتير</div>
+                          <div className="value">{summary.totalBills || 0}</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="label">الفواتير المكتملة</div>
+                          <div className="value positive">{summary.completedBills || 0}</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="label">الفواتير المسترجعة</div>
+                          <div className="value negative">{summary.refundedBills || 0}</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="label">إجمالي المبيعات</div>
+                          <div className="value">{(summary.grossAmount || 0).toFixed(2)} ريال</div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="label">إجمالي المسترجع</div>
+                          <div className="value negative">
+                            {Math.abs(summary.refundedAmount || 0).toFixed(2)} ريال
+                          </div>
+                        </div>
+                        <div className="stat-item">
+                          <div className="label">الصافي النهائي مع الضريبة</div>
+                          <div className="value">
+                            {(summary.totalWithTax || 0).toFixed(2)} ريال
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="actions">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => printReport(report)}
+                        >
+                          <FaPrint /> طباعة التقرير
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            setReportToDelete(report.id);
+                            setShowDeleteReportModal(true);
+                          }}
+                        >
+                          <FaTimes /> حذف
+                        </Button>
+                      </div>
+                    </ReportCard>
+                  );
+                })
+              )}
             </div>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowReportsModal(false)}>
-              {translations.reportsModal.close}
+              إغلاق
             </Button>
           </Modal.Footer>
-        </Modal>
+        </ReportsModal>
 
         {/* Add the revert refund modal */}
         <Modal show={showRevertModal} onHide={() => setShowRevertModal(false)}>
@@ -2036,6 +2096,38 @@ function BillsPage() {
             </Button>
             <Button variant="primary" onClick={handleSaveReport}>
               حفظ وطباعة التقرير
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Add the delete report confirmation modal */}
+        <Modal 
+          show={showDeleteReportModal} 
+          onHide={() => {
+            setShowDeleteReportModal(false);
+            setReportToDelete(null);
+          }}
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>تأكيد حذف التقرير</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>هل أنت متأكد من حذف هذا التقرير؟</p>
+            <p>لا يمكن التراجع عن هذا الإجراء.</p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => {
+              setShowDeleteReportModal(false);
+              setReportToDelete(null);
+            }}>
+              إلغاء
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={() => handleDeleteReport(reportToDelete)}
+            >
+              حذف التقرير
             </Button>
           </Modal.Footer>
         </Modal>

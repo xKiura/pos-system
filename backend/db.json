@@ -374,7 +374,34 @@
     "taxRate": 15,
     "printCopies": 1,
     "requireManagerApproval": false,
-    "history": []
+    "history": [
+      {
+        "id": 1738226078833,
+        "timestamp": "2025-01-30T08:34:38.833Z",
+        "employeeName": "عبدالله حسن",
+        "employeeNumber": "1",
+        "type": "BILL_REVERT_REFUND",
+        "origin": "صفحة الفواتير",
+        "changes": [
+          {
+            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
+          }
+        ]
+      },
+      {
+        "id": 1738225884194,
+        "timestamp": "2025-01-30T08:31:24.194Z",
+        "employeeName": "عبدالله حسن",
+        "employeeNumber": "1",
+        "type": "BILL_REVERT_REFUND",
+        "origin": "صفحة الفواتير",
+        "changes": [
+          {
+            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
+          }
+        ]
+      }
+    ]
   },
   "productsHistory": [],
   "reports": [

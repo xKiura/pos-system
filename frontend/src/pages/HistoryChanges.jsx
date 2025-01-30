@@ -288,9 +288,23 @@ export const HistoryChanges = ({ onRefresh }) => {
 
   const fetchAllChanges = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/history');
-      const allChanges = response.data;
-      
+      // Fetch all types of history records
+      const [settingsHistory, productsHistory, billsHistory, inventoryHistory] = await Promise.all([
+        axios.get('http://localhost:5000/settings-history').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/productsHistory').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/bills-history').catch(() => ({ data: [] })),
+        axios.get('http://localhost:5000/inventory-history').catch(() => ({ data: [] }))
+      ]);
+
+      // Combine all histories and ensure each entry has a type
+      const allChanges = [
+        ...(Array.isArray(settingsHistory.data) ? settingsHistory.data.map(entry => ({...entry, type: entry.type || 'SETTINGS'})) : []),
+        ...(Array.isArray(productsHistory.data) ? productsHistory.data : []),
+        ...(Array.isArray(billsHistory.data) ? billsHistory.data.map(entry => ({...entry, type: entry.action || 'BILL_ACTION'})) : []),
+        ...(Array.isArray(inventoryHistory.data) ? inventoryHistory.data : [])
+      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      console.log('Combined history entries:', allChanges.length);
       setChanges(allChanges);
       if (onRefresh) {
         onRefresh(allChanges);
@@ -298,7 +312,6 @@ export const HistoryChanges = ({ onRefresh }) => {
     } catch (error) {
       console.error('Error fetching history:', error);
       setChanges([]);
-      toast.error('فشل في تحميل سجل التغييرات');
     }
   };
 
@@ -436,16 +449,37 @@ export const HistoryChanges = ({ onRefresh }) => {
       case 'REPORT_SAVE':
         return change.changes?.map((c, i) => (
           <div key={i}>
-            {c.details || 'تم حفظ تقرير فواتير جديد'}
-            {c.totalAmount && ` - الإجمالي: ${c.totalAmount} ريال`}
+            {c.details}
+            <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
+              عدد الفواتير: {c.billCount}
+              {c.period && c.period.from !== 'all' && (
+                <span> | الفترة: {c.period.from} إلى {c.period.to}</span>
+              )}
+              <br />
+              الإجمالي: {c.totalAmount.toFixed(2)} ريال
+            </div>
           </div>
         ));
 
       case 'REPORT_DELETE':
         return change.changes?.map((c, i) => (
           <div key={i}>
-            {c.details || 'تم حذف تقرير فواتير'}
-            {c.reportDate && ` - تاريخ التقرير: ${c.reportDate}`}
+            {c.details}
+            {c.reportDate && <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
+              تاريخ التقرير: {c.reportDate}
+            </div>}
+          </div>
+        ));
+
+      case 'BILL_REFUND':
+        return change.changes?.map((c, i) => (
+          <div key={i}>
+            {c.details}
+            <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
+              المبلغ المسترجع: {c.total.toFixed(2)} ريال
+              <br />
+              عدد الأصناف: {c.items?.length || 0}
+            </div>
           </div>
         ));
 
@@ -494,17 +528,11 @@ export const HistoryChanges = ({ onRefresh }) => {
       const response = await axios.delete('http://localhost:5000/history');
       
       if (response.data.success) {
-        // Clear all local state
-        setChanges([]);
-        setFilteredChanges([]);
-        
-        // Refresh the data from server
-        await fetchAllChanges();
-        
+        setChanges([]); // Clear local changes
+        setFilteredChanges([]); // Clear filtered changes
         if (onRefresh) {
-          onRefresh([]);
+          onRefresh([]); // Update parent component
         }
-        
         toast.success('تم مسح سجل التغييرات بنجاح');
       } else {
         throw new Error(response.data.message || 'Failed to clear history');
