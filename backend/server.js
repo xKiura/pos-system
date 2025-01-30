@@ -1048,15 +1048,16 @@ app.post('/reports', async (req, res) => {
     if (!data.reports) {
       data.reports = [];
     }
+    if (!data.lastReportId) {
+      data.lastReportId = 0;
+    }
+
+    // Increment the last report ID
+    data.lastReportId += 1;
 
     const newReport = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      employeeName: req.body.employeeName,
-      employeeNumber: req.body.employeeNumber,
-      reportPeriod: req.body.reportPeriod || {},
-      summary: req.body.summary || {},
-      bills: req.body.bills || []
+      ...req.body,
+      id: data.lastReportId // Use sequential ID instead of timestamp
     };
 
     data.reports.unshift(newReport);

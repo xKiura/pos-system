@@ -1311,66 +1311,72 @@ function BillsPage() {
   };
 
   // Enhanced save report functionality
-  const handleSaveReport = async () => {
-    try {
-      const currentDate = new Date().toISOString();
+const handleSaveReport = async () => {
+  try {
+    const currentDate = new Date().toISOString();
+    
+    const summary = {
+      totalBills: filteredOrders.length,
+      completedBills: filteredOrders.filter(o => !o.isRefunded).length,
+      refundedBills: filteredOrders.filter(o => o.isRefunded).length,
+      grossAmount: totalProfit,
+      refundedAmount: -totalRefunded,
+      netAmount: totalProfit - totalRefunded,
+      grossTax: totalTax,
+      refundedTax: -totalRefundedTax,
+      netTax: totalTax - totalRefundedTax,
+      totalWithTax: (totalProfit + totalTax) - (totalRefunded + totalRefundedTax)
+    };
+
+    const reportData = {
+      // Remove id from here, let server assign it
+      timestamp: currentDate,
+      employeeName: localStorage.getItem('employeeName'),
+      employeeNumber: localStorage.getItem('employeeNumber'),
+      reportPeriod: {
+        from: dateFilter || 'all',
+        to: dateFilter || 'all',
+        category: categoryFilter
+      },
+      summary: summary,
+      bills: filteredOrders.map(order => ({
+        ...order,
+        calculatedTotals: calculateOrderTotals(order.items)
+      }))
+    };
+
+    const response = await axios.post('http://localhost:5000/reports', reportData);
+    
+    if (response.data?.success) {
+      const savedReport = response.data.report;
+      const { date, time } = formatDateTime(currentDate);
       
-      // Calculate summary data
-      const summary = {
-        totalBills: filteredOrders.length,
-        completedBills: filteredOrders.filter(o => !o.isRefunded).length,
-        refundedBills: filteredOrders.filter(o => o.isRefunded).length,
-        grossAmount: totalProfit,
-        refundedAmount: -totalRefunded,
-        netAmount: totalProfit - totalRefunded,
-        grossTax: totalTax,
-        refundedTax: -totalRefundedTax,
-        netTax: totalTax - totalRefundedTax,
-        totalWithTax: (totalProfit + totalTax) - (totalRefunded + totalRefundedTax)
-      };
-  
-      const reportData = {
-        id: Date.now(),
-        timestamp: currentDate,
+      // Now use the server-assigned ID in the history log
+      await axios.post('http://localhost:5000/settings-history', {
+        timestamp: new Date().toISOString(),
+        type: 'REPORT_SAVE',
         employeeName: localStorage.getItem('employeeName'),
         employeeNumber: localStorage.getItem('employeeNumber'),
-        reportPeriod: {
-          from: dateFilter || 'all',
-          to: dateFilter || 'all',
-          category: categoryFilter
-        },
-        summary: summary,
-        bills: filteredOrders.map(order => ({
-          ...order,
-          calculatedTotals: calculateOrderTotals(order.items)
-        }))
-      };
-  
-      const response = await axios.post('http://localhost:5000/reports', reportData);
-      
-      if (response.data) {
-        // Log the report save action
-        await axios.post('http://localhost:5000/settings-history', {
-          timestamp: new Date().toISOString(),
-          type: 'REPORT_SAVE',
-          employeeName: localStorage.getItem('employeeName'),
-          employeeNumber: localStorage.getItem('employeeNumber'),
-          origin: 'صفحة الفواتير',
-          changes: [{
-            details: 'تم حفظ تقرير فواتير جديد',
-            totalAmount: reportData.summary.totalWithTax
-          }]
-        });
+        origin: 'صفحة الفواتير',
+        changes: [{
+          details: `تم حفظ تقرير فواتير رقم ${savedReport.id}`,
+          reportId: savedReport.id,
+          billCount: reportData.bills.length,
+          period: reportData.reportPeriod,
+          totalAmount: reportData.summary.totalWithTax,
+          reportDate: `${date} ${time}` // Add report date here
+        }]
+      });
 
-        toast.success('تم حفظ التقرير بنجاح');
-        await printReport(reportData);
-      }
-    } catch (error) {
-      console.error('Error saving report:', error);
-      toast.error('فشل في حفظ التقرير');
+      toast.success(`تم حفظ التقرير رقم ${savedReport.id} بنجاح`);
+      await printReport(savedReport);
     }
-    setShowSaveReportModal(false);
-  };
+  } catch (error) {
+    console.error('Error saving report:', error);
+    toast.error('فشل في حفظ التقرير');
+  }
+  setShowSaveReportModal(false);
+};
 
   // Enhanced fetch reports functionality
   const fetchReports = useCallback(async () => {
@@ -1526,35 +1532,38 @@ function BillsPage() {
   };
 
   // Update the handleDeleteReport function
-  const handleDeleteReport = async (reportId) => {
-    try {
-      await axios.delete(`http://localhost:5000/reports/${reportId}`);
-      
-      // Log the report deletion
-      await axios.post('http://localhost:5000/settings-history', {
-        timestamp: new Date().toISOString(),
-        type: 'REPORT_DELETE',
-        employeeName: localStorage.getItem('employeeName'),
-        employeeNumber: localStorage.getItem('employeeNumber'),
-        origin: 'صفحة الفواتير',
-        changes: [{
-          details: 'تم حذف تقرير فواتير',
-          reportId: reportId
-        }]
-      });
+const handleDeleteReport = async (reportId) => {
+  try {
+    // Find the report details before deleting
+    const reportToDelete = reports.find(r => r.id === reportId);
+    
+    await axios.delete(`http://localhost:5000/reports/${reportId}`);
+    
+    // Log the report deletion with more details
+    await axios.post('http://localhost:5000/settings-history', {
+      timestamp: new Date().toISOString(),
+      type: 'REPORT_DELETE',
+      employeeName: localStorage.getItem('employeeName'),
+      employeeNumber: localStorage.getItem('employeeNumber'),
+      origin: 'صفحة الفواتير',
+      changes: [{
+        details: 'تم حذف تقرير فواتير',
+        reportId: reportId,
+        billCount: reportToDelete?.bills?.length || 0,
+        reportDate: reportToDelete ? format(new Date(reportToDelete.timestamp), 'dd/MM/yyyy HH:mm') : undefined
+      }]
+    });
 
-      // Update the reports list
-      setReports(prevReports => prevReports.filter(report => report.id !== reportId));
-      toast.success('تم حذف التقرير بنجاح');
-      
-      // Close both modals
-      setShowDeleteReportModal(false);
-      setShowReportsModal(false);
-    } catch (error) {
-      console.error('Error deleting report:', error);
-      toast.error('فشل في حذف التقرير');
-    }
-  };
+    setReports(prevReports => prevReports.filter(report => report.id !== reportId));
+    toast.success('تم حذف التقرير بنجاح');
+    
+    setShowDeleteReportModal(false);
+    setShowReportsModal(false);
+  } catch (error) {
+    console.error('Error deleting report:', error);
+    toast.error('فشل في حذف التقرير');
+  }
+};
 
   // Add the handleRevertRefund function
   const handleRevertRefund = async (bill) => {
@@ -1923,7 +1932,7 @@ function BillsPage() {
           <Modal.Header closeButton>
             <Modal.Title>تأكيد المسح</Modal.Title>
           </Modal.Header>
-          <Modal.Body>هل أنت متأكد أنك تريد مسح جميع الفواتير؟</Modal.Body>
+          <Modal.Body>هل أنت متكد أنك تريد مسح جميع الفواتير؟</Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button>
             <Button variant="danger" onClick={handleDeleteAll}>مسح</Button>
@@ -1934,7 +1943,7 @@ function BillsPage() {
           <Modal.Header closeButton>
             <Modal.Title>تأكيد المسح</Modal.Title>
           </Modal.Header>
-          <Modal.Body>هل أنت متأكد أنك تريد مسح هذه الفاتورة؟</Modal.Body>
+          <Modal.Body>هل أنت متكد أنك تريد مسح هذه الفاتورة؟</Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>إلغاء</Button>
             <Button variant="danger" onClick={() => handleDeleteOrder(orderToDelete)}>مسح</Button>
@@ -1947,13 +1956,13 @@ function BillsPage() {
             <Modal.Title>تأكيد الاسترجاع</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            هل أنت متأكد أنك تريد استرجاع الفاتورة رقم {orderToRefund?.orderNumber}؟
+            هل أنت متكد أنك تريد استرجاع الفاتورة رقم {orderToRefund?.orderNumber}؟
           </Modal.Body>
           <Modal.Footer>
             <Button variant="secondary" onClick={() => setShowRefundModal(false)}>
               إلغاء
             </Button>
-            <Button variant="warning" onClick={confirmRefund}>
+            <Button variant="danger" onClick={confirmRefund}>
               تأكيد الاسترجاع
             </Button>
           </Modal.Footer>
@@ -2120,7 +2129,7 @@ function BillsPage() {
             <Modal.Title>تأكيد حذف التقرير</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <p>هل أنت متأكد من حذف هذا التقرير؟</p>
+            <p>هل أنت متكد من حذف هذا التقرير؟</p>
             <p>لا يمكن التراجع عن هذا الإجراء.</p>
           </Modal.Body>
           <Modal.Footer>

@@ -449,27 +449,31 @@ export const HistoryChanges = ({ onRefresh }) => {
       case 'REPORT_SAVE':
         return change.changes?.map((c, i) => (
           <div key={i}>
-            {c.details}
+            <div>{c.details}</div>
             <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
-              عدد الفواتير: {c.billCount}
+              معرف التقرير: #{c.reportId || 'غير معروف'}
+              {c.billCount && <span> | عدد الفواتير: {c.billCount}</span>}
               {c.period && c.period.from !== 'all' && (
                 <span> | الفترة: {c.period.from} إلى {c.period.to}</span>
               )}
+              {c.reportDate && <span> | تاريخ التقرير: {c.reportDate}</span>}
               <br />
-              الإجمالي: {c.totalAmount.toFixed(2)} ريال
+              الإجمالي: {c.totalAmount?.toFixed(2) || '0.00'} ريال
             </div>
           </div>
-        ));
+        )) || 'تم حفظ تقرير جديد';
 
       case 'REPORT_DELETE':
         return change.changes?.map((c, i) => (
           <div key={i}>
-            {c.details}
-            {c.reportDate && <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
-              تاريخ التقرير: {c.reportDate}
-            </div>}
+            <div>تم حذف التقرير رقم {c.reportId}</div>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.9em', color: '#666' }}>
+              معرف التقرير: #{c.reportId || 'غير معروف'}
+              {c.billCount && <span> | عدد الفواتير: {c.billCount}</span>}
+              {c.reportDate && <span> | تاريخ التقرير: {c.reportDate}</span>}
+            </div>
           </div>
-        ));
+        )) || 'تم حذف تقرير';
 
       case 'BILL_REFUND':
         return change.changes?.map((c, i) => (
