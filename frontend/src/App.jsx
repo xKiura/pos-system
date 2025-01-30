@@ -15,10 +15,12 @@ import SalesReports from './pages/SalesReports';
 import InventoryReports from './pages/InventoryReports';
 import ManagementPage from './pages/ManagementPage';
 import LoginPage from './pages/LoginPage';
+import ProfilePage from './pages/ProfilePage';
 import { SettingsProvider } from './context/SettingsContext';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { EmployeeProvider } from './context/EmployeeContext';
 import './App.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 const ProtectedRoute = React.memo(({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -51,6 +53,7 @@ const AuthenticatedContent = () => {
               { path: '/sales-reports', component: <SalesReports /> },
               { path: '/inventory-reports', component: <InventoryReports /> },
               { path: '/management', component: <ManagementPage /> },
+              { path: '/profile', component: <ProfilePage /> },
             ].map(({ path, component }) => (
               <Route
                 key={path}

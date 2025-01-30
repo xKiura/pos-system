@@ -736,6 +736,44 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Add these new endpoints
+app.post('/validate-pin', async (req, res) => {
+  try {
+    const { employeeNumber, pin } = req.body;
+    const users = await storage.get('users') || [];
+    const user = users.find(u => u.employeeNumber === employeeNumber);
+
+    if (!user || user.pin !== pin) {
+      return res.json({ success: false });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error validating PIN:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+app.post('/update-pin', async (req, res) => {
+  try {
+    const { employeeNumber, employeeName, newPin } = req.body;
+    const users = await storage.get('users') || [];
+    const userIndex = users.findIndex(u => u.employeeNumber === employeeNumber);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    users[userIndex].pin = newPin;
+    await storage.set('users', users);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating PIN:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Initialize empty arrays for history
 let settingsHistory = [];
 let productsHistory = [];
