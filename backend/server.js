@@ -1183,6 +1183,41 @@ app.post('/confirmed-orders', async (req, res) => {
   }
 });
 
+// Update reports endpoints
+app.post('/reports', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    if (!data.reports) {
+      data.reports = [];
+    }
+
+    const newReport = {
+      ...req.body,
+      id: Date.now()
+    };
+
+    data.reports.unshift(newReport);
+    // Keep only last 100 reports
+    data.reports = data.reports.slice(0, 100);
+    
+    await writeToDb(data);
+    res.json(newReport);
+  } catch (error) {
+    console.error('Error saving report:', error);
+    res.status(500).json({ error: 'Failed to save report' });
+  }
+});
+
+app.get('/reports', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    res.json(data.reports || []);
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
+
 // Start server
 initializeServer().then(() => {
   app.listen(PORT, () => {

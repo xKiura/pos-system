@@ -895,6 +895,7 @@ function BillsPage() {
   const [billToRevert, setBillToRevert] = useState(null);
   const [totalTax, setTotalTax] = useState(0);
   const [totalRefundedTax, setTotalRefundedTax] = useState(0);
+  const [showSaveReportModal, setShowSaveReportModal] = useState(false);
 
   useEffect(() => {
     const savedEmployeeName = localStorage.getItem('employeeName');
@@ -1230,39 +1231,49 @@ function BillsPage() {
   const handleSaveReport = async () => {
     try {
       const currentDate = new Date().toISOString();
-      const reportSummary = {
+      
+      // Calculate summary data
+      const summary = {
+        totalBills: filteredOrders.length,
+        completedBills: filteredOrders.filter(o => !o.isRefunded).length,
+        refundedBills: filteredOrders.filter(o => o.isRefunded).length,
+        grossAmount: totalProfit,
+        refundedAmount: -totalRefunded,
+        netAmount: totalProfit - totalRefunded,
+        grossTax: totalTax,
+        refundedTax: -totalRefundedTax,
+        netTax: totalTax - totalRefundedTax,
+        totalWithTax: (totalProfit + totalTax) - (totalRefunded + totalRefundedTax)
+      };
+  
+      const reportData = {
+        id: Date.now(),
         timestamp: currentDate,
-        reportId: `RPT-${Date.now()}`,
         employeeName: localStorage.getItem('employeeName'),
         employeeNumber: localStorage.getItem('employeeNumber'),
-        filters: {
-          date: dateFilter || 'all',
-          category: categoryFilter,
-          searchQuery: searchQuery || 'none'
+        reportPeriod: {
+          from: dateFilter || 'all',
+          to: dateFilter || 'all',
+          category: categoryFilter
         },
-        totals: {
-          grossSales: totalProfit,
-          totalTax,
-          refunds: totalRefunded,
-          refundedTax: totalRefundedTax,
-          netTotal: totalWithTax + totalTax - totalRefundedTax
-        },
+        summary: summary,
         bills: filteredOrders.map(order => ({
           ...order,
           calculatedTotals: calculateOrderTotals(order.items)
         }))
       };
-
-      const response = await axios.post(`${endpoints.reports}`, reportSummary);
+  
+      const response = await axios.post('http://localhost:5000/reports', reportData);
       
-      if (response.data.success) {
+      if (response.data) {
         toast.success('تم حفظ التقرير بنجاح');
-        await printReport(reportSummary);
+        await printReport(reportData);
       }
     } catch (error) {
       console.error('Error saving report:', error);
       toast.error('فشل في حفظ التقرير');
     }
+    setShowSaveReportModal(false);
   };
 
   // Enhanced fetch reports functionality
@@ -1300,151 +1311,117 @@ function BillsPage() {
   };
 
   const printReport = (reportData) => {
-    try {
-      if (!reportData || !reportData.summary) {
-        throw new Error('Invalid report data');
-      }
+    const { date, time } = formatDateTime(reportData.timestamp);
+    
+    const printContent = `
+      <div style="font-family: Arial, sans-serif; direction: rtl; padding: 20px;">
+        <h2 style="text-align: center; margin-bottom: 20px;">تقرير الفواتير</h2>
+        
+        <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+          <h3 style="margin-bottom: 15px;">معلومات التقرير</h3>
+          <p><strong>تاريخ التقرير:</strong> ${date}</p>
+          <p><strong>وقت التقرير:</strong> ${time}</p>
+          <p><strong>الموظف:</strong> ${reportData.employeeName} (#${reportData.employeeNumber})</p>
+          <p><strong>الفترة:</strong> ${reportData.reportPeriod.from} إلى ${reportData.reportPeriod.to}</p>
+          <p><strong>التصنيف:</strong> ${reportData.reportPeriod.category}</p>
+        </div>
   
-      const { date, time } = formatDateTime(reportData.timestamp || new Date().toISOString());
-      
-      const printContent = `
-        <div style="font-family: Arial, sans-serif; direction: rtl; padding: 20px;">
-          <h2 style="text-align: center; color: #4a5568;">تقرير الفواتير</h2>
-          <div style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-            <p>تاريخ التقرير: ${date || 'غير محدد'}</p>
-            <p>وقت التقرير: ${time || 'غير محدد'}</p>
-            <p>الموظف: ${reportData.employeeName} (#${reportData.employeeNumber})</p>
-            <p>الفترة: ${reportData.reportPeriod.from} إلى ${reportData.reportPeriod.to}</p>
-            <p>التصنيف: ${reportData.reportPeriod.category}</p>
+        <div style="margin-bottom: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+          <h3 style="margin-bottom: 15px;">ملخص التقرير</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+              <p><strong>إجمالي عدد الفواتير:</strong> ${reportData.summary.totalBills}</p>
+              <p><strong>الفواتير المكتملة:</strong> ${reportData.summary.completedBills}</p>
+              <p><strong>الفواتير المسترجعة:</strong> ${reportData.summary.refundedBills}</p>
+            </div>
+            <div>
+              <p><strong>إجمالي المبيعات:</strong> ${reportData.summary.grossAmount.toFixed(2)} ريال</p>
+              <p><strong>إجمالي المسترجع:</strong> ${reportData.summary.refundedAmount.toFixed(2)} ريال</p>
+              <p><strong>صافي المبيعات:</strong> ${reportData.summary.netAmount.toFixed(2)} ريال</p>
+            </div>
           </div>
-    
-          <div style="margin-bottom: 30px;">
-            <h3 style="color: #4a5568;">ملخص التقرير</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-              <tr style="background-color: #f8f9fa;">
-                <th style="padding: 8px; border: 1px solid #ddd;">البيان</th>
-                <th style="padding: 8px; border: 1px solid #ddd;">المبيعات</th>
-                <th style="padding: 8px; border: 1px solid #ddd;">المسترجع</th>
-                <th style="padding: 8px; border: 1px solid #ddd;">الصافي</th>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">المبلغ</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedAmount || 0).toFixed(2)} ريال</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netAmount || 0).toFixed(2)} ريال</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">الضريبة</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.grossTax || 0).toFixed(2)} ريال</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.refundedTax || 0).toFixed(2)} ريال</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.netTax || 0).toFixed(2)} ريال</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">الإجمالي مع الضريبة</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.grossAmount || 0) + (reportData.summary.grossTax || 0)).toFixed(2)} ريال</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${((reportData.summary.refundedAmount || 0) + (reportData.summary.refundedTax || 0)).toFixed(2)} ريال</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</td>
-              </tr>
-            </table>
-          </div>
-    
-          <div style="margin-bottom: 30px;">
-            <h3 style="color: #4a5568;">تفاصيل الفواتير</h3>
-            ${reportData.bills.map(bill => {
-              const { date, time } = formatDateTime(bill.confirmedAt);
-              const totals = bill.items ? calculateOrderTotals(bill.items) : { subtotal: 0, tax: 0, total: 0 };
-              
-              return `
-                <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 8px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                    <div>
-                      <strong>رقم الفاتورة:</strong> ${bill.orderNumber}<br>
-                      <strong>التاريخ:</strong> ${date}<br>
-                      <strong>الوقت:</strong> ${time}
-                    </div>
-                    <div>
-                      <strong>الموظف:</strong> ${bill.employeeName} (#${bill.employeeNumber})<br>
-                      <strong>الحالة:</strong> <span style="color: ${bill.isRefunded ? 'red' : 'green'}">
-                        ${bill.isRefunded ? 'مسترجع' : 'مكتمل'}
-                      </span>
-                    </div>
-                  </div>
-    
-                  <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                    <tr style="background-color: #f3f4f6;">
-                      <th style="padding: 8px; border: 1px solid #ddd;">الصنف</th>
-                      <th style="padding: 8px; border: 1px solid #ddd;">التصنيف</th>
-                      <th style="padding: 8px; border: 1px solid #ddd;">الكمية</th>
-                      <th style="padding: 8px; border: 1px solid #ddd;">السعر</th>
-                      <th style="padding: 8px; border: 1px solid #ddd;">المجموع</th>
-                    </tr>
-                    ${bill.items.map(item => `
-                      <tr>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${item.name}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${item.category}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${item.quantity}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${parseFloat(item.price || 0).toFixed(2)}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</td>
-                      </tr>
-                    `).join('')}
-                  </table>
-    
-                  <div style="text-align: left; margin-top: 10px;">
-                    <p>المجموع: ${totals.subtotal.toFixed(2)} ريال</p>
-                    <p>الضريبة: ${totals.tax.toFixed(2)} ريال</p>
-                    <p style="font-weight: bold;">الإجمالي مع الضريبة: ${totals.total.toFixed(2)} ريال</p>
-                    ${bill.refundInfo ? `
-                      <p style="color: red;">
-                        تم الاسترجاع في: ${formatDateTime(bill.refundInfo.refundedAt).date} ${formatDateTime(bill.refundInfo.refundedAt).time}<br>
-                        بواسطة: ${bill.refundInfo.refundedBy.name} (#${bill.refundInfo.refundedBy.number})
-                      </p>
-                    ` : ''}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-    
-          <div style="margin-top: 30px; text-align: left;">
-            <h3 style="color: #4a5568;">الإجمالي</h3>
-            <p>إجمالي المبيعات: ${(reportData.summary.grossAmount || 0).toFixed(2)} ريال</p>
-            <p>إجمالي الضريبة: ${(reportData.summary.grossTax || 0).toFixed(2)} ريال</p>
-            <p style="font-weight: bold;">الإجمالي النهائي: ${(reportData.summary.totalWithTax || 0).toFixed(2)} ريال</p>
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #dee2e6;">
+            <p><strong>إجمالي الضريبة:</strong> ${reportData.summary.grossTax.toFixed(2)} ريال</p>
+            <p><strong>ضريبة المسترجع:</strong> ${reportData.summary.refundedTax.toFixed(2)} ريال</p>
+            <p style="font-size: 1.2em; margin-top: 10px;"><strong>الإجمالي النهائي مع الضريبة:</strong> ${reportData.summary.totalWithTax.toFixed(2)} ريال</p>
           </div>
         </div>
-      `;
   
-      const printWindow = window.open('', '', 'width=800,height=600');
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>تقرير الفواتير</title>
-            <meta charset="UTF-8">
-            <style>
-              @media print {
-                body { padding: 20px; }
-                @page { margin: 1cm; }
+        <h3 style="margin-bottom: 15px;">تفاصيل الفواتير</h3>
+        ${reportData.bills.map(bill => {
+          const { date, time } = formatDateTime(bill.confirmedAt);
+          const totals = bill.calculatedTotals;
+          const isRefunded = bill.isRefunded;
+          
+          return `
+            <div style="margin-bottom: 20px; padding: 15px; border: 1px solid ${isRefunded ? '#dc3545' : '#28a745'}; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <div>
+                  <strong>رقم الفاتورة:</strong> #${bill.orderNumber}
+                  <span style="margin-right: 15px; color: ${isRefunded ? '#dc3545' : '#28a745'}">
+                    ${isRefunded ? '(مسترجع)' : '(مكتمل)'}
+                  </span>
+                </div>
+                <div>
+                  <strong>التاريخ:</strong> ${date} ${time}
+                </div>
+              </div>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                <tr style="background: #f8f9fa;">
+                  <th style="padding: 8px; border: 1px solid #dee2e6;">الصنف</th>
+                  <th style="padding: 8px; border: 1px solid #dee2e6;">الكمية</th>
+                  <th style="padding: 8px; border: 1px solid #dee2e6;">السعر</th>
+                  <th style="padding: 8px; border: 1px solid #dee2e6;">المجموع</th>
+                </tr>
+                ${bill.items.map(item => `
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${item.name}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${item.quantity}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${parseFloat(item.price).toFixed(2)}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${(item.quantity * parseFloat(item.price)).toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </table>
+              
+              <div style="text-align: left; margin-top: 10px;">
+                <p>المجموع: ${totals.subtotal.toFixed(2)} ريال</p>
+                <p>الضريبة: ${totals.tax.toFixed(2)} ريال</p>
+                <p style="font-weight: bold;">الإجمالي: ${(isRefunded ? -totals.total : totals.total).toFixed(2)} ريال</p>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>تقرير الفواتير</title>
+          <meta charset="UTF-8">
+          <style>
+            @media print {
+              body { padding: 20px; }
+              @page { margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
               }
-            </style>
-          </head>
-          <body>
-            ${printContent}
-            <script>
-              window.onload = function() {
-                window.print();
-                window.onafterprint = function() {
-                  window.close();
-                }
-              }
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    } catch (error) {
-      console.error('Error printing report:', error);
-      toast.error('فشل في طباعة التقرير');
-    }
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // Add the handleDeleteReport function
@@ -1694,7 +1671,7 @@ function BillsPage() {
       <FilterCardBox>
         <div className="filter-header">
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <ReportActionButton className="save" onClick={handleSaveReport}>
+            <ReportActionButton className="save" onClick={() => setShowSaveReportModal(true)}>
               <FaFileDownload /> {translations.saveReport}
             </ReportActionButton>
             <ReportActionButton className="view" onClick={fetchReports}>
@@ -1971,6 +1948,37 @@ function BillsPage() {
               onClick={() => handleRevertRefund(billToRevert)}
             >
               {translations.revertRefund}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Add the save report confirmation modal */}
+        <Modal 
+          show={showSaveReportModal} 
+          onHide={() => setShowSaveReportModal(false)}
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>تأكيد حفظ التقرير</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div style={{ textAlign: 'right' }}>
+              <p>هل تريد حفظ تقرير للفواتير الحالية؟</p>
+              <p>سيتم حفظ:</p>
+              <ul style={{ paddingRight: '20px' }}>
+                <li>عدد الفواتير: {filteredOrders.length}</li>
+                <li>إجمالي المبيعات: {totalProfit.toFixed(2)} ريال</li>
+                <li>إجمالي المسترجع: {totalRefunded.toFixed(2)} ريال</li>
+                <li>الصافي مع الضريبة: {(totalProfit - totalRefunded + totalTax - totalRefundedTax).toFixed(2)} ريال</li>
+              </ul>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowSaveReportModal(false)}>
+              إلغاء
+            </Button>
+            <Button variant="primary" onClick={handleSaveReport}>
+              حفظ وطباعة التقرير
             </Button>
           </Modal.Footer>
         </Modal>
