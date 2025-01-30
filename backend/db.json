@@ -154,7 +154,7 @@
     {
       "name": "عبدالله حسن",
       "employeeNumber": "1",
-      "pin": "0404"
+      "pin": "0505"
     }
   ],
   "confirmed-orders": [
@@ -374,7 +374,60 @@
     "taxRate": 15,
     "printCopies": 1,
     "requireManagerApproval": false,
-    "history": []
+    "history": [
+      {
+        "id": 1738224256786,
+        "timestamp": "2025-01-30T08:04:16.786Z",
+        "employeeName": "عبدالله حسن",
+        "employeeNumber": "1",
+        "type": "BILL_REVERT_REFUND",
+        "origin": "صفحة الفواتير",
+        "changes": [
+          {
+            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
+          }
+        ]
+      },
+      {
+        "id": 1738224123012,
+        "timestamp": "2025-01-30T08:02:03.012Z",
+        "employeeName": "عبدالله حسن",
+        "employeeNumber": "1",
+        "type": "BILL_REVERT_REFUND",
+        "origin": "صفحة الفواتير",
+        "changes": [
+          {
+            "details": "تم إلغاء استرجاع الفاتورة رقم 000036"
+          }
+        ]
+      },
+      {
+        "id": 1738223877907,
+        "timestamp": "2025-01-30T07:57:57.907Z",
+        "employeeName": "عبدالله حسن",
+        "employeeNumber": "1",
+        "type": "BILL_REVERT_REFUND",
+        "origin": "صفحة الفواتير",
+        "changes": [
+          {
+            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
+          }
+        ]
+      },
+      {
+        "id": 1738223607701,
+        "timestamp": "2025-01-30T07:53:27.701Z",
+        "employeeName": "عبدالله حسن",
+        "employeeNumber": "1",
+        "type": "BILL_REVERT_REFUND",
+        "origin": "صفحة الفواتير",
+        "changes": [
+          {
+            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
+          }
+        ]
+      }
+    ]
   },
   "productsHistory": [
     {

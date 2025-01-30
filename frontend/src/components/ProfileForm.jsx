@@ -240,17 +240,14 @@ const ProfileForm = ({ currentUser }) => {
       });
 
       if (updateResponse.data.success) {
-        // Log the change in settings history
+        // Log the change in settings history - simplified entry with new type
         await axios.post('http://localhost:5000/settings-history', {
           timestamp: new Date().toISOString(),
           employeeName: currentUser.name,
           employeeNumber: currentUser.employeeNumber,
-          type: 'SETTINGS',
+          type: 'إعدادات شخصية',
           origin: 'صفحة الملف الشخصي',
           changes: [{
-            setting: 'رقم التعريف الشخصي',
-            oldValue: '****',
-            newValue: '****',
             details: 'تم تغيير رقم التعريف الشخصي'
           }]
         });

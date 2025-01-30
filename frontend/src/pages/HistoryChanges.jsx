@@ -132,6 +132,7 @@ const ChangeTypeBadge = styled.span`
   &.bill { background: #fee2e2; color: #991b1b; }
   &.inventory { background: #fef3c7; color: #92400e; }
   &.report { background: #f3e8ff; color: #6b21a8; }
+  &.usersetting { background: #ddd6fe; color: #5b21b6; } // Add this new style
 `;
 
 const TimeStamp = styled.span`
@@ -166,6 +167,10 @@ const translations = {
     BILL_DELETE: 'حذف فاتورة',
     INVENTORY_UPDATE: 'تحديث المخزون', // This is the key one we need
     REPORT_EXPORT: 'تصدير تقرير',
+    'إعدادات شخصية': 'إعدادات شخصية', // Add this new type
+    REPORT_SAVE: 'حفظ تقرير',
+    REPORT_DELETE: 'حذف تقرير',
+    BILL_REVERT_REFUND: 'إلغاء استرجاع فاتورة',
     UNKNOWN: 'نوع غير معروف'
   },
   filterLabels: {
@@ -334,7 +339,24 @@ export const HistoryChanges = ({ onRefresh }) => {
         return `تم حذف منتج "${change.product?.name || 'غير معروف'}"`;
       
       case 'BILL_REFUND':
-        return `تم استرجاع الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
+        if (!change.changes || !Array.isArray(change.changes)) {
+          return `تم استرجاع الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
+        }
+        return change.changes.map((c, i) => (
+          <div key={i}>
+            {c.details}
+            {c.amount && 
+              <div style={{ marginTop: '0.5rem', color: '#dc2626' }}>
+                المبلغ المسترجع: {c.amount.toFixed(2)} ريال
+                {c.subtotal && c.tax && 
+                  <span style={{ fontSize: '0.9em', color: '#666', marginRight: '0.5rem' }}>
+                    (الصافي: {c.subtotal.toFixed(2)} + الضريبة: {c.tax.toFixed(2)})
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        ));
       
       case 'BILL_REPRINT':
         return `تمت إعادة طباعة الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
@@ -342,6 +364,35 @@ export const HistoryChanges = ({ onRefresh }) => {
       case 'BILL_DELETE':
         return `تم حذف الفاتورة رقم ${change.billNumber || 'غير معروف'}`;
       
+      case 'إعدادات شخصية':
+        if (!change.changes || !Array.isArray(change.changes)) return 'تغيير في الإعدادات الشخصية';
+        return change.changes.map((c, i) => (
+          <div key={i}>{c.details}</div>
+        ));
+
+      case 'REPORT_SAVE':
+        return change.changes?.map((c, i) => (
+          <div key={i}>
+            {c.details || 'تم حفظ تقرير فواتير جديد'}
+            {c.totalAmount && ` - الإجمالي: ${c.totalAmount} ريال`}
+          </div>
+        ));
+
+      case 'REPORT_DELETE':
+        return change.changes?.map((c, i) => (
+          <div key={i}>
+            {c.details || 'تم حذف تقرير فواتير'}
+            {c.reportDate && ` - تاريخ التقرير: ${c.reportDate}`}
+          </div>
+        ));
+
+      case 'BILL_REVERT_REFUND':
+        return change.changes?.map((c, i) => (
+          <div key={i}>
+            {c.details || `تم إلغاء استرجاع الفاتورة رقم ${change.billNumber || 'غير معروف'}`}
+          </div>
+        ));
+
       default:
         return 'تغيير غير معروف';
     }
@@ -360,9 +411,14 @@ export const HistoryChanges = ({ onRefresh }) => {
       case 'PRODUCT_DELETE':
         return 'product';
       case 'BILL_REFUND':
-      case 'BILL_REPRINT':
+      case 'BILL_REVERT_REFUND':
       case 'BILL_DELETE':
         return 'bill';
+      case 'إعدادات شخصية': // Add this case
+        return 'usersetting';
+      case 'REPORT_SAVE':
+      case 'REPORT_DELETE':
+        return 'report';
       default:
         return 'inventory'; // Default to inventory for unknown types
     }

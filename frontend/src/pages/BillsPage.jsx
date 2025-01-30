@@ -1183,8 +1183,26 @@ function BillsPage() {
         calculateProfits(newFiltered);
         
         setRefundedOrders(prev => new Set([...prev, orderToRefund.orderNumber]));
+
+        // Calculate refund amount
+        const { subtotal, tax } = calculateOrderTotals(orderToRefund.items);
         
-        await logBillChange('BILL_REFUND', orderToRefund.orderNumber);
+        // Log the refund action with detailed information
+        await axios.post('http://localhost:5000/settings-history', {
+          timestamp: new Date().toISOString(),
+          employeeName: currentEmployeeName,
+          employeeNumber: currentEmployeeNumber,
+          type: 'BILL_REFUND',
+          origin: 'صفحة الفواتير',
+          billNumber: orderToRefund.orderNumber,
+          changes: [{
+            details: `تم استرجاع الفاتورة رقم ${orderToRefund.orderNumber}`,
+            amount: subtotal + tax,
+            subtotal: subtotal,
+            tax: tax
+          }]
+        });
+
         toast.success('تم استرجاع الفاتورة بنجاح');
       } else {
         throw new Error(response.data.error || 'Failed to process refund');
@@ -1266,6 +1284,19 @@ function BillsPage() {
       const response = await axios.post('http://localhost:5000/reports', reportData);
       
       if (response.data) {
+        // Log the report save action
+        await axios.post('http://localhost:5000/settings-history', {
+          timestamp: new Date().toISOString(),
+          type: 'REPORT_SAVE',
+          employeeName: localStorage.getItem('employeeName'),
+          employeeNumber: localStorage.getItem('employeeNumber'),
+          origin: 'صفحة الفواتير',
+          changes: [{
+            details: 'تم حفظ تقرير فواتير جديد',
+            totalAmount: reportData.summary.totalWithTax
+          }]
+        });
+
         toast.success('تم حفظ التقرير بنجاح');
         await printReport(reportData);
       }
@@ -1428,6 +1459,20 @@ function BillsPage() {
   const handleDeleteReport = async (reportId) => {
     try {
       await axios.delete(`http://localhost:5000/reports/${reportId}`);
+      
+      // Log the report deletion
+      await axios.post('http://localhost:5000/settings-history', {
+        timestamp: new Date().toISOString(),
+        type: 'REPORT_DELETE',
+        employeeName: localStorage.getItem('employeeName'),
+        employeeNumber: localStorage.getItem('employeeNumber'),
+        origin: 'صفحة الفواتير',
+        changes: [{
+          details: 'تم حذف تقرير فواتير',
+          reportId: reportId
+        }]
+      });
+
       // Update the reports list by filtering out the deleted report
       setReports(prevReports => prevReports.filter(report => report.id !== reportId));
       toast.success('تم حذف التقرير بنجاح');
@@ -1468,7 +1513,19 @@ function BillsPage() {
           return newSet;
         });
         
-        await logBillChange('BILL_REVERT_REFUND', bill.orderNumber);
+        // Log the revert refund action
+        await axios.post('http://localhost:5000/settings-history', {
+          timestamp: new Date().toISOString(),
+          type: 'BILL_REVERT_REFUND',
+          employeeName: localStorage.getItem('employeeName'),
+          employeeNumber: localStorage.getItem('employeeNumber'),
+          origin: 'صفحة الفواتير',
+          billNumber: bill.orderNumber,
+          changes: [{
+            details: `تم إلغاء استرجاع الفاتورة رقم ${bill.orderNumber}`
+          }]
+        });
+
         toast.success(translations.revertRefundSuccess);
       }
     } catch (error) {
