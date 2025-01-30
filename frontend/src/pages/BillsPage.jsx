@@ -1520,9 +1520,12 @@ function BillsPage() {
       </html>
     `);
     printWindow.document.close();
+    
+    // Close the reports modal after initiating print
+    setShowReportsModal(false);
   };
 
-  // Add the handleDeleteReport function
+  // Update the handleDeleteReport function
   const handleDeleteReport = async (reportId) => {
     try {
       await axios.delete(`http://localhost:5000/reports/${reportId}`);
@@ -1540,9 +1543,13 @@ function BillsPage() {
         }]
       });
 
-      // Update the reports list by filtering out the deleted report
+      // Update the reports list
       setReports(prevReports => prevReports.filter(report => report.id !== reportId));
       toast.success('تم حذف التقرير بنجاح');
+      
+      // Close both modals
+      setShowDeleteReportModal(false);
+      setShowReportsModal(false);
     } catch (error) {
       console.error('Error deleting report:', error);
       toast.error('فشل في حذف التقرير');
