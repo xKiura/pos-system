@@ -288,21 +288,11 @@ export const HistoryChanges = ({ onRefresh }) => {
 
   const fetchAllChanges = async () => {
     try {
-      // Fetch all types of history records
-      const [settingsHistory, productsHistory, billsHistory, inventoryHistory] = await Promise.all([
-        axios.get('http://localhost:5000/settings-history').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/productsHistory').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/bills-history').catch(() => ({ data: [] })),
-        axios.get('http://localhost:5000/inventory-history').catch(() => ({ data: [] }))
-      ]);
-
-      // Combine all histories and ensure each entry has a type
-      const allChanges = [
-        ...(Array.isArray(settingsHistory.data) ? settingsHistory.data.map(entry => ({...entry, type: entry.type || 'SETTINGS'})) : []),
-        ...(Array.isArray(productsHistory.data) ? productsHistory.data : []),
-        ...(Array.isArray(billsHistory.data) ? billsHistory.data.map(entry => ({...entry, type: entry.action || 'BILL_ACTION'})) : []),
-        ...(Array.isArray(inventoryHistory.data) ? inventoryHistory.data : [])
-      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      // Fetch all history from combined endpoint
+      const response = await axios.get('http://localhost:5000/history');
+      const allChanges = response.data.sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
 
       console.log('Combined history entries:', allChanges.length);
       setChanges(allChanges);

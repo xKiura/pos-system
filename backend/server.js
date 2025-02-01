@@ -163,49 +163,58 @@ app.patch('/products/:id', async (req, res) => {
       ...req.body,
     };
 
-    const historyEntry = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      employeeName: req.body.employeeName || 'Unknown',
-      employeeNumber: req.body.employeeNumber || 'Unknown',
-      type: 'INVENTORY_UPDATE',  // Make sure this is explicitly set
-      origin: 'صفحة المخزون',
-      changes: [{
-        productName: oldProduct.name,
-        detailedChanges: []
-      }]
-    };
+    const changesDetected = 
+      oldProduct.stock !== updatedProduct.stock ||
+      oldProduct.minStock !== updatedProduct.minStock ||
+      oldProduct.costPrice !== updatedProduct.costPrice;
 
-    // Compare and record changes
-    if (oldProduct.stock !== updatedProduct.stock) {
-      historyEntry.changes[0].detailedChanges.push({
-        field: 'المخزون',
-        oldValue: oldProduct.stock,
-        newValue: updatedProduct.stock
-      });
-    }
-    if (oldProduct.minStock !== updatedProduct.minStock) {
-      historyEntry.changes[0].detailedChanges.push({
-        field: 'الحد الأدنى',
-        oldValue: oldProduct.minStock,
-        newValue: updatedProduct.minStock
-      });
-    }
-    if (oldProduct.costPrice !== updatedProduct.costPrice) {
-      historyEntry.changes[0].detailedChanges.push({
-        field: 'سعر التكلفة',
-        oldValue: oldProduct.costPrice,
-        newValue: updatedProduct.costPrice
-      });
-    }
+    if (changesDetected) {
+      // Create a single history entry with all changes
+      const historyEntry = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        employeeName: req.body.employeeName || 'Unknown',
+        employeeNumber: req.body.employeeNumber || 'Unknown',
+        type: 'INVENTORY_UPDATE',
+        origin: 'صفحة المخزون',
+        changes: [{
+          productName: oldProduct.name,
+          detailedChanges: []
+        }]
+      };
 
-    // Only save history if there are actual changes
-    if (historyEntry.changes[0].detailedChanges.length > 0) {
-      if (!data.productsHistory) {
-        data.productsHistory = [];
+      // Compare and record changes
+      if (oldProduct.stock !== updatedProduct.stock) {
+        historyEntry.changes[0].detailedChanges.push({
+          field: 'المخزون',
+          oldValue: oldProduct.stock,
+          newValue: updatedProduct.stock
+        });
       }
-      data.productsHistory.unshift(historyEntry);
-      data.productsHistory = data.productsHistory.slice(0, 100);
+      if (oldProduct.minStock !== updatedProduct.minStock) {
+        historyEntry.changes[0].detailedChanges.push({
+          field: 'الحد الأدنى',
+          oldValue: oldProduct.minStock,
+          newValue: updatedProduct.minStock
+        });
+      }
+      if (oldProduct.costPrice !== updatedProduct.costPrice) {
+        historyEntry.changes[0].detailedChanges.push({
+          field: 'سعر التكلفة',
+          oldValue: oldProduct.costPrice,
+          newValue: updatedProduct.costPrice
+        });
+      }
+
+      // Only save history if there are actual changes
+      if (historyEntry.changes[0].detailedChanges.length > 0) {
+        if (!data.productsHistory) {
+          data.productsHistory = [];
+        }
+        data.productsHistory.unshift(historyEntry);
+        data.productsHistory = data.productsHistory.slice(0, 100);
+      }
+
       products[productIndex] = updatedProduct;
       data.products = products;
       
@@ -214,7 +223,6 @@ app.patch('/products/:id', async (req, res) => {
     } else {
       res.status(400).json({ error: 'No changes detected' });
     }
-
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ error: 'Failed to update product' });
@@ -306,10 +314,27 @@ app.delete('/products/:id', async (req, res) => {
 // Update categories endpoint
 app.get('/categories', async (req, res) => {
   try {
-    await storage.init();
-    const products = await storage.get('products') || [];
-    const categories = [...new Set(products.map(product => product.category))];
-    res.json(categories);
+    const data = await readFromDb();
+    const products = data.products || [];
+    
+    // Get unique categories and sort them
+    const categories = [...new Set(products.map(p => p.category || 'غير مصنف'))].sort();
+    
+    // Add metrics for each category
+    const categoryMetrics = categories.map(category => {
+      const categoryProducts = products.filter(p => (p.category || 'غير مصنف') === category);
+      return {
+        name: category,
+        productCount: categoryProducts.length,
+        averagePrice: categoryProducts.reduce((acc, p) => acc + Number(p.price), 0) / categoryProducts.length,
+        totalStock: categoryProducts.reduce((acc, p) => acc + (p.stock || 0), 0),
+      };
+    });
+
+    res.json({
+      categories,
+      metrics: categoryMetrics
+    });
   } catch (error) {
     console.error('Error fetching categories:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -373,35 +398,42 @@ app.post('/settings', async (req, res) => {
 });
 
 // Modified settings history endpoints
-app.post('/settings-history', (req, res) => {
-  console.log('Received history entry:', req.body);
-  
-  if (!req.body.employeeName || !req.body.employeeNumber) {
-    console.error('Missing employee information in request');
-    return res.status(400).json({ error: 'Employee information is required' });
+app.post('/settings-history', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    if (!data.settingsHistory) {
+      data.settingsHistory = [];
+    }
+
+    const historyEntry = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      employeeName: req.body.employeeName,
+      employeeNumber: req.body.employeeNumber,
+      type: req.body.type || 'SETTINGS',
+      origin: req.body.origin || 'غير محدد',
+      changes: req.body.changes || []
+    };
+
+    data.settingsHistory.unshift(historyEntry);
+    data.settingsHistory = data.settingsHistory.slice(0, 100); // Keep last 100 entries
+    
+    await writeToDb(data);
+    res.json(historyEntry);
+  } catch (error) {
+    console.error('Error saving settings history:', error);
+    res.status(500).json({ error: 'Failed to save history' });
   }
-
-  // Keep the Arabic setting names as they are
-  const historyEntry = {
-    id: Date.now(),
-    timestamp: new Date().toISOString(),
-    employeeName: req.body.employeeName,
-    employeeNumber: req.body.employeeNumber,
-    type: req.body.type || 'UNKNOWN',
-    origin: req.body.origin || 'غير محدد',
-    changes: req.body.changes || [] // Keep the Arabic setting names from the frontend
-  };
-
-  settingsHistory.unshift(historyEntry);
-  settingsHistory = settingsHistory.slice(0, 100);
-  
-  res.json(historyEntry);
 });
 
-// Modified get settings history endpoint
-app.get('/settings-history', (req, res) => {
-  console.log('Sending settings history:', settingsHistory);
-  res.json(settingsHistory);
+app.get('/settings-history', async (req, res) => {
+  try {
+    const data = await readFromDb();
+    res.json(data.settingsHistory || []);
+  } catch (error) {
+    console.error('Error fetching settings history:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
 });
 
 // Products history endpoints
@@ -558,19 +590,35 @@ app.post('/confirmed-orders', async (req, res) => {
 
 // Update the confirmed-orders GET endpoint
 app.get('/confirmed-orders', async (req, res) => {
-    try {
-        const data = await readFromDb();
-        const orders = data['confirmed-orders'] || [];
-        // Log the data being sent
-        console.log('Sending orders:', orders.length, 'orders found');
-        res.json(orders);
-    } catch (error) {
-        console.error('Error fetching confirmed orders:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch confirmed orders',
-            details: error.message
-        });
+  try {
+    const data = await readFromDb();
+    
+    // Ensure data exists
+    if (!data) {
+      console.error('No database found');
+      return res.status(500).json({ 
+        error: 'Database not found',
+        details: 'Could not read from database'
+      });
     }
+
+    // Ensure orders array exists
+    const orders = data['confirmed-orders'] || [];
+    
+    // Log the response being sent
+    console.log('Sending orders:', {
+      count: orders.length,
+      firstOrder: orders[0] ? orders[0].id : 'no orders'
+    });
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching confirmed orders:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch confirmed orders',
+      details: error.message
+    });
+  }
 });
 
 // Update the refund endpoint

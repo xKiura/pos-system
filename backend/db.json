@@ -6,11 +6,11 @@
       "price": "45",
       "image": "https://static.webteb.net/images/content/ramadanrecipe_recipe_574_418b9a1d638-2f86-4c5c-a34a-2b2045ea2e2e.jpg",
       "category": "رز",
-      "stock": 10,
-      "minStock": 1,
+      "stock": 14,
+      "minStock": 3,
       "costPrice": 2,
       "adjustmentDate": "2025-01-21T19:30:21.071Z",
-      "lastUpdated": "2025-01-30T08:18:36.043Z",
+      "lastUpdated": "2025-02-01T09:53:19.438Z",
       "employeeName": "عبدالله حسن",
       "employeeNumber": "1"
     },
@@ -20,11 +20,11 @@
       "price": "100",
       "image": "https://b.zmtcdn.com/data/pictures/6/21364596/4ffc072adaf0517abb75a02585acc629_o2_featured_v2.jpg",
       "category": "مشويات",
-      "stock": 3,
-      "minStock": 1,
+      "stock": 7,
+      "minStock": 2,
       "costPrice": 2,
       "adjustmentDate": "",
-      "lastUpdated": "2025-01-30T08:21:01.002Z",
+      "lastUpdated": "2025-02-01T09:50:02.351Z",
       "employeeName": "عبدالله حسن",
       "employeeNumber": "1"
     },
@@ -183,7 +183,13 @@
       "tax": 7,
       "total": 52,
       "id": "1738020586699",
-      "confirmedAt": "2025-01-27T23:29:46.699Z"
+      "confirmedAt": "2025-01-27T23:29:46.699Z",
+      "isRefunded": true,
+      "refundedAt": "2025-02-01T09:48:02.009Z",
+      "refundedBy": {
+        "name": "عبدالله حسن",
+        "number": "1"
+      }
     },
     {
       "date": "2025-01-22T04:10:00.549Z",
@@ -374,39 +380,141 @@
     "taxRate": 15,
     "printCopies": 1,
     "requireManagerApproval": false,
-    "history": [
-      {
-        "id": 1738226078833,
-        "timestamp": "2025-01-30T08:34:38.833Z",
-        "employeeName": "عبدالله حسن",
-        "employeeNumber": "1",
-        "type": "BILL_REVERT_REFUND",
-        "origin": "صفحة الفواتير",
-        "changes": [
-          {
-            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
-          }
-        ]
-      },
-      {
-        "id": 1738225884194,
-        "timestamp": "2025-01-30T08:31:24.194Z",
-        "employeeName": "عبدالله حسن",
-        "employeeNumber": "1",
-        "type": "BILL_REVERT_REFUND",
-        "origin": "صفحة الفواتير",
-        "changes": [
-          {
-            "details": "تم إلغاء استرجاع الفاتورة رقم 000001"
-          }
-        ]
-      }
-    ]
+    "history": []
   },
-  "productsHistory": [],
+  "settingsHistory": [
+    {
+      "id": 1738403402359,
+      "timestamp": "2025-02-01T09:50:02.359Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مشويات مشكل",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 3,
+              "newValue": 7
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 1,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1738403378576,
+      "timestamp": "2025-02-01T09:49:38.576Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 10,
+              "newValue": 12
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 1,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "productsHistory": [
+    {
+      "id": 1738403599448,
+      "timestamp": "2025-02-01T09:53:19.448Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 12,
+              "newValue": 14
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 2,
+              "newValue": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1738403402354,
+      "timestamp": "2025-02-01T09:50:02.354Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مشويات مشكل",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 3,
+              "newValue": 7
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 1,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1738403378570,
+      "timestamp": "2025-02-01T09:49:38.570Z",
+      "employeeName": "عبدالله حسن",
+      "employeeNumber": "1",
+      "type": "INVENTORY_UPDATE",
+      "origin": "صفحة المخزون",
+      "changes": [
+        {
+          "productName": "مندي لحم",
+          "detailedChanges": [
+            {
+              "field": "المخزون",
+              "oldValue": 10,
+              "newValue": 12
+            },
+            {
+              "field": "الحد الأدنى",
+              "oldValue": 1,
+              "newValue": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "billsHistory": [],
   "reports": [
     {
-      "timestamp": "2025-01-30T09:03:00.737Z",
+      "timestamp": "2025-02-01T09:48:05.214Z",
       "employeeName": "عبدالله حسن",
       "employeeNumber": "1",
       "reportPeriod": {
@@ -416,15 +524,15 @@
       },
       "summary": {
         "totalBills": 9,
-        "completedBills": 5,
-        "refundedBills": 4,
-        "grossAmount": 620,
-        "refundedAmount": -240,
-        "netAmount": 380,
-        "grossTax": 93,
-        "refundedTax": -36,
-        "netTax": 57,
-        "totalWithTax": 437
+        "completedBills": 4,
+        "refundedBills": 5,
+        "grossAmount": 575,
+        "refundedAmount": -285,
+        "netAmount": 290,
+        "grossTax": 86.25,
+        "refundedTax": -42.75,
+        "netTax": 43.5,
+        "totalWithTax": 333.5
       },
       "bills": [
         {
@@ -454,6 +562,8 @@
           "id": "1738020586699",
           "confirmedAt": "2025-01-27T23:29:46.699Z",
           "time": "02:29:46",
+          "isRefunded": true,
+          "refundedAt": "2025-02-01T09:48:02.012Z",
           "calculatedTotals": {
             "subtotal": 45,
             "tax": 6.75,
@@ -693,7 +803,7 @@
           }
         }
       ],
-      "id": 7
+      "id": 9
     },
     {
       "timestamp": "2025-01-30T08:58:38.835Z",
@@ -1531,7 +1641,5 @@
       ]
     }
   ],
-  "settingsHistory": [],
-  "billsHistory": [],
-  "lastReportId": 8
+  "lastReportId": 9
 }
